@@ -1,24 +1,24 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { z } from "zod";
-import { Loader2 } from "lucide-react";
-import { Input } from "@/ui/input";
-import { Button } from "@/ui/button";
-import { useForm } from "@tanstack/react-form";
-import { zodValidator } from "@tanstack/zod-form-adapter";
-import { useEffect, useState } from "react";
-import { Route as OnboardingUsernameRoute } from "@/routes/_app/_auth/onboarding/_layout.username";
-import { Route as DashboardRoute } from "@/routes/_app/_auth/dashboard/_layout.index";
-import { useQuery } from "@tanstack/react-query";
-import { convexQuery, useConvexAuth } from "@convex-dev/react-query";
-import { api } from "@cvx/_generated/api";
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useAuthActions } from '@convex-dev/auth/react';
+import { z } from 'zod';
+import { Loader2 } from 'lucide-react';
+import { Input } from '@/ui/input';
+import { Button } from '@/ui/button';
+import { useForm } from '@tanstack/react-form';
+import { zodValidator } from '@tanstack/zod-form-adapter';
+import { useEffect, useState } from 'react';
+import { Route as OnboardingUsernameRoute } from '@/routes/_app/_auth/onboarding/_layout.username';
+import { Route as DashboardRoute } from '@/routes/_app/_auth/dashboard/_layout.index';
+import { useQuery } from '@tanstack/react-query';
+import { convexQuery, useConvexAuth } from '@convex-dev/react-query';
+import { api } from '@cvx/_generated/api';
 
-export const Route = createFileRoute("/_app/login/_layout/")({
-  component: Login,
+export const Route = createFileRoute('/_app/login/_layout/')({
+  component: Login
 });
 
 function Login() {
-  const [step, setStep] = useState<"signIn" | { email: string }>("signIn");
+  const [step, setStep] = useState<'signIn' | { email: string }>('signIn');
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { data: user } = useQuery(convexQuery(api.app.getCurrentUser, {}));
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ function Login() {
     }
   }, [user]);
 
-  if (step === "signIn") {
+  if (step === 'signIn') {
     return <LoginForm onSubmit={(email) => setStep({ email })} />;
   }
   return <VerifyForm email={step.email} />;
@@ -49,20 +49,20 @@ function LoginForm({ onSubmit }: { onSubmit: (email: string) => void }) {
   const form = useForm({
     validatorAdapter: zodValidator(),
     defaultValues: {
-      email: "",
+      email: ''
     },
     onSubmit: async ({ value }) => {
       setIsSubmitting(true);
-      await signIn("resend-otp", value);
+      await signIn('resend-otp', value);
       onSubmit(value.email);
       setIsSubmitting(false);
-    },
+    }
   });
   return (
     <div className="mx-auto flex h-full w-full max-w-96 flex-col items-center justify-center gap-6">
       <div className="mb-2 flex flex-col gap-2">
         <h3 className="text-center text-2xl font-medium text-primary">
-          Continue to Convex SaaS
+          Continue to Astral Ascendency
         </h3>
         <p className="text-center text-base font-normal text-primary/60">
           Welcome back! Please log in to continue.
@@ -83,10 +83,7 @@ function LoginForm({ onSubmit }: { onSubmit: (email: string) => void }) {
           <form.Field
             name="email"
             validators={{
-              onSubmit: z
-                .string()
-                .max(256)
-                .email("Email address is not valid."),
+              onSubmit: z.string().max(256).email('Email address is not valid.')
             }}
             children={(field) => (
               <Input
@@ -96,7 +93,7 @@ function LoginForm({ onSubmit }: { onSubmit: (email: string) => void }) {
                 onChange={(e) => field.handleChange(e.target.value)}
                 className={`bg-transparent ${
                   field.state.meta?.errors.length > 0 &&
-                  "border-destructive focus-visible:ring-destructive"
+                  'border-destructive focus-visible:ring-destructive'
                 }`}
               />
             )}
@@ -106,7 +103,7 @@ function LoginForm({ onSubmit }: { onSubmit: (email: string) => void }) {
         <div className="flex flex-col">
           {form.state.fieldMeta.email?.errors.length > 0 && (
             <span className="mb-2 text-sm text-destructive dark:text-destructive-foreground">
-              {form.state.fieldMeta.email?.errors.join(" ")}
+              {form.state.fieldMeta.email?.errors.join(' ')}
             </span>
           )}
           {/*
@@ -122,7 +119,7 @@ function LoginForm({ onSubmit }: { onSubmit: (email: string) => void }) {
           {isSubmitting ? (
             <Loader2 className="animate-spin" />
           ) : (
-            "Continue with Email"
+            'Continue with Email'
           )}
         </Button>
       </form>
@@ -138,7 +135,7 @@ function LoginForm({ onSubmit }: { onSubmit: (email: string) => void }) {
         <Button
           variant="outline"
           className="w-full gap-2 bg-transparent"
-          onClick={() => signIn("github", { redirectTo: "/login" })}
+          onClick={() => signIn('github', { redirectTo: '/login' })}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -156,8 +153,8 @@ function LoginForm({ onSubmit }: { onSubmit: (email: string) => void }) {
       </div>
 
       <p className="px-12 text-center text-sm font-normal leading-normal text-primary/60">
-        By clicking continue, you agree to our{" "}
-        <a className="underline hover:text-primary">Terms of Service</a> and{" "}
+        By clicking continue, you agree to our{' '}
+        <a className="underline hover:text-primary">Terms of Service</a> and{' '}
         <a className="underline hover:text-primary">Privacy Policy.</a>
       </p>
     </div>
@@ -169,11 +166,11 @@ function VerifyForm({ email }: { email: string }) {
   const form = useForm({
     validatorAdapter: zodValidator(),
     defaultValues: {
-      code: "",
+      code: ''
     },
     onSubmit: async ({ value }) => {
-      await signIn("resend-otp", { email, code: value.code });
-    },
+      await signIn('resend-otp', { email, code: value.code });
+    }
   });
   return (
     <div className="mx-auto flex h-full w-full max-w-96 flex-col items-center justify-center gap-6">
@@ -200,9 +197,7 @@ function VerifyForm({ email }: { email: string }) {
           <form.Field
             name="code"
             validators={{
-              onSubmit: z
-                .string()
-                .min(8, "Code must be at least 8 characters."),
+              onSubmit: z.string().min(8, 'Code must be at least 8 characters.')
             }}
             children={(field) => {
               return (
@@ -213,7 +208,7 @@ function VerifyForm({ email }: { email: string }) {
                   onChange={(e) => field.handleChange(e.target.value)}
                   className={`bg-transparent ${
                     field.state.meta?.errors.length > 0 &&
-                    "border-destructive focus-visible:ring-destructive"
+                    'border-destructive focus-visible:ring-destructive'
                   }`}
                 />
               );
@@ -224,7 +219,7 @@ function VerifyForm({ email }: { email: string }) {
         <div className="flex flex-col">
           {form.state.fieldMeta.code?.errors.length > 0 && (
             <span className="mb-2 text-sm text-destructive dark:text-destructive-foreground">
-              {form.state.fieldMeta.code?.errors.join(" ")}
+              {form.state.fieldMeta.code?.errors.join(' ')}
             </span>
           )}
           {/*
@@ -247,7 +242,7 @@ function VerifyForm({ email }: { email: string }) {
           Did not receive the code?
         </p>
         <Button
-          onClick={() => signIn("resend-otp", { email })}
+          onClick={() => signIn('resend-otp', { email })}
           variant="ghost"
           className="w-full hover:bg-transparent"
         >

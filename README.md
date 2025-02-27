@@ -1,5 +1,5 @@
 <h1 align="center">
-  Convex SaaS
+  Astral Ascendency
 </h1>
 
 <div align="center">
@@ -11,7 +11,7 @@
 <div align="center">
     <a href="https://convex-saas.netlify.app">Live Demo</a> |  <a href="https://github.com/get-convex/convex-saas/tree/main/docs">Documentation</a>
   <div align="center"><br>
-  <a href="https://labs.convex.dev/convex-saas"> <img src="https://github.com/get-convex/convex-saas/blob/v1markchanges/public/images/convexsaas.png" alt="convex saas" /></a>
+  <a href="https://labs.convex.dev/convex-saas"> <img src="https://github.com/get-convex/convex-saas/blob/v1markchanges/public/images/convexsaas.png" alt="Astral Ascendency" /></a>
 </div>
    
   </p>
@@ -43,7 +43,7 @@ Features provided out of the box:
 ## [Live Demo](https://convex-saas.netlify.app)
 
 > [!NOTE]
-> Convex SaaS is an Open Source Template that is a direct port of the amazing
+> Astral Ascendency is an Open Source Template that is a direct port of the amazing
 > work of [Daniel Kanem](https://twitter.com/DanielKanem) in [Remix SaaS](https://github.com/dev-xo/remix-saas).
 > As that template does, this one shares common bits of code with: [Indie
 > Stack](https://github.com/remix-run/indie-stack), [Epic
