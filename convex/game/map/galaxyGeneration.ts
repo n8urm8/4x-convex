@@ -1,4 +1,3 @@
-// enhancedGalaxyGeneration.ts
 import { mutation, query } from '@cvx/_generated/server';
 import { v } from 'convex/values';
 
@@ -8,7 +7,7 @@ const SECTOR_SIZE = 100; // 100x100 system grid within each sector
 const SYSTEM_SIZE = 9; // 9x9 planet grid within each system
 
 // Galaxy shape parameters
-const GALAXY_CENTER_DENSITY = 0.5; // Maximum density at galaxy center (0-1)
+const GALAXY_CENTER_DENSITY = 0.7; // Maximum density at galaxy center (0-1)
 const GALAXY_EDGE_DENSITY = 0.05; // Minimum density at galaxy edge (0-1)
 const GALAXY_DENSITY_FALLOFF = 1.5; // Controls how quickly density drops off (higher = sharper falloff)
 const GALAXY_SPIRAL_FACTOR = 0.5; // How pronounced spiral arms are (0 = no spirals, 1 = strong spirals)
