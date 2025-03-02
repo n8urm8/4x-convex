@@ -1,8 +1,5 @@
-import { Route as DashboardRoute } from '@/routes/_app/_auth/dashboard/_layout.index';
-import { Route as BillingSettingsRoute } from '@/routes/_app/_auth/dashboard/_layout.settings.billing';
-import { Route as SettingsRoute } from '@/routes/_app/_auth/dashboard/_layout.settings.index';
-import { Button } from '@/ui/button';
-import { buttonVariants } from '@/ui/button-util';
+import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button-util';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,10 +7,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger
-} from '@/ui/dropdown-menu';
-import { LanguageSwitcher } from '@/ui/language-switcher';
-import { Logo } from '@/ui/logo';
-import { ThemeSwitcher } from '@/ui/theme-switcher';
+} from '@/components/ui/dropdown-menu';
+import { Logo } from '@/components/ui/logo';
+import { ThemeSwitcher } from '@/components/ui/theme-switcher';
+import { Route as DashboardRoute } from '@/routes/_app/_auth/dashboard/_layout.index';
+import { Route as BillingSettingsRoute } from '@/routes/_app/_auth/dashboard/_layout.settings.billing';
+import { Route as SettingsRoute } from '@/routes/_app/_auth/dashboard/_layout.settings.index';
 import { cn, useSignOut } from '@/utils/misc';
 import { PLANS } from '@cvx/schema';
 import { Link, useMatchRoute, useNavigate } from '@tanstack/react-router';
@@ -178,6 +177,23 @@ export function Navigation({ user }: { user: User }) {
 
               <DropdownMenuItem
                 className={cn(
+                  'group flex h-9 justify-between rounded-md px-2 my-1 hover:bg-transparent'
+                )}
+              >
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={() =>
+                    navigate({ to: BillingSettingsRoute.fullPath })
+                  }
+                >
+                  {user.subscription?.planKey === PLANS.FREE
+                    ? 'Upgrade to PRO'
+                    : 'Manage Subscription'}
+                </Button>
+              </DropdownMenuItem>
+              {/* <DropdownMenuItem
+                className={cn(
                   'group flex h-9 justify-between rounded-md px-2 hover:bg-transparent'
                 )}
               >
@@ -185,7 +201,7 @@ export function Navigation({ user }: { user: User }) {
                   Language
                 </span>
                 <LanguageSwitcher />
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
 
               <DropdownMenuSeparator className="mx-0 my-2" />
 
@@ -216,7 +232,7 @@ export function Navigation({ user }: { user: User }) {
               `${buttonVariants({ variant: 'ghost', size: 'sm' })} text-primary/80`
             )}
           >
-            Dashboard
+            Overview
           </Link>
         </div>
         <div
@@ -231,7 +247,7 @@ export function Navigation({ user }: { user: User }) {
               `${buttonVariants({ variant: 'ghost', size: 'sm' })} text-primary/80`
             )}
           >
-            Settings
+            Map
           </Link>
         </div>
         <div
@@ -246,7 +262,15 @@ export function Navigation({ user }: { user: User }) {
               `${buttonVariants({ variant: 'ghost', size: 'sm' })} text-primary/80`
             )}
           >
-            Billing
+            Bases
+          </Link>
+          <Link
+            to={BillingSettingsRoute.fullPath}
+            className={cn(
+              `${buttonVariants({ variant: 'ghost', size: 'sm' })} text-primary/80`
+            )}
+          >
+            Faction
           </Link>
         </div>
       </div>

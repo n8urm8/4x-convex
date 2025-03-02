@@ -1,15 +1,15 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { Logo } from '../ui/logo';
-import { cn } from '@/utils/misc';
-import { buttonVariants } from '@/ui/button-util';
-import { Loader2, Star } from 'lucide-react';
-import { Button } from '@/ui/button';
-import siteConfig from '~/site.config';
-import { ThemeSwitcherHome } from '@/ui/theme-switcher';
-import ShadowPNG from '/images/shadow.png';
-import { useConvexAuth } from '@convex-dev/react-query';
-import { Route as AuthLoginRoute } from '@/routes/_app/login/_layout.index';
+import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button-util';
+import { ThemeSwitcherHome } from '@/components/ui/theme-switcher';
 import { Route as DashboardRoute } from '@/routes/_app/_auth/dashboard/_layout.index';
+import { Route as AuthLoginRoute } from '@/routes/_app/login/_layout.index';
+import { cn } from '@/utils/misc';
+import { useConvexAuth } from '@convex-dev/react-query';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { Loader2, Star } from 'lucide-react';
+import siteConfig from '~/site.config';
+import { Logo } from '../components/ui/logo';
+import ShadowPNG from '/images/shadow.png';
 
 export const Route = createFileRoute('/')({
   component: Index

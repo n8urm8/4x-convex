@@ -1,17 +1,17 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { Upload } from 'lucide-react';
-import { useUploadFiles } from '@xixixao/uploadstuff/react';
-import { useDoubleCheck } from '@/ui/use-double-check';
-import { Input } from '@/ui/input';
-import { Button } from '@/ui/button';
-import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
-import { api } from '~/convex/_generated/api';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { useRef } from 'react';
-import { useForm } from '@tanstack/react-form';
-import { zodValidator } from '@tanstack/zod-form-adapter';
-import * as validators from '@/utils/validators';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useDoubleCheck } from '@/components/ui/use-double-check';
 import { useSignOut } from '@/utils/misc';
+import * as validators from '@/utils/validators';
+import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
+import { useForm } from '@tanstack/react-form';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
+import { zodValidator } from '@tanstack/zod-form-adapter';
+import { useUploadFiles } from '@xixixao/uploadstuff/react';
+import { Upload } from 'lucide-react';
+import { useRef } from 'react';
+import { api } from '~/convex/_generated/api';
 
 export const Route = createFileRoute('/_app/_auth/dashboard/_layout/settings/')(
   {

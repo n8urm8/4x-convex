@@ -1,19 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Loader2, BadgeCheck, AlertTriangle, ExternalLink } from "lucide-react";
-import { buttonVariants } from "@/ui/button-util";
-import { useEffect, useState } from "react";
-import { Route as DashboardRoute } from "@/routes/_app/_auth/dashboard/_layout.index";
-import siteConfig from "~/site.config";
-import { PLANS } from "@cvx/schema";
-import { useQuery } from "@tanstack/react-query";
-import { convexQuery } from "@convex-dev/react-query";
-import { api } from "@cvx/_generated/api";
+import { buttonVariants } from '@/components/ui/button-util';
+import { Route as DashboardRoute } from '@/routes/_app/_auth/dashboard/_layout.index';
+import { convexQuery } from '@convex-dev/react-query';
+import { api } from '@cvx/_generated/api';
+import { PLANS } from '@cvx/schema';
+import { useQuery } from '@tanstack/react-query';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { AlertTriangle, BadgeCheck, ExternalLink, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import siteConfig from '~/site.config';
 
-export const Route = createFileRoute("/_app/_auth/dashboard/_layout/checkout")({
+export const Route = createFileRoute('/_app/_auth/dashboard/_layout/checkout')({
   component: DashboardCheckout,
   beforeLoad: () => ({
-    title: `${siteConfig.siteTitle} - Checkout`,
-  }),
+    title: `${siteConfig.siteTitle} - Checkout`
+  })
 });
 
 export default function DashboardCheckout() {
@@ -68,16 +68,16 @@ export default function DashboardCheckout() {
                 </div>
                 <div className="flex flex-col items-center gap-2">
                   <p className="text-center text-base font-medium text-primary">
-                    {isFreePlan && isPending && "Completing your checkout ..."}
-                    {!isFreePlan && "Checkout completed!"}
-                    {isFreePlan && !isPending && "Something went wrong."}
+                    {isFreePlan && isPending && 'Completing your checkout ...'}
+                    {!isFreePlan && 'Checkout completed!'}
+                    {isFreePlan && !isPending && 'Something went wrong.'}
                   </p>
                 </div>
               </div>
               <div className="z-10 flex items-center justify-center">
                 <Link
                   to={DashboardRoute.fullPath}
-                  className={`${buttonVariants({ variant: "ghost", size: "sm" })} gap-2`}
+                  className={`${buttonVariants({ variant: 'ghost', size: 'sm' })} gap-2`}
                 >
                   <span className="text-sm font-medium text-primary/60 group-hover:text-primary">
                     Return to Dashboard

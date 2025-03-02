@@ -1,37 +1,37 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { Logo } from "@/ui/logo";
-import { useConvexAuth } from "convex/react";
+import { Logo } from '@/components/ui/logo';
+import { createFileRoute, Link, Outlet } from '@tanstack/react-router';
+import { useConvexAuth } from 'convex/react';
 
-const HOME_PATH = "/";
+const HOME_PATH = '/';
 
 const QUOTES = [
   {
-    quote: "There is nothing impossible to they who will try.",
-    author: "Alexander the Great",
+    quote: 'There is nothing impossible to they who will try.',
+    author: 'Alexander the Great'
   },
   {
-    quote: "The only way to do great work is to love what you do.",
-    author: "Steve Jobs",
+    quote: 'The only way to do great work is to love what you do.',
+    author: 'Steve Jobs'
   },
   {
-    quote: "The best way to predict the future is to create it.",
-    author: "Peter Drucker",
+    quote: 'The best way to predict the future is to create it.',
+    author: 'Peter Drucker'
   },
   {
     quote:
-      "The only limit to our realization of tomorrow will be our doubts of today.",
-    author: "Franklin D. Roosevelt",
+      'The only limit to our realization of tomorrow will be our doubts of today.',
+    author: 'Franklin D. Roosevelt'
   },
   {
-    quote: "The only thing we have to fear is fear itself.",
-    author: "Franklin D. Roosevelt",
-  },
+    quote: 'The only thing we have to fear is fear itself.',
+    author: 'Franklin D. Roosevelt'
+  }
 ];
 
 const randomQuote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
 
-export const Route = createFileRoute("/_app/login/_layout")({
-  component: LoginLayout,
+export const Route = createFileRoute('/_app/login/_layout')({
+  component: LoginLayout
 });
 
 function LoginLayout() {

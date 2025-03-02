@@ -1,11 +1,10 @@
-import { Header } from '@/ui/header';
 import { convexQuery } from '@convex-dev/react-query';
 import { api } from '@cvx/_generated/api';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 import { Navigation } from './-ui.navigation';
 
-export const Route = createFileRoute('')({
+export const Route = createFileRoute('/_app/_auth/game/_layout')({
   component: GameLayout
 });
 
@@ -17,7 +16,7 @@ function GameLayout() {
   return (
     <div className="flex min-h-[100vh] w-full flex-col bg-secondary dark:bg-black">
       <Navigation user={user} />
-      <Header />
+      {/* <Header /> */}
       <Outlet />
     </div>
   );

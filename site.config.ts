@@ -3,8 +3,7 @@
  */
 export default {
   siteTitle: 'Astral Ascendency',
-  siteDescription:
-    'A Lightweight, Production-Ready Convex Stack for your next SaaS Application.',
+  siteDescription: 'The 4x space strategy game.',
   siteUrl: 'https://convex.dev',
   siteImage: '/images/og-image.png',
   favicon: '/favicon.ico',

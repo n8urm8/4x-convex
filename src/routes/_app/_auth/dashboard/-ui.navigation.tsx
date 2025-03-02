@@ -1,31 +1,30 @@
-import {
-  ChevronUp,
-  ChevronDown,
-  Slash,
-  Check,
-  Settings,
-  LogOut
-} from 'lucide-react';
-import { cn, useSignOut } from '@/utils/misc';
-import { ThemeSwitcher } from '@/ui/theme-switcher';
-import { LanguageSwitcher } from '@/ui/language-switcher';
+import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button-util';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuLabel,
   DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator
-} from '@/ui/dropdown-menu';
-import { Button } from '@/ui/button';
-import { buttonVariants } from '@/ui/button-util';
-import { Logo } from '@/ui/logo';
-import { Link, useMatchRoute, useNavigate } from '@tanstack/react-router';
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { Logo } from '@/components/ui/logo';
+import { ThemeSwitcher } from '@/components/ui/theme-switcher';
 import { Route as DashboardRoute } from '@/routes/_app/_auth/dashboard/_layout.index';
-import { Route as SettingsRoute } from '@/routes/_app/_auth/dashboard/_layout.settings.index';
 import { Route as BillingSettingsRoute } from '@/routes/_app/_auth/dashboard/_layout.settings.billing';
-import { User } from '~/types';
+import { Route as SettingsRoute } from '@/routes/_app/_auth/dashboard/_layout.settings.index';
+import { cn, useSignOut } from '@/utils/misc';
 import { PLANS } from '@cvx/schema';
+import { Link, useMatchRoute, useNavigate } from '@tanstack/react-router';
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  LogOut,
+  Settings,
+  Slash
+} from 'lucide-react';
+import { User } from '~/types';
 
 export function Navigation({ user }: { user: User }) {
   const signOut = useSignOut();
@@ -178,6 +177,23 @@ export function Navigation({ user }: { user: User }) {
 
               <DropdownMenuItem
                 className={cn(
+                  'group flex h-9 justify-between rounded-md px-2 my-1 hover:bg-transparent'
+                )}
+              >
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={() =>
+                    navigate({ to: BillingSettingsRoute.fullPath })
+                  }
+                >
+                  {user.subscription?.planKey === PLANS.FREE
+                    ? 'Upgrade to PRO'
+                    : 'Manage Subscription'}
+                </Button>
+              </DropdownMenuItem>
+              {/* <DropdownMenuItem
+                className={cn(
                   'group flex h-9 justify-between rounded-md px-2 hover:bg-transparent'
                 )}
               >
@@ -185,7 +201,7 @@ export function Navigation({ user }: { user: User }) {
                   Language
                 </span>
                 <LanguageSwitcher />
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
 
               <DropdownMenuSeparator className="mx-0 my-2" />
 

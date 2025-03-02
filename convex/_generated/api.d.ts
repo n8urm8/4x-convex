@@ -19,10 +19,13 @@ import type * as auth from "../auth.js";
 import type * as email_index from "../email/index.js";
 import type * as email_templates_subscriptionEmail from "../email/templates/subscriptionEmail.js";
 import type * as env from "../env.js";
+import type * as game_map_galaxyGeneration from "../game/map/galaxyGeneration.js";
+import type * as game_map_galaxyQueries from "../game/map/galaxyQueries.js";
 import type * as http from "../http.js";
 import type * as init from "../init.js";
 import type * as otp_ResendOTP from "../otp/ResendOTP.js";
 import type * as otp_VerificationCodeEmail from "../otp/VerificationCodeEmail.js";
+import type * as seed_planetTypesSeed from "../seed/planetTypesSeed.js";
 import type * as stripe from "../stripe.js";
 
 /**
@@ -39,10 +42,13 @@ declare const fullApi: ApiFromModules<{
   "email/index": typeof email_index;
   "email/templates/subscriptionEmail": typeof email_templates_subscriptionEmail;
   env: typeof env;
+  "game/map/galaxyGeneration": typeof game_map_galaxyGeneration;
+  "game/map/galaxyQueries": typeof game_map_galaxyQueries;
   http: typeof http;
   init: typeof init;
   "otp/ResendOTP": typeof otp_ResendOTP;
   "otp/VerificationCodeEmail": typeof otp_VerificationCodeEmail;
+  "seed/planetTypesSeed": typeof seed_planetTypesSeed;
   stripe: typeof stripe;
 }>;
 export declare const api: FilterApi<

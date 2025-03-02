@@ -1,17 +1,17 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useAuthActions } from '@convex-dev/auth/react';
-import { z } from 'zod';
-import { Loader2 } from 'lucide-react';
-import { Input } from '@/ui/input';
-import { Button } from '@/ui/button';
-import { useForm } from '@tanstack/react-form';
-import { zodValidator } from '@tanstack/zod-form-adapter';
-import { useEffect, useState } from 'react';
-import { Route as OnboardingUsernameRoute } from '@/routes/_app/_auth/onboarding/_layout.username';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Route as DashboardRoute } from '@/routes/_app/_auth/dashboard/_layout.index';
-import { useQuery } from '@tanstack/react-query';
+import { Route as OnboardingUsernameRoute } from '@/routes/_app/_auth/onboarding/_layout.username';
+import { useAuthActions } from '@convex-dev/auth/react';
 import { convexQuery, useConvexAuth } from '@convex-dev/react-query';
 import { api } from '@cvx/_generated/api';
+import { useForm } from '@tanstack/react-form';
+import { useQuery } from '@tanstack/react-query';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { zodValidator } from '@tanstack/zod-form-adapter';
+import { Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { z } from 'zod';
 
 export const Route = createFileRoute('/_app/login/_layout/')({
   component: Login
