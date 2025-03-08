@@ -4,7 +4,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
@@ -16,14 +15,7 @@ import { Route as SettingsRoute } from '@/routes/_app/_auth/dashboard/_layout.se
 import { cn, useSignOut } from '@/utils/misc';
 import { PLANS } from '@cvx/schema';
 import { Link, useMatchRoute, useNavigate } from '@tanstack/react-router';
-import {
-  Check,
-  ChevronDown,
-  ChevronUp,
-  LogOut,
-  Settings,
-  Slash
-} from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 import { User } from '~/types';
 
 export function Navigation({ user }: { user: User }) {
@@ -48,8 +40,8 @@ export function Navigation({ user }: { user: User }) {
           >
             <Logo />
           </Link>
-          <Slash className="h-6 w-6 -rotate-12 stroke-[1.5px] text-primary/10" />
-          <DropdownMenu modal={false}>
+          {/* <Slash className="h-6 w-6 -rotate-12 stroke-[1.5px] text-primary/10" /> */}
+          {/* <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
@@ -125,7 +117,7 @@ export function Navigation({ user }: { user: User }) {
                 </>
               )}
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
         </div>
 
         <div className="flex h-10 items-center gap-3">
