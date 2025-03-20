@@ -39,14 +39,17 @@ interface AdminSectorsTabProps {
   selectedGalaxyId: Id<'galaxies'> | null;
   selectedSectorId: Id<'galaxySectors'> | null;
   setSelectedSectorId: (id: Id<'galaxySectors'>) => void;
+  densityMultiplier: number;
+  setDensityMultiplier: (value: number) => void;
 }
 
 export const AdminSectorsTab = ({
   selectedGalaxyId,
   selectedSectorId,
-  setSelectedSectorId
+  setSelectedSectorId,
+  densityMultiplier,
+  setDensityMultiplier
 }: AdminSectorsTabProps) => {
-  const [densityMultiplier, setDensityMultiplier] = useState<number>(1.0);
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
 
   // Query to get systems for selected sector
@@ -268,10 +271,10 @@ export const AdminSectorsTab = ({
                 const density = sectorDensity?.density || 0;
 
                 // Find the number of systems for this sector
-                const systemCount =
-                  sectorSystems.sector?._id === sector._id
-                    ? sectorSystems.systems.length
-                    : undefined;
+                const systemCount = undefined;
+                // sectorSystems.sector?._id === sector._id
+                //   ? sectorSystems.length
+                //   : undefined;
 
                 return (
                   <Card
