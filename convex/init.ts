@@ -1,72 +1,88 @@
-import { asyncMap } from "convex-helpers";
-import { ERRORS } from "~/errors";
-import { internalAction, internalMutation } from "@cvx/_generated/server";
+import { internal } from '@cvx/_generated/api';
+import { internalAction, internalMutation } from '@cvx/_generated/server';
 import schema, {
   CURRENCIES,
   Currency,
   Interval,
   INTERVALS,
   PlanKey,
-  PLANS,
-} from "@cvx/schema";
-import { internal } from "@cvx/_generated/api";
-import { stripe } from "@cvx/stripe";
+  PLANS
+} from '@cvx/schema';
+import { stripe } from '@cvx/stripe';
+import { asyncMap } from 'convex-helpers';
+import { v } from 'convex/values';
+import { ERRORS } from '~/errors';
+import { seedPlanetTypes } from './seed/planetTypesSeed';
 
 const seedProducts = [
   {
     key: PLANS.FREE,
-    name: "Free",
-    description: "Start with the basics, upgrade anytime.",
+    name: 'Free',
+    description: 'Start with the basics, upgrade anytime.',
     prices: {
       [INTERVALS.MONTH]: {
         [CURRENCIES.USD]: 0,
-        [CURRENCIES.EUR]: 0,
+        [CURRENCIES.EUR]: 0
       },
       [INTERVALS.YEAR]: {
         [CURRENCIES.USD]: 0,
-        [CURRENCIES.EUR]: 0,
-      },
-    },
+        [CURRENCIES.EUR]: 0
+      }
+    }
   },
   {
     key: PLANS.PRO,
-    name: "Pro",
-    description: "Access to all features and unlimited projects.",
+    name: 'Pro',
+    description: 'Access to all features and unlimited projects.',
     prices: {
       [INTERVALS.MONTH]: {
         [CURRENCIES.USD]: 1990,
-        [CURRENCIES.EUR]: 1990,
+        [CURRENCIES.EUR]: 1990
       },
       [INTERVALS.YEAR]: {
         [CURRENCIES.USD]: 19990,
-        [CURRENCIES.EUR]: 19990,
-      },
-    },
-  },
+        [CURRENCIES.EUR]: 19990
+      }
+    }
+  }
 ];
 
 export const insertSeedPlan = internalMutation({
   args: schema.tables.plans.validator,
   handler: async (ctx, args) => {
-    await ctx.db.insert("plans", {
+    await ctx.db.insert('plans', {
       stripeId: args.stripeId,
       key: args.key,
       name: args.name,
       description: args.description,
-      prices: args.prices,
+      prices: args.prices
     });
-  },
+  }
+});
+
+// Seed Planet types
+export const seedPlanetTypesAction = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    await seedPlanetTypes(ctx.db);
+    console.info('🌍 Planet types have been successfully seeded.');
+    return null;
+  }
 });
 
 export default internalAction(async (ctx) => {
+  // Seed Planet Types TODO: why is this not working?
+  await ctx.runMutation(internal.init.seedPlanetTypesAction, {});
+
   /**
    * Stripe Products.
    */
   const products = await stripe.products.list({
-    limit: 1,
+    limit: 1
   });
   if (products?.data?.length) {
-    console.info("🏃‍♂️ Skipping Stripe products creation and seeding.");
+    console.info('🏃‍♂️ Skipping Stripe products creation and seeding.');
     return;
   }
 
@@ -77,15 +93,15 @@ export default internalAction(async (ctx) => {
         return Object.entries(price).map(([currency, amount]) => ({
           interval,
           currency,
-          amount,
+          amount
         }));
-      },
+      }
     );
 
     // Create Stripe product.
     const stripeProduct = await stripe.products.create({
       name: product.name,
-      description: product.description,
+      description: product.description
     });
 
     // Create Stripe price for the current product.
@@ -93,20 +109,20 @@ export default internalAction(async (ctx) => {
       pricesByInterval.map((price) => {
         return stripe.prices.create({
           product: stripeProduct.id,
-          currency: price.currency ?? "usd",
+          currency: price.currency ?? 'usd',
           unit_amount: price.amount ?? 0,
-          tax_behavior: "inclusive",
+          tax_behavior: 'inclusive',
           recurring: {
-            interval: (price.interval as Interval) ?? INTERVALS.MONTH,
-          },
+            interval: (price.interval as Interval) ?? INTERVALS.MONTH
+          }
         });
-      }),
+      })
     );
 
     const getPrice = (currency: Currency, interval: Interval) => {
       const price = stripePrices.find(
         (price) =>
-          price.currency === currency && price.recurring?.interval === interval,
+          price.currency === currency && price.recurring?.interval === interval
       );
       if (!price) {
         throw new Error(ERRORS.STRIPE_SOMETHING_WENT_WRONG);
@@ -122,19 +138,19 @@ export default internalAction(async (ctx) => {
       prices: {
         [INTERVALS.MONTH]: {
           [CURRENCIES.USD]: getPrice(CURRENCIES.USD, INTERVALS.MONTH),
-          [CURRENCIES.EUR]: getPrice(CURRENCIES.EUR, INTERVALS.MONTH),
+          [CURRENCIES.EUR]: getPrice(CURRENCIES.EUR, INTERVALS.MONTH)
         },
         [INTERVALS.YEAR]: {
           [CURRENCIES.USD]: getPrice(CURRENCIES.USD, INTERVALS.YEAR),
-          [CURRENCIES.EUR]: getPrice(CURRENCIES.EUR, INTERVALS.YEAR),
-        },
-      },
+          [CURRENCIES.EUR]: getPrice(CURRENCIES.EUR, INTERVALS.YEAR)
+        }
+      }
     });
 
     return {
       key: product.key,
       product: stripeProduct.id,
-      prices: stripePrices.map((price) => price.id),
+      prices: stripePrices.map((price) => price.id)
     };
   });
   console.info(`📦 Stripe Products has been successfully created.`);
@@ -142,29 +158,29 @@ export default internalAction(async (ctx) => {
   // Configure Customer Portal.
   await stripe.billingPortal.configurations.create({
     business_profile: {
-      headline: "Organization Name - Customer Portal",
+      headline: 'Organization Name - Customer Portal'
     },
     features: {
       customer_update: {
         enabled: true,
-        allowed_updates: ["address", "shipping", "tax_id", "email"],
+        allowed_updates: ['address', 'shipping', 'tax_id', 'email']
       },
       invoice_history: { enabled: true },
       payment_method_update: { enabled: true },
       subscription_cancel: { enabled: true },
       subscription_update: {
         enabled: true,
-        default_allowed_updates: ["price"],
-        proration_behavior: "always_invoice",
+        default_allowed_updates: ['price'],
+        proration_behavior: 'always_invoice',
         products: seededProducts
           .filter(({ key }) => key !== PLANS.FREE)
-          .map(({ product, prices }) => ({ product, prices })),
-      },
-    },
+          .map(({ product, prices }) => ({ product, prices }))
+      }
+    }
   });
 
   console.info(`👒 Stripe Customer Portal has been successfully configured.`);
   console.info(
-    "🎉 Visit: https://dashboard.stripe.com/test/products to see your products.",
+    '🎉 Visit: https://dashboard.stripe.com/test/products to see your products.'
   );
 });

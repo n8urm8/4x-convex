@@ -1,4 +1,4 @@
-import { DatabaseWriter } from '@cvx/_generated/server';
+import { DatabaseWriter } from '../_generated/server';
 
 export async function seedPlanetTypes(db: DatabaseWriter) {
   // Check if we've already seeded the planet types

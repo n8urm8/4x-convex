@@ -41,6 +41,12 @@ const pricesValidator = v.object({
   [CURRENCIES.EUR]: priceValidator
 });
 
+const roleValidator = v.union(
+  v.literal('user'),
+  v.literal('mod'),
+  v.literal('admin')
+);
+
 const schema = defineSchema({
   ...authTables,
   users: defineTable({
@@ -53,7 +59,8 @@ const schema = defineSchema({
     phone: v.optional(v.string()),
     phoneVerificationTime: v.optional(v.number()),
     isAnonymous: v.optional(v.boolean()),
-    customerId: v.optional(v.string())
+    customerId: v.optional(v.string()),
+    role: v.optional(roleValidator)
   })
     .index('email', ['email'])
     .index('customerId', ['customerId']),
