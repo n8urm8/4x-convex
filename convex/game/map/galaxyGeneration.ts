@@ -1,5 +1,5 @@
-import { mutation, query } from '@cvx/_generated/server';
 import { v } from 'convex/values';
+import { mutation, query } from '../../_generated/server';
 
 // Constants for generation
 const GALAXY_SIZE = 10; // 10x10 galaxy grid

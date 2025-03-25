@@ -1,6 +1,6 @@
 // galaxyQueries.ts (in your Convex functions directory)
-import { query } from '@cvx/_generated/server';
 import { v } from 'convex/values';
+import { query } from '../../_generated/server';
 
 // Get all planet types
 export const getAllPlanetTypes = query({
