@@ -361,4 +361,111 @@ describe('Galaxy Generation', () => {
       expect(point.density).toBeLessThanOrEqual(0.7); // GALAXY_CENTER_DENSITY
     }
   });
+
+  test('creating a full galaxy with sectors, systems, and planets', async () => {
+    const t = convexTest(schema);
+
+    // Create planet types
+    await t.run(async (ctx) => {
+      await ctx.db.insert('planetTypes', {
+        name: 'Terrestrial',
+        category: 'Inner System',
+        habitable: true,
+        space: 5,
+        energy: 3,
+        minerals: 4,
+        volatiles: 2,
+        description: 'Earth-like planet suitable for colonization'
+      });
+
+      await ctx.db.insert('planetTypes', {
+        name: 'Gas Giant',
+        category: 'Outer System',
+        habitable: false,
+        space: 0,
+        energy: 1,
+        minerals: 0,
+        volatiles: 8,
+        description: 'Massive gas planet unsuitable for colonization'
+      });
+    });
+
+    // Step 1: Create a galaxy
+    const galaxyResult = await t.mutation(
+      api.game.map.galaxyGeneration.createGalaxy,
+      {
+        groupId: 'complete-test'
+      }
+    );
+
+    expect(galaxyResult).toBeTruthy();
+    expect(galaxyResult.galaxyId).toBeTruthy();
+
+    // Verify galaxy was created
+    const galaxy = await t.run(async (ctx) => {
+      return await ctx.db.get(galaxyResult.galaxyId);
+    });
+
+    expect(galaxy).toBeTruthy();
+    expect(galaxy?.groupId).toBe('complete-test');
+
+    // Verify sectors were created
+    const sectors = await t.query(api.game.map.galaxyQueries.getGalaxySectors, {
+      galaxyId: galaxyResult.galaxyId
+    });
+
+    expect(sectors.length).toBe(100); // 10x10 grid
+
+    // Step 2: Generate systems for a few sectors (for testing performance)
+    let totalSystems = 0;
+    let totalPlanets = 0;
+
+    // Only process the first 4 sectors for testing efficiency
+    const testSectors = sectors.slice(0, 4);
+
+    for (const sector of testSectors) {
+      // Generate star systems for this sector
+      await t.mutation(api.game.map.galaxyGeneration.generateSectorSystems, {
+        sectorId: sector._id,
+        densityMultiplier: 0.05 // Low density for faster testing
+      });
+
+      // Query systems created
+      const systems = await t.query(
+        api.game.map.galaxyQueries.getSectorSystems,
+        {
+          sectorId: sector._id
+        }
+      );
+
+      totalSystems += systems.length;
+
+      // Step 3: Generate planets for each system
+      for (const system of systems) {
+        await t.mutation(api.game.map.galaxyGeneration.generateSystemPlanets, {
+          systemId: system._id,
+          planetCount: 2 // Each system should have ~2 planets
+        });
+
+        // Query planets created
+        const planets = await t.query(
+          api.game.map.galaxyQueries.getSystemPlanets,
+          {
+            systemId: system._id
+          }
+        );
+
+        totalPlanets += planets.length;
+      }
+    }
+
+    // We should have some systems
+    expect(totalSystems).toBeGreaterThan(0);
+    // We should have some planets
+    expect(totalPlanets).toBeGreaterThan(0);
+
+    console.log(
+      `Galaxy generated with ${testSectors.length} sectors, ${totalSystems} systems, and ${totalPlanets} planets`
+    );
+  });
 });
