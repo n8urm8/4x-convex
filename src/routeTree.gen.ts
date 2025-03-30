@@ -21,6 +21,7 @@ import { Route as AppLoginLayoutIndexImport } from './routes/_app/login/_layout.
 import { Route as AppAuthOnboardingLayoutImport } from './routes/_app/_auth/onboarding/_layout'
 import { Route as AppAuthDashboardLayoutImport } from './routes/_app/_auth/dashboard/_layout'
 import { Route as AppAuthGameLayoutRouteImport } from './routes/_app/_auth/game/_layout/route'
+import { Route as AppAuthGameLayoutIndexImport } from './routes/_app/_auth/game/_layout/index'
 import { Route as AppAuthDashboardLayoutIndexImport } from './routes/_app/_auth/dashboard/_layout.index'
 import { Route as AppAuthOnboardingLayoutUsernameImport } from './routes/_app/_auth/onboarding/_layout.username'
 import { Route as AppAuthGameLayoutOverviewImport } from './routes/_app/_auth/game/_layout/overview'
@@ -29,7 +30,7 @@ import { Route as AppAuthDashboardLayoutCheckoutImport } from './routes/_app/_au
 import { Route as AppAuthDashboardLayoutSettingsIndexImport } from './routes/_app/_auth/dashboard/_layout.settings.index'
 import { Route as AppAuthDashboardLayoutSettingsBillingImport } from './routes/_app/_auth/dashboard/_layout.settings.billing'
 import { Route as AppAuthGameLayoutmapMapIndexImport } from './routes/_app/_auth/game/_layout/(map)/map.index'
-import { Route as AppAuthGameLayoutmapMapGalaxyIdImport } from './routes/_app/_auth/game/_layout/(map)/map.$galaxyId'
+import { Route as AppAuthGameLayoutmapMapGalaxyNumberImport } from './routes/_app/_auth/game/_layout/(map)/map.$galaxyNumber'
 
 // Create Virtual Routes
 
@@ -100,6 +101,11 @@ const AppAuthGameLayoutRouteRoute = AppAuthGameLayoutRouteImport.update({
   getParentRoute: () => AppAuthGameRoute,
 } as any)
 
+const AppAuthGameLayoutIndexRoute = AppAuthGameLayoutIndexImport.update({
+  path: '/',
+  getParentRoute: () => AppAuthGameLayoutRouteRoute,
+} as any)
+
 const AppAuthDashboardLayoutIndexRoute =
   AppAuthDashboardLayoutIndexImport.update({
     path: '/',
@@ -147,9 +153,9 @@ const AppAuthGameLayoutmapMapIndexRoute =
     getParentRoute: () => AppAuthGameLayoutRouteRoute,
   } as any)
 
-const AppAuthGameLayoutmapMapGalaxyIdRoute =
-  AppAuthGameLayoutmapMapGalaxyIdImport.update({
-    path: '/map/$galaxyId',
+const AppAuthGameLayoutmapMapGalaxyNumberRoute =
+  AppAuthGameLayoutmapMapGalaxyNumberImport.update({
+    path: '/map/$galaxyNumber',
     getParentRoute: () => AppAuthGameLayoutRouteRoute,
   } as any)
 
@@ -276,6 +282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthDashboardLayoutIndexImport
       parentRoute: typeof AppAuthDashboardLayoutImport
     }
+    '/_app/_auth/game/_layout/': {
+      id: '/_app/_auth/game/_layout/'
+      path: '/'
+      fullPath: '/game/'
+      preLoaderRoute: typeof AppAuthGameLayoutIndexImport
+      parentRoute: typeof AppAuthGameLayoutRouteImport
+    }
     '/_app/_auth/dashboard/_layout/settings/billing': {
       id: '/_app/_auth/dashboard/_layout/settings/billing'
       path: '/billing'
@@ -290,11 +303,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthDashboardLayoutSettingsIndexImport
       parentRoute: typeof AppAuthDashboardLayoutSettingsImport
     }
-    '/_app/_auth/game/_layout/(map)/map/$galaxyId': {
-      id: '/_app/_auth/game/_layout/map/$galaxyId'
-      path: '/map/$galaxyId'
-      fullPath: '/game/map/$galaxyId'
-      preLoaderRoute: typeof AppAuthGameLayoutmapMapGalaxyIdImport
+    '/_app/_auth/game/_layout/(map)/map/$galaxyNumber': {
+      id: '/_app/_auth/game/_layout/map/$galaxyNumber'
+      path: '/map/$galaxyNumber'
+      fullPath: '/game/map/$galaxyNumber'
+      preLoaderRoute: typeof AppAuthGameLayoutmapMapGalaxyNumberImport
       parentRoute: typeof AppAuthGameLayoutRouteImport
     }
     '/_app/_auth/game/_layout/(map)/map/': {
@@ -316,7 +329,8 @@ export const routeTree = rootRoute.addChildren({
       AppAuthGameRoute: AppAuthGameRoute.addChildren({
         AppAuthGameLayoutRouteRoute: AppAuthGameLayoutRouteRoute.addChildren({
           AppAuthGameLayoutOverviewRoute,
-          AppAuthGameLayoutmapMapGalaxyIdRoute,
+          AppAuthGameLayoutIndexRoute,
+          AppAuthGameLayoutmapMapGalaxyNumberRoute,
           AppAuthGameLayoutmapMapIndexRoute,
         }),
       }),
@@ -402,7 +416,8 @@ export const routeTree = rootRoute.addChildren({
       "parent": "/_app/_auth/game",
       "children": [
         "/_app/_auth/game/_layout/overview",
-        "/_app/_auth/game/_layout/map/$galaxyId",
+        "/_app/_auth/game/_layout/",
+        "/_app/_auth/game/_layout/map/$galaxyNumber",
         "/_app/_auth/game/_layout/map/"
       ]
     },
@@ -464,6 +479,10 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "_app/_auth/dashboard/_layout.index.tsx",
       "parent": "/_app/_auth/dashboard/_layout"
     },
+    "/_app/_auth/game/_layout/": {
+      "filePath": "_app/_auth/game/_layout/index.tsx",
+      "parent": "/_app/_auth/game/_layout"
+    },
     "/_app/_auth/dashboard/_layout/settings/billing": {
       "filePath": "_app/_auth/dashboard/_layout.settings.billing.tsx",
       "parent": "/_app/_auth/dashboard/_layout/settings"
@@ -472,8 +491,8 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "_app/_auth/dashboard/_layout.settings.index.tsx",
       "parent": "/_app/_auth/dashboard/_layout/settings"
     },
-    "/_app/_auth/game/_layout/map/$galaxyId": {
-      "filePath": "_app/_auth/game/_layout/(map)/map.$galaxyId.tsx",
+    "/_app/_auth/game/_layout/map/$galaxyNumber": {
+      "filePath": "_app/_auth/game/_layout/(map)/map.$galaxyNumber.tsx",
       "parent": "/_app/_auth/game/_layout"
     },
     "/_app/_auth/game/_layout/map/": {
