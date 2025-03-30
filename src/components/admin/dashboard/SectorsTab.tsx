@@ -29,7 +29,11 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '@/components/ui/tooltip';
-import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
+import {
+  convexQuery,
+  useConvexAction,
+  useConvexMutation
+} from '@convex-dev/react-query';
 import { api } from '@cvx/_generated/api';
 import { Id } from '@cvx/_generated/dataModel';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -53,14 +57,14 @@ export const AdminSectorsTab = ({
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
 
   // Query to get systems for selected sector
-  const { data: sectorSystems = { sector: null, systems: [] } } = useQuery({
-    ...convexQuery(api.game.map.galaxyQueries.getSectorSystems, {
-      sectorId: selectedSectorId!
-    }),
-    enabled: !!selectedSectorId
-  });
+  // const { data: sectorSystems = { sector: null, systems: [] } } = useQuery({
+  //   ...convexQuery(api.game.map.galaxyQueries.getSectorSystems, {
+  //     sectorId: selectedSectorId!
+  //   }),
+  //   enabled: !!selectedSectorId
+  // });
   // Query to get all galaxies
-  const { data: allGalaxies = [], error: allGalaxiesError } = useQuery(
+  const { data: allGalaxies = [] } = useQuery(
     convexQuery(api.game.map.galaxyQueries.getAllGalaxies, {})
   );
   // Find the selected galaxy
@@ -70,7 +74,7 @@ export const AdminSectorsTab = ({
 
   // mutations
   const generateAllGalaxySystemsMutation = useMutation({
-    mutationFn: useConvexMutation(
+    mutationFn: useConvexAction(
       api.game.map.galaxyGeneration.generateAllGalaxySystems
     )
   });
@@ -96,17 +100,17 @@ export const AdminSectorsTab = ({
     enabled: !!selectedGalaxyId
   });
   // Handle generating systems for a sector
-  const handleGenerateSectorSystems = async (sectorId: Id<'galaxySectors'>) => {
-    try {
-      await generateSectorSystemsMutation.mutateAsync({
-        sectorId,
-        densityMultiplier
-      });
-      setSelectedSectorId(sectorId);
-    } catch (error) {
-      console.error('Failed to generate sector systems:', error);
-    }
-  };
+  // const handleGenerateSectorSystems = async (sectorId: Id<'galaxySectors'>) => {
+  //   try {
+  //     await generateSectorSystemsMutation.mutateAsync({
+  //       sectorId,
+  //       densityMultiplier
+  //     });
+  //     setSelectedSectorId(sectorId);
+  //   } catch (error) {
+  //     console.error('Failed to generate sector systems:', error);
+  //   }
+  // };
 
   // Handle generating all systems for a galaxy
   const handleGenerateAllSystems = async () => {
@@ -133,7 +137,11 @@ export const AdminSectorsTab = ({
           <Button
             className="mt-4"
             onClick={() =>
-              document.querySelector('button[value="galaxies"]')?.click()
+              (
+                document.querySelector(
+                  'button[value="galaxies"]'
+                ) as HTMLButtonElement
+              )?.click()
             }
           >
             Go to Galaxies Tab
@@ -260,7 +268,7 @@ export const AdminSectorsTab = ({
             Galaxy Sectors (10×10 Grid)
           </h2>
 
-          <ScrollArea className="h-[600px] border rounded-lg p-4">
+          <ScrollArea className="min-h-fit border rounded-lg p-4">
             <div className="grid grid-cols-10 gap-2">
               {galaxySectors.map((sector) => {
                 // Find the density for this sector
@@ -279,7 +287,8 @@ export const AdminSectorsTab = ({
                 return (
                   <Card
                     key={sector._id.toString()}
-                    className={`${sector._id === selectedSectorId ? 'ring-2 ring-primary' : ''}`}
+                    className={`${sector._id === selectedSectorId ? 'ring-2 ring-primary' : ''} cursor-pointer`}
+                    onClick={() => setSelectedSectorId(sector._id)}
                   >
                     <CardHeader className="p-3">
                       <CardTitle className="text-base">
@@ -310,16 +319,9 @@ export const AdminSectorsTab = ({
                         disabled={generateSectorSystemsMutation.isPending}
                         onClick={() => {
                           setSelectedSectorId(sector._id);
-                          handleGenerateSectorSystems(sector._id);
                         }}
                       >
-                        {generateSectorSystemsMutation.isPending &&
-                        generateSectorSystemsMutation.variables?.sectorId ===
-                          sector._id
-                          ? 'Generating...'
-                          : systemCount
-                            ? 'View Systems'
-                            : 'Generate Systems'}
+                        Go to System
                       </Button>
                     </CardFooter>
                   </Card>

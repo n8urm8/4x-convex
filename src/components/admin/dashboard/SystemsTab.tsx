@@ -29,7 +29,7 @@ export const AdminSystemsTab = ({
   densityMultiplier
 }: AdminSystemsTabProps) => {
   // Query to get all galaxies
-  const { data: allGalaxies = [], error: allGalaxiesError } = useQuery(
+  const { data: allGalaxies = [] } = useQuery(
     convexQuery(api.game.map.galaxyQueries.getAllGalaxies, {})
   );
   // Find the selected galaxy
@@ -37,7 +37,7 @@ export const AdminSystemsTab = ({
     ? allGalaxies.find((g) => g._id === selectedGalaxyId)
     : null;
   // Query to get systems for selected sector
-  const { data: sectorSystems } = useQuery({
+  const { data: sectorSystems = [] } = useQuery({
     ...convexQuery(api.game.map.galaxyQueries.getSectorSystems, {
       sectorId: selectedSectorId!
     }),
@@ -51,7 +51,7 @@ export const AdminSystemsTab = ({
   });
 
   // Handle generating planets for a system
-  const handleGenerateSystemPlanets = async (systemId: Id<'starSystems'>) => {
+  const handleGenerateSystemPlanets = async (systemId: Id<'sectorSystems'>) => {
     try {
       await generateSystemPlanetsMutation.mutateAsync({ systemId });
     } catch (error) {
@@ -77,9 +77,9 @@ export const AdminSystemsTab = ({
     }
   };
 
-  if (!sectorSystems) {
-    return 'loading...';
-  }
+  // if (!sectorSystems) {
+  //   return null;
+  // }
 
   return (
     <TabsContent value="systems" className="space-y-4">
@@ -91,7 +91,11 @@ export const AdminSystemsTab = ({
           <Button
             className="mt-4"
             onClick={() =>
-              document.querySelector('button[value="sectors"]')?.click()
+              (
+                document.querySelector(
+                  'button[value="sectors"]'
+                ) as HTMLButtonElement
+              )?.click()
             }
           >
             Go to Sectors Tab
@@ -105,7 +109,16 @@ export const AdminSystemsTab = ({
               Systems in Sector ({sectorSystems[0].systemX},{' '}
               {sectorSystems[0].systemY})
             </h2>
-            <Button variant="outline" onClick={() => setSelectedSectorId(null)}>
+            <Button
+              variant="outline"
+              onClick={() =>
+                (
+                  document.querySelector(
+                    'button[value="sectors"]'
+                  ) as HTMLButtonElement
+                )?.click()
+              }
+            >
               Back to Sectors
             </Button>
           </div>

@@ -57,7 +57,7 @@ export const generateSectorSystems = mutation({
       const systemY = Math.floor(Math.random() * SECTOR_SIZE);
 
       // Create the star system
-      await ctx.db.insert('starSystems', {
+      await ctx.db.insert('sectorSystems', {
         galaxySectorId: args.sectorId,
         systemX,
         systemY,
@@ -77,7 +77,7 @@ This creates a random distribution of star systems within a single sector. The s
 ```typescript
 export const generateSystemPlanets = mutation({
   args: {
-    systemId: v.id('starSystems'),
+    systemId: v.id('sectorSystems'),
     planetCount: v.optional(v.number())
   },
   handler: async (ctx, args) => {
@@ -99,7 +99,7 @@ export const generateSystemPlanets = mutation({
 
       // Create the planet
       await ctx.db.insert('systemPlanets', {
-        starSystemId: args.systemId,
+        sectorSystemId: args.systemId,
         planetTypeId: planetType._id,
         planetX,
         planetY

@@ -19,22 +19,24 @@ import { Route as AppAuthImport } from './routes/_app/_auth'
 import { Route as AppLoginLayoutImport } from './routes/_app/login/_layout'
 import { Route as AppLoginLayoutIndexImport } from './routes/_app/login/_layout.index'
 import { Route as AppAuthOnboardingLayoutImport } from './routes/_app/_auth/onboarding/_layout'
-import { Route as AppAuthGameLayoutImport } from './routes/_app/_auth/game/_layout'
 import { Route as AppAuthDashboardLayoutImport } from './routes/_app/_auth/dashboard/_layout'
-import { Route as AppAuthGameLayoutIndexImport } from './routes/_app/_auth/game/_layout.index'
+import { Route as AppAuthGameLayoutRouteImport } from './routes/_app/_auth/game/_layout/route'
 import { Route as AppAuthDashboardLayoutIndexImport } from './routes/_app/_auth/dashboard/_layout.index'
 import { Route as AppAuthOnboardingLayoutUsernameImport } from './routes/_app/_auth/onboarding/_layout.username'
+import { Route as AppAuthGameLayoutOverviewImport } from './routes/_app/_auth/game/_layout/overview'
 import { Route as AppAuthDashboardLayoutSettingsImport } from './routes/_app/_auth/dashboard/_layout.settings'
 import { Route as AppAuthDashboardLayoutCheckoutImport } from './routes/_app/_auth/dashboard/_layout.checkout'
 import { Route as AppAuthDashboardLayoutSettingsIndexImport } from './routes/_app/_auth/dashboard/_layout.settings.index'
 import { Route as AppAuthDashboardLayoutSettingsBillingImport } from './routes/_app/_auth/dashboard/_layout.settings.billing'
+import { Route as AppAuthGameLayoutmapMapIndexImport } from './routes/_app/_auth/game/_layout/(map)/map.index'
+import { Route as AppAuthGameLayoutmapMapGalaxyIdImport } from './routes/_app/_auth/game/_layout/(map)/map.$galaxyId'
 
 // Create Virtual Routes
 
 const AppLoginImport = createFileRoute('/_app/login')()
 const AppAuthOnboardingImport = createFileRoute('/_app/_auth/onboarding')()
-const AppAuthGameImport = createFileRoute('/_app/_auth/game')()
 const AppAuthDashboardImport = createFileRoute('/_app/_auth/dashboard')()
+const AppAuthGameImport = createFileRoute('/_app/_auth/game')()
 
 // Create/Update Routes
 
@@ -63,13 +65,13 @@ const AppAuthOnboardingRoute = AppAuthOnboardingImport.update({
   getParentRoute: () => AppAuthRoute,
 } as any)
 
-const AppAuthGameRoute = AppAuthGameImport.update({
-  path: '/game',
+const AppAuthDashboardRoute = AppAuthDashboardImport.update({
+  path: '/dashboard',
   getParentRoute: () => AppAuthRoute,
 } as any)
 
-const AppAuthDashboardRoute = AppAuthDashboardImport.update({
-  path: '/dashboard',
+const AppAuthGameRoute = AppAuthGameImport.update({
+  path: '/game',
   getParentRoute: () => AppAuthRoute,
 } as any)
 
@@ -88,19 +90,14 @@ const AppAuthOnboardingLayoutRoute = AppAuthOnboardingLayoutImport.update({
   getParentRoute: () => AppAuthOnboardingRoute,
 } as any)
 
-const AppAuthGameLayoutRoute = AppAuthGameLayoutImport.update({
-  id: '/_layout',
-  getParentRoute: () => AppAuthGameRoute,
-} as any)
-
 const AppAuthDashboardLayoutRoute = AppAuthDashboardLayoutImport.update({
   id: '/_layout',
   getParentRoute: () => AppAuthDashboardRoute,
 } as any)
 
-const AppAuthGameLayoutIndexRoute = AppAuthGameLayoutIndexImport.update({
-  path: '/',
-  getParentRoute: () => AppAuthGameLayoutRoute,
+const AppAuthGameLayoutRouteRoute = AppAuthGameLayoutRouteImport.update({
+  id: '/game/_layout',
+  getParentRoute: () => AppAuthGameRoute,
 } as any)
 
 const AppAuthDashboardLayoutIndexRoute =
@@ -114,6 +111,11 @@ const AppAuthOnboardingLayoutUsernameRoute =
     path: '/username',
     getParentRoute: () => AppAuthOnboardingLayoutRoute,
   } as any)
+
+const AppAuthGameLayoutOverviewRoute = AppAuthGameLayoutOverviewImport.update({
+  path: '/overview',
+  getParentRoute: () => AppAuthGameLayoutRouteRoute,
+} as any)
 
 const AppAuthDashboardLayoutSettingsRoute =
   AppAuthDashboardLayoutSettingsImport.update({
@@ -137,6 +139,18 @@ const AppAuthDashboardLayoutSettingsBillingRoute =
   AppAuthDashboardLayoutSettingsBillingImport.update({
     path: '/billing',
     getParentRoute: () => AppAuthDashboardLayoutSettingsRoute,
+  } as any)
+
+const AppAuthGameLayoutmapMapIndexRoute =
+  AppAuthGameLayoutmapMapIndexImport.update({
+    path: '/map/',
+    getParentRoute: () => AppAuthGameLayoutRouteRoute,
+  } as any)
+
+const AppAuthGameLayoutmapMapGalaxyIdRoute =
+  AppAuthGameLayoutmapMapGalaxyIdImport.update({
+    path: '/map/$galaxyId',
+    getParentRoute: () => AppAuthGameLayoutRouteRoute,
   } as any)
 
 // Populate the FileRoutesByPath interface
@@ -178,6 +192,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLoginLayoutImport
       parentRoute: typeof AppLoginRoute
     }
+    '/_app/_auth/game': {
+      id: '/_app/_auth/game'
+      path: '/game'
+      fullPath: '/game'
+      preLoaderRoute: typeof AppAuthGameImport
+      parentRoute: typeof AppAuthImport
+    }
+    '/_app/_auth/game/_layout': {
+      id: '/_app/_auth/game/_layout'
+      path: '/game'
+      fullPath: '/game'
+      preLoaderRoute: typeof AppAuthGameLayoutRouteImport
+      parentRoute: typeof AppAuthGameRoute
+    }
     '/_app/_auth/dashboard': {
       id: '/_app/_auth/dashboard'
       path: '/dashboard'
@@ -191,20 +219,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppAuthDashboardLayoutImport
       parentRoute: typeof AppAuthDashboardRoute
-    }
-    '/_app/_auth/game': {
-      id: '/_app/_auth/game'
-      path: '/game'
-      fullPath: '/game'
-      preLoaderRoute: typeof AppAuthGameImport
-      parentRoute: typeof AppAuthImport
-    }
-    '/_app/_auth/game/_layout': {
-      id: '/_app/_auth/game/_layout'
-      path: '/game'
-      fullPath: '/game'
-      preLoaderRoute: typeof AppAuthGameLayoutImport
-      parentRoute: typeof AppAuthGameRoute
     }
     '/_app/_auth/onboarding': {
       id: '/_app/_auth/onboarding'
@@ -241,6 +255,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthDashboardLayoutSettingsImport
       parentRoute: typeof AppAuthDashboardLayoutImport
     }
+    '/_app/_auth/game/_layout/overview': {
+      id: '/_app/_auth/game/_layout/overview'
+      path: '/overview'
+      fullPath: '/game/overview'
+      preLoaderRoute: typeof AppAuthGameLayoutOverviewImport
+      parentRoute: typeof AppAuthGameLayoutRouteImport
+    }
     '/_app/_auth/onboarding/_layout/username': {
       id: '/_app/_auth/onboarding/_layout/username'
       path: '/username'
@@ -254,13 +275,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/'
       preLoaderRoute: typeof AppAuthDashboardLayoutIndexImport
       parentRoute: typeof AppAuthDashboardLayoutImport
-    }
-    '/_app/_auth/game/_layout/': {
-      id: '/_app/_auth/game/_layout/'
-      path: '/'
-      fullPath: '/game/'
-      preLoaderRoute: typeof AppAuthGameLayoutIndexImport
-      parentRoute: typeof AppAuthGameLayoutImport
     }
     '/_app/_auth/dashboard/_layout/settings/billing': {
       id: '/_app/_auth/dashboard/_layout/settings/billing'
@@ -276,6 +290,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthDashboardLayoutSettingsIndexImport
       parentRoute: typeof AppAuthDashboardLayoutSettingsImport
     }
+    '/_app/_auth/game/_layout/(map)/map/$galaxyId': {
+      id: '/_app/_auth/game/_layout/map/$galaxyId'
+      path: '/map/$galaxyId'
+      fullPath: '/game/map/$galaxyId'
+      preLoaderRoute: typeof AppAuthGameLayoutmapMapGalaxyIdImport
+      parentRoute: typeof AppAuthGameLayoutRouteImport
+    }
+    '/_app/_auth/game/_layout/(map)/map/': {
+      id: '/_app/_auth/game/_layout/map/'
+      path: '/map'
+      fullPath: '/game/map'
+      preLoaderRoute: typeof AppAuthGameLayoutmapMapIndexImport
+      parentRoute: typeof AppAuthGameLayoutRouteImport
+    }
   }
 }
 
@@ -285,6 +313,13 @@ export const routeTree = rootRoute.addChildren({
   IndexRoute,
   AppRoute: AppRoute.addChildren({
     AppAuthRoute: AppAuthRoute.addChildren({
+      AppAuthGameRoute: AppAuthGameRoute.addChildren({
+        AppAuthGameLayoutRouteRoute: AppAuthGameLayoutRouteRoute.addChildren({
+          AppAuthGameLayoutOverviewRoute,
+          AppAuthGameLayoutmapMapGalaxyIdRoute,
+          AppAuthGameLayoutmapMapIndexRoute,
+        }),
+      }),
       AppAuthDashboardRoute: AppAuthDashboardRoute.addChildren({
         AppAuthDashboardLayoutRoute: AppAuthDashboardLayoutRoute.addChildren({
           AppAuthDashboardLayoutCheckoutRoute,
@@ -294,11 +329,6 @@ export const routeTree = rootRoute.addChildren({
               AppAuthDashboardLayoutSettingsIndexRoute,
             }),
           AppAuthDashboardLayoutIndexRoute,
-        }),
-      }),
-      AppAuthGameRoute: AppAuthGameRoute.addChildren({
-        AppAuthGameLayoutRoute: AppAuthGameLayoutRoute.addChildren({
-          AppAuthGameLayoutIndexRoute,
         }),
       }),
       AppAuthOnboardingRoute: AppAuthOnboardingRoute.addChildren({
@@ -341,8 +371,8 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "_app/_auth.tsx",
       "parent": "/_app",
       "children": [
-        "/_app/_auth/dashboard",
         "/_app/_auth/game",
+        "/_app/_auth/dashboard",
         "/_app/_auth/onboarding"
       ]
     },
@@ -360,6 +390,22 @@ export const routeTree = rootRoute.addChildren({
         "/_app/login/_layout/"
       ]
     },
+    "/_app/_auth/game": {
+      "filePath": "_app/_auth/game/_layout",
+      "parent": "/_app/_auth",
+      "children": [
+        "/_app/_auth/game/_layout"
+      ]
+    },
+    "/_app/_auth/game/_layout": {
+      "filePath": "_app/_auth/game/_layout/route.tsx",
+      "parent": "/_app/_auth/game",
+      "children": [
+        "/_app/_auth/game/_layout/overview",
+        "/_app/_auth/game/_layout/map/$galaxyId",
+        "/_app/_auth/game/_layout/map/"
+      ]
+    },
     "/_app/_auth/dashboard": {
       "filePath": "_app/_auth/dashboard",
       "parent": "/_app/_auth",
@@ -374,20 +420,6 @@ export const routeTree = rootRoute.addChildren({
         "/_app/_auth/dashboard/_layout/checkout",
         "/_app/_auth/dashboard/_layout/settings",
         "/_app/_auth/dashboard/_layout/"
-      ]
-    },
-    "/_app/_auth/game": {
-      "filePath": "_app/_auth/game",
-      "parent": "/_app/_auth",
-      "children": [
-        "/_app/_auth/game/_layout"
-      ]
-    },
-    "/_app/_auth/game/_layout": {
-      "filePath": "_app/_auth/game/_layout.tsx",
-      "parent": "/_app/_auth/game",
-      "children": [
-        "/_app/_auth/game/_layout/"
       ]
     },
     "/_app/_auth/onboarding": {
@@ -420,6 +452,10 @@ export const routeTree = rootRoute.addChildren({
         "/_app/_auth/dashboard/_layout/settings/"
       ]
     },
+    "/_app/_auth/game/_layout/overview": {
+      "filePath": "_app/_auth/game/_layout/overview.tsx",
+      "parent": "/_app/_auth/game/_layout"
+    },
     "/_app/_auth/onboarding/_layout/username": {
       "filePath": "_app/_auth/onboarding/_layout.username.tsx",
       "parent": "/_app/_auth/onboarding/_layout"
@@ -428,10 +464,6 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "_app/_auth/dashboard/_layout.index.tsx",
       "parent": "/_app/_auth/dashboard/_layout"
     },
-    "/_app/_auth/game/_layout/": {
-      "filePath": "_app/_auth/game/_layout.index.tsx",
-      "parent": "/_app/_auth/game/_layout"
-    },
     "/_app/_auth/dashboard/_layout/settings/billing": {
       "filePath": "_app/_auth/dashboard/_layout.settings.billing.tsx",
       "parent": "/_app/_auth/dashboard/_layout/settings"
@@ -439,6 +471,14 @@ export const routeTree = rootRoute.addChildren({
     "/_app/_auth/dashboard/_layout/settings/": {
       "filePath": "_app/_auth/dashboard/_layout.settings.index.tsx",
       "parent": "/_app/_auth/dashboard/_layout/settings"
+    },
+    "/_app/_auth/game/_layout/map/$galaxyId": {
+      "filePath": "_app/_auth/game/_layout/(map)/map.$galaxyId.tsx",
+      "parent": "/_app/_auth/game/_layout"
+    },
+    "/_app/_auth/game/_layout/map/": {
+      "filePath": "_app/_auth/game/_layout/(map)/map.index.tsx",
+      "parent": "/_app/_auth/game/_layout"
     }
   }
 }

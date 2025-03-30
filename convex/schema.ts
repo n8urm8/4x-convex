@@ -89,34 +89,74 @@ const schema = defineSchema({
   // Galaxy sectors (10x10 grid)
   galaxySectors: defineTable({
     galaxyId: v.id('galaxies'), // Parent galaxy
+    galaxyNumber: v.number(), // Duplicate of galaxy.number for easier querying
     sectorX: v.number(), // 0-9 x coordinate in galaxy
     sectorY: v.number() // 0-9 y coordinate in galaxy
   })
     .index('by_galaxy', ['galaxyId'])
-    .index('by_coordinates', ['galaxyId', 'sectorX', 'sectorY']),
+    .index('by_coordinates', ['galaxyId', 'sectorX', 'sectorY'])
+    .index('by_galaxy_number', ['galaxyNumber']) // New index for direct lookups
+    .index('by_number_coordinates', ['galaxyNumber', 'sectorX', 'sectorY']), // New index for lookups by number+coordinates
 
-  // Star systems (within the 100x100 grid in each sector)
-  starSystems: defineTable({
+  // Star systems (within the 25x25 grid in each sector)
+  sectorSystems: defineTable({
     galaxySectorId: v.id('galaxySectors'), // Parent sector
+    galaxyNumber: v.number(), // Denormalized from parent galaxy
+    sectorX: v.number(), // Denormalized from parent sector
+    sectorY: v.number(), // Denormalized from parent sector
     systemX: v.number(), // 0-99 x coordinate within sector
     systemY: v.number(), // 0-99 y coordinate within sector
     starType: v.string(), // E.g., "Yellow Dwarf", "Red Giant", "Neutron Star"
     starSize: v.number(), // Size/mass of the star
-    starColor: v.string() // Color representation
+    starColor: v.string(), // Color representation
+    exploredBy: v.optional(v.id('users')) // User who first explored this system
   })
     .index('by_sector', ['galaxySectorId'])
-    .index('by_coordinates', ['galaxySectorId', 'systemX', 'systemY']),
+    .index('by_coordinates', ['galaxySectorId', 'systemX', 'systemY'])
+    .index('by_galaxy_sector_coordinates', [
+      'galaxyNumber',
+      'sectorX',
+      'sectorY'
+    ]) // Direct lookup by galaxy/sector
+    .index('by_absolute_coordinates', [
+      'galaxyNumber',
+      'sectorX',
+      'sectorY',
+      'systemX',
+      'systemY'
+    ]), // Lookup by full coordinates
 
   // Planets (within the 9x9 grid in each star system)
   systemPlanets: defineTable({
-    starSystemId: v.id('starSystems'), // Parent star system
+    sectorSystemId: v.id('sectorSystems'), // Parent star system
+    galaxyNumber: v.number(), // Denormalized from parent galaxy
+    sectorX: v.number(), // Denormalized from parent sector
+    sectorY: v.number(), // Denormalized from parent sector
+    systemX: v.number(), // Denormalized from parent system
+    systemY: v.number(), // Denormalized from parent system
     planetTypeId: v.id('planetTypes'), // Reference to planet type
     planetX: v.number(), // 0-8 x coordinate within system (star is at 4,4)
     planetY: v.number() // 0-8 y coordinate within system
   })
-    .index('by_system', ['starSystemId'])
-    .index('by_coordinates', ['starSystemId', 'planetX', 'planetY'])
-    .index('by_type', ['planetTypeId']),
+    .index('by_system', ['sectorSystemId'])
+    .index('by_coordinates', ['sectorSystemId', 'planetX', 'planetY'])
+    .index('by_type', ['planetTypeId'])
+    .index('by_system_coordinates', [
+      'galaxyNumber',
+      'sectorX',
+      'sectorY',
+      'systemX',
+      'systemY'
+    ]) // Direct lookup by system coordinates
+    .index('by_absolute_coordinates', [
+      'galaxyNumber',
+      'sectorX',
+      'sectorY',
+      'systemX',
+      'systemY',
+      'planetX',
+      'planetY'
+    ]), // Lookup by full coordinates
 
   plans: defineTable({
     key: planKeyValidator,

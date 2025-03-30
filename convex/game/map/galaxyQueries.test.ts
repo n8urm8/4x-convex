@@ -61,6 +61,7 @@ describe('Galaxy Queries', () => {
       });
       await ctx.db.insert('galaxySectors', {
         galaxyId: galaxy,
+        galaxyNumber: 1,
         sectorX: 1,
         sectorY: 1
       });
@@ -120,24 +121,33 @@ describe('Galaxy Queries', () => {
 
       const sector = await ctx.db.insert('galaxySectors', {
         galaxyId: galaxy,
+        galaxyNumber: 1,
         sectorX: 1,
         sectorY: 1
       });
 
-      const system = await ctx.db.insert('starSystems', {
+      const system = await ctx.db.insert('sectorSystems', {
         galaxySectorId: sector,
         systemX: 1,
         systemY: 1,
         starType: 'Yellow Dwarf',
         starSize: 1,
-        starColor: '#FFD700'
+        starColor: '#FFD700',
+        galaxyNumber: 1,
+        sectorX: 1,
+        sectorY: 1
       });
 
       await ctx.db.insert('systemPlanets', {
-        starSystemId: system,
+        sectorSystemId: system,
         planetTypeId: planetType,
         planetX: 1,
-        planetY: 1
+        planetY: 1,
+        galaxyNumber: 1,
+        sectorX: 1,
+        sectorY: 1,
+        systemX: 1,
+        systemY: 1
       });
     });
 
@@ -229,12 +239,16 @@ describe('Galaxy Queries', () => {
 
       const sector = await ctx.db.insert('galaxySectors', {
         galaxyId: galaxy,
+        galaxyNumber: 1,
         sectorX: 1,
         sectorY: 1
       });
 
-      const system = await ctx.db.insert('starSystems', {
+      const system = await ctx.db.insert('sectorSystems', {
         galaxySectorId: sector,
+        galaxyNumber: 1,
+        sectorX: 1,
+        sectorY: 1,
         systemX: 1,
         systemY: 1,
         starType: 'Yellow Dwarf',
@@ -244,24 +258,39 @@ describe('Galaxy Queries', () => {
 
       // Add multiple planets of different types
       await ctx.db.insert('systemPlanets', {
-        starSystemId: system,
+        sectorSystemId: system,
         planetTypeId: terrestrialType,
         planetX: 1,
-        planetY: 1
+        planetY: 1,
+        sectorX: 1,
+        sectorY: 1,
+        galaxyNumber: 1,
+        systemX: 1,
+        systemY: 1
       });
 
       await ctx.db.insert('systemPlanets', {
-        starSystemId: system,
+        sectorSystemId: system,
         planetTypeId: terrestrialType,
         planetX: 2,
-        planetY: 2
+        planetY: 2,
+        sectorX: 1,
+        sectorY: 1,
+        galaxyNumber: 1,
+        systemX: 1,
+        systemY: 1
       });
 
       await ctx.db.insert('systemPlanets', {
-        starSystemId: system,
+        sectorSystemId: system,
         planetTypeId: gasGiantType,
         planetX: 3,
-        planetY: 3
+        planetY: 3,
+        sectorX: 1,
+        sectorY: 1,
+        galaxyNumber: 1,
+        systemX: 1,
+        systemY: 1
       });
     });
 

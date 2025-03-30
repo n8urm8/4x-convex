@@ -33,9 +33,9 @@ export const AdminGalaxiesTab = ({
   selectedGalaxyId,
   setSelectedGalaxyId
 }: AdminGalaxiesTabProps) => {
-  const [selectedGroup, setSelectedGroup] = useState<string>('default');
+  const [selectedGroup, setSelectedGroup] = useState<string>('');
   const [customGroup, setCustomGroup] = useState<string>('');
-  const [newGalaxyGroup, setNewGalaxyGroup] = useState<string>('default');
+  const [newGalaxyGroup, setNewGalaxyGroup] = useState<string>('');
   const [isCreatingGalaxy, setIsCreatingGalaxy] = useState(false);
 
   // Query to get all galaxies
@@ -191,7 +191,7 @@ export const AdminGalaxiesTab = ({
         </h2>
 
         {(groupedGalaxies[selectedGroup]?.length || 0) === 0 ? (
-          <div className="text-center py-10 border rounded-lg bg-gray-50">
+          <div className="text-center py-10 border rounded-lg ">
             <p className="text-gray-500">No galaxies in this group</p>
             <Button
               className="mt-4"
@@ -208,7 +208,8 @@ export const AdminGalaxiesTab = ({
             {groupedGalaxies[selectedGroup]?.map((galaxy) => (
               <Card
                 key={galaxy._id.toString()}
-                className={`${galaxy._id === selectedGalaxyId ? 'ring-2 ring-primary' : ''}`}
+                className={`${galaxy._id === selectedGalaxyId ? 'ring-2 ring-primary' : ''} cursor-pointer`}
+                onClick={() => setSelectedGalaxyId(galaxy._id)}
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="flex justify-between">

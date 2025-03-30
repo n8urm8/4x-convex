@@ -1,9 +1,14 @@
 import { v } from 'convex/values';
-import { mutation, query } from '../../_generated/server';
+import {
+  action,
+  internalMutation,
+  mutation,
+  query
+} from '../../_generated/server';
 
 // Constants for generation
 const GALAXY_SIZE = 10; // 10x10 galaxy grid
-const SECTOR_SIZE = 100; // 100x100 system grid within each sector
+const SECTOR_SIZE = 25; // 100x100 system grid within each sector
 const SYSTEM_SIZE = 9; // 9x9 planet grid within each system
 
 // Galaxy shape parameters
@@ -61,6 +66,7 @@ export const createGalaxy = mutation({
       for (let y = 0; y < GALAXY_SIZE; y++) {
         await ctx.db.insert('galaxySectors', {
           galaxyId,
+          galaxyNumber: nextNumber,
           sectorX: x,
           sectorY: y
         });
@@ -69,6 +75,7 @@ export const createGalaxy = mutation({
 
     return {
       message: `Galaxy ${nextNumber} created with ${GALAXY_SIZE * GALAXY_SIZE} sectors`,
+      number: nextNumber,
       galaxyId
     };
   }
@@ -135,7 +142,7 @@ export const generateSectorSystems = mutation({
 
     // Check if we've already generated systems for this sector
     const existingSystems = await ctx.db
-      .query('starSystems')
+      .query('sectorSystems')
       .withIndex('by_sector', (q) => q.eq('galaxySectorId', args.sectorId))
       .collect();
 
@@ -183,8 +190,11 @@ export const generateSectorSystems = mutation({
       // Determine star type with weighting
       const starInfo = weightedRandomSelect(STAR_TYPES);
 
-      const systemId = await ctx.db.insert('starSystems', {
+      const systemId = await ctx.db.insert('sectorSystems', {
         galaxySectorId: args.sectorId,
+        galaxyNumber: galaxy.number,
+        sectorX: sector.sectorX,
+        sectorY: sector.sectorY,
         systemX,
         systemY,
         starType: starInfo.type,
@@ -205,7 +215,7 @@ export const generateSectorSystems = mutation({
 // Generate planets in a star system with realistic distribution
 export const generateSystemPlanets = mutation({
   args: {
-    systemId: v.id('starSystems'),
+    systemId: v.id('sectorSystems'),
     planetCount: v.optional(v.number())
   },
   handler: async (ctx, args) => {
@@ -218,7 +228,7 @@ export const generateSystemPlanets = mutation({
     // Check if we've already generated planets for this system
     const existingPlanets = await ctx.db
       .query('systemPlanets')
-      .withIndex('by_system', (q) => q.eq('starSystemId', args.systemId))
+      .withIndex('by_system', (q) => q.eq('sectorSystemId', args.systemId))
       .collect();
 
     if (existingPlanets.length > 0) {
@@ -329,10 +339,15 @@ export const generateSystemPlanets = mutation({
       occupiedPositions.add(`${planetX},${planetY}`);
 
       const planetId = await ctx.db.insert('systemPlanets', {
-        starSystemId: args.systemId,
+        sectorSystemId: args.systemId,
         planetTypeId: planetType._id,
         planetX,
-        planetY
+        planetY,
+        galaxyNumber: system.galaxyNumber,
+        sectorX: system.sectorX,
+        sectorY: system.sectorY,
+        systemX: system.systemX,
+        systemY: system.systemY
       });
 
       planetIds.push(planetId);
@@ -344,92 +359,230 @@ export const generateSystemPlanets = mutation({
   }
 });
 
-// Generate all systems for all sectors in a galaxy
-export const generateAllGalaxySystems = mutation({
+// First, create an internal mutation that processes a single sector
+export const generateSystemsForSector = internalMutation({
   args: {
-    galaxyId: v.id('galaxies'),
+    sectorId: v.id('galaxySectors'),
     densityMultiplier: v.optional(v.number())
   },
+  returns: v.number(),
   handler: async (ctx, args) => {
-    // Get all sectors for this galaxy
-    const sectors = await ctx.db
-      .query('galaxySectors')
-      .withIndex('by_galaxy', (q) => q.eq('galaxyId', args.galaxyId))
+    const sector = await ctx.db.get(args.sectorId);
+    if (!sector) {
+      throw new Error('Sector not found');
+    }
+
+    // Check if we've already generated systems
+    const existingSystems = await ctx.db
+      .query('sectorSystems')
+      .withIndex('by_sector', (q) => q.eq('galaxySectorId', args.sectorId))
       .collect();
 
-    // Track how many systems we create
+    if (existingSystems.length > 0) {
+      return 0; // Skip if already generated
+    }
+
+    // Calculate density based on position in galaxy
+    const baseDensity = calculateDensityAtPosition(
+      sector.sectorX,
+      sector.sectorY
+    );
+    const adjustedDensity = baseDensity * (args.densityMultiplier ?? 1);
+
+    // Calculate number of systems
+    const maxSystems = SECTOR_SIZE * SECTOR_SIZE * adjustedDensity;
+    const numSystems = Math.min(Math.floor(maxSystems), 200); // Reduced cap for safety
+
+    // Skip empty sectors (possible at very edges with low density)
+    if (numSystems === 0) return 0;
+
+    // Generate the systems
+    const positions = new Set();
+    let systemsCreated = 0;
+
+    // Create the star systems
+    for (let i = 0; i < numSystems; i++) {
+      // Random position
+      let systemX, systemY;
+      let attempts = 0;
+
+      do {
+        systemX = Math.floor(Math.random() * SECTOR_SIZE);
+        systemY = Math.floor(Math.random() * SECTOR_SIZE);
+        attempts++;
+        if (attempts > 50) break;
+      } while (positions.has(`${systemX},${systemY}`));
+
+      if (attempts > 50 && positions.has(`${systemX},${systemY}`)) continue;
+
+      positions.add(`${systemX},${systemY}`);
+
+      // Determine star type
+      const starInfo = weightedRandomSelect(STAR_TYPES);
+
+      await ctx.db.insert('sectorSystems', {
+        galaxySectorId: args.sectorId,
+        systemX,
+        systemY,
+        starType: starInfo.type,
+        starSize: 0.5 + Math.random() * 2.5,
+        starColor: starInfo.color,
+        galaxyNumber: sector.galaxyNumber,
+        sectorX: sector.sectorX,
+        sectorY: sector.sectorY
+      });
+
+      systemsCreated++;
+    }
+
+    return systemsCreated;
+  }
+});
+
+// Create an action that processes sectors in batches
+import { internal } from '../../_generated/api';
+
+export const generateAllGalaxySystems = action({
+  args: {
+    galaxyId: v.id('galaxies'),
+    densityMultiplier: v.optional(v.number()),
+    batchSize: v.optional(v.number())
+  },
+  returns: v.object({
+    message: v.string(),
+    totalSystems: v.number()
+  }),
+  handler: async (ctx, args) => {
+    // Query for all sectors in the galaxy
+    const sectorIds = await ctx.runQuery(
+      internal.game.map.galaxyQueries.getGalaxySectorIds,
+      {
+        galaxyId: args.galaxyId
+      }
+    );
+
     let totalSystems = 0;
+    const batchSize = args.batchSize ?? 10; // Process 10 sectors at a time by default
 
-    // Generate systems for each sector
-    for (const sector of sectors) {
-      // Check if we've already generated systems
-      const existingSystems = await ctx.db
-        .query('starSystems')
-        .withIndex('by_sector', (q) => q.eq('galaxySectorId', sector._id))
-        .collect();
+    // Process sectors in batches
+    for (let i = 0; i < sectorIds.length; i += batchSize) {
+      const batch = sectorIds.slice(i, i + batchSize);
 
-      if (existingSystems.length > 0) {
-        continue; // Skip if already generated
+      // Process each sector in the batch
+      for (const sectorId of batch) {
+        const systemsCreated = await ctx.runMutation(
+          internal.game.map.galaxyGeneration.generateSystemsForSector,
+          {
+            sectorId,
+            densityMultiplier: args.densityMultiplier
+          }
+        );
+
+        totalSystems += systemsCreated;
       }
 
-      // Calculate density based on position in galaxy
-      const baseDensity = calculateDensityAtPosition(
-        sector.sectorX,
-        sector.sectorY
-      );
-      const adjustedDensity = baseDensity * (args.densityMultiplier ?? 1);
-
-      // Calculate number of systems
-      const maxSystems = SECTOR_SIZE * SECTOR_SIZE * adjustedDensity;
-      const numSystems = Math.min(Math.floor(maxSystems), 2000);
-
-      // Skip empty sectors (possible at very edges with low density)
-      if (numSystems === 0) continue;
-
-      // Generate the systems
-      const positions = new Set();
-      let systemsCreated = 0;
-
-      // Create the star systems
-      for (let i = 0; i < numSystems; i++) {
-        // Random position
-        let systemX, systemY;
-        let attempts = 0;
-
-        do {
-          systemX = Math.floor(Math.random() * SECTOR_SIZE);
-          systemY = Math.floor(Math.random() * SECTOR_SIZE);
-          attempts++;
-          if (attempts > 50) break;
-        } while (positions.has(`${systemX},${systemY}`));
-
-        if (attempts > 50 && positions.has(`${systemX},${systemY}`)) continue;
-
-        positions.add(`${systemX},${systemY}`);
-
-        // Determine star type
-        const starInfo = weightedRandomSelect(STAR_TYPES);
-
-        await ctx.db.insert('starSystems', {
-          galaxySectorId: sector._id,
-          systemX,
-          systemY,
-          starType: starInfo.type,
-          starSize: 0.5 + Math.random() * 2.5,
-          starColor: starInfo.color
-        });
-
-        systemsCreated++;
+      // Add a small delay between batches to avoid rate limiting (if needed)
+      if (i + batchSize < sectorIds.length) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
-
-      totalSystems += systemsCreated;
     }
 
     return {
-      message: `Generated ${totalSystems} star systems across the galaxy`
+      message: `Generated ${totalSystems} star systems across the galaxy`,
+      totalSystems
     };
   }
 });
+
+// // Generate all systems for all sectors in a galaxy
+// export const generateAllGalaxySystems = mutation({
+//   args: {
+//     galaxyId: v.id('galaxies'),
+//     densityMultiplier: v.optional(v.number())
+//   },
+//   handler: async (ctx, args) => {
+//     // Get all sectors for this galaxy
+//     const sectors = await ctx.db
+//       .query('galaxySectors')
+//       .withIndex('by_galaxy', (q) => q.eq('galaxyId', args.galaxyId))
+//       .collect();
+
+//     // Track how many systems we create
+//     let totalSystems = 0;
+
+//     // Generate systems for each sector
+//     for (const sector of sectors) {
+//       // Check if we've already generated systems
+//       const existingSystems = await ctx.db
+//         .query('sectorSystems')
+//         .withIndex('by_sector', (q) => q.eq('galaxySectorId', sector._id))
+//         .collect();
+
+//       if (existingSystems.length > 0) {
+//         continue; // Skip if already generated
+//       }
+
+//       // Calculate density based on position in galaxy
+//       const baseDensity = calculateDensityAtPosition(
+//         sector.sectorX,
+//         sector.sectorY
+//       );
+//       const adjustedDensity = baseDensity * (args.densityMultiplier ?? 1);
+
+//       // Calculate number of systems
+//       const maxSystems = SECTOR_SIZE * SECTOR_SIZE * adjustedDensity;
+//       const numSystems = Math.min(Math.floor(maxSystems), 2000);
+
+//       // Skip empty sectors (possible at very edges with low density)
+//       if (numSystems === 0) continue;
+
+//       // Generate the systems
+//       const positions = new Set();
+//       let systemsCreated = 0;
+
+//       // Create the star systems
+//       for (let i = 0; i < numSystems; i++) {
+//         // Random position
+//         let systemX, systemY;
+//         let attempts = 0;
+
+//         do {
+//           systemX = Math.floor(Math.random() * SECTOR_SIZE);
+//           systemY = Math.floor(Math.random() * SECTOR_SIZE);
+//           attempts++;
+//           if (attempts > 50) break;
+//         } while (positions.has(`${systemX},${systemY}`));
+
+//         if (attempts > 50 && positions.has(`${systemX},${systemY}`)) continue;
+
+//         positions.add(`${systemX},${systemY}`);
+
+//         // Determine star type
+//         const starInfo = weightedRandomSelect(STAR_TYPES);
+
+//         await ctx.db.insert('sectorSystems', {
+//           galaxySectorId: sector._id,
+//           systemX,
+//           systemY,
+//           starType: starInfo.type,
+//           starSize: 0.5 + Math.random() * 2.5,
+//           starColor: starInfo.color,
+//           galaxyNumber: sector.galaxyNumber,
+//           sectorX: sector.sectorX,
+//           sectorY: sector.sectorY
+//         });
+
+//         systemsCreated++;
+//       }
+
+//       totalSystems += systemsCreated;
+//     }
+
+//     return {
+//       message: `Generated ${totalSystems} star systems across the galaxy`
+//     };
+//   }
+// });
 
 // Query to get galaxy density map
 export const getGalaxyDensityMap = query({

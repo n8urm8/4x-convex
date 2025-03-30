@@ -1,6 +1,6 @@
 // galaxyQueries.ts (in your Convex functions directory)
 import { v } from 'convex/values';
-import { query } from '../../_generated/server';
+import { internalQuery, query } from '../../_generated/server';
 
 // Get all planet types
 export const getAllPlanetTypes = query({
@@ -35,6 +35,20 @@ export const getGalaxyByNumber = query({
   }
 });
 
+// return all galaxy sector ids
+export const getGalaxySectorIds = internalQuery({
+  args: { galaxyId: v.id('galaxies') },
+  returns: v.array(v.id('galaxySectors')),
+  handler: async (ctx, args) => {
+    const sectors = await ctx.db
+      .query('galaxySectors')
+      .withIndex('by_galaxy', (q) => q.eq('galaxyId', args.galaxyId))
+      .collect();
+
+    return sectors.map((sector) => sector._id);
+  }
+});
+
 // Get sectors for a galaxy
 export const getGalaxySectors = query({
   args: { galaxyId: v.id('galaxies') },
@@ -46,23 +60,49 @@ export const getGalaxySectors = query({
   }
 });
 
-// Get a specific sector by coordinates
+// Get a specific sector by coordinates using either galaxyId or galaxy number
 export const getSectorByCoordinates = query({
   args: {
-    galaxyId: v.id('galaxies'),
+    galaxyId: v.optional(v.id('galaxies')),
+    galaxyNumber: v.optional(v.number()),
     sectorX: v.number(),
     sectorY: v.number()
   },
+  returns: v.union(
+    v.object({
+      _id: v.id('galaxySectors'),
+      _creationTime: v.number(),
+      galaxyId: v.id('galaxies'),
+      galaxyNumber: v.number(),
+      sectorX: v.number(),
+      sectorY: v.number()
+    }),
+    v.null()
+  ),
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query('galaxySectors')
-      .withIndex('by_coordinates', (q) =>
-        q
-          .eq('galaxyId', args.galaxyId)
-          .eq('sectorX', args.sectorX)
-          .eq('sectorY', args.sectorY)
-      )
-      .first();
+    if ('galaxyId' in args) {
+      // Query by galaxyId
+      return await ctx.db
+        .query('galaxySectors')
+        .withIndex('by_coordinates', (q) =>
+          q
+            .eq('galaxyId', args.galaxyId!)
+            .eq('sectorX', args.sectorX)
+            .eq('sectorY', args.sectorY)
+        )
+        .first();
+    } else {
+      // Query directly by galaxyNumber
+      return await ctx.db
+        .query('galaxySectors')
+        .withIndex('by_number_coordinates', (q) =>
+          q
+            .eq('galaxyNumber', args.galaxyNumber!)
+            .eq('sectorX', args.sectorX)
+            .eq('sectorY', args.sectorY)
+        )
+        .first();
+    }
   }
 });
 
@@ -71,7 +111,7 @@ export const getSectorSystems = query({
   args: { sectorId: v.id('galaxySectors') },
   handler: async (ctx, args) => {
     return await ctx.db
-      .query('starSystems')
+      .query('sectorSystems')
       .withIndex('by_sector', (q) => q.eq('galaxySectorId', args.sectorId))
       .collect();
   }
@@ -86,7 +126,7 @@ export const getStarSystemByCoordinates = query({
   },
   handler: async (ctx, args) => {
     return await ctx.db
-      .query('starSystems')
+      .query('sectorSystems')
       .withIndex('by_coordinates', (q) =>
         q
           .eq('galaxySectorId', args.sectorId)
@@ -99,11 +139,11 @@ export const getStarSystemByCoordinates = query({
 
 // Get planets for a star system
 export const getSystemPlanets = query({
-  args: { systemId: v.id('starSystems') },
+  args: { systemId: v.id('sectorSystems') },
   handler: async (ctx, args) => {
     const planets = await ctx.db
       .query('systemPlanets')
-      .withIndex('by_system', (q) => q.eq('starSystemId', args.systemId))
+      .withIndex('by_system', (q) => q.eq('sectorSystemId', args.systemId))
       .collect();
 
     // Enrich with planet type information
@@ -124,7 +164,7 @@ export const getSystemPlanets = query({
 // Get a specific planet by coordinates within a system
 export const getPlanetByCoordinates = query({
   args: {
-    systemId: v.id('starSystems'),
+    systemId: v.id('sectorSystems'),
     planetX: v.number(),
     planetY: v.number()
   },
@@ -133,7 +173,7 @@ export const getPlanetByCoordinates = query({
       .query('systemPlanets')
       .withIndex('by_coordinates', (q) =>
         q
-          .eq('starSystemId', args.systemId)
+          .eq('sectorSystemId', args.systemId)
           .eq('planetX', args.planetX)
           .eq('planetY', args.planetY)
       )

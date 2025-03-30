@@ -1,10 +1,8 @@
 import { Button } from '@/components/ui/button';
-import { buttonVariants } from '@/components/ui/button-util';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
@@ -16,14 +14,7 @@ import { Route as SettingsRoute } from '@/routes/_app/_auth/dashboard/_layout.se
 import { cn, useSignOut } from '@/utils/misc';
 import { PLANS } from '@cvx/schema';
 import { Link, useMatchRoute, useNavigate } from '@tanstack/react-router';
-import {
-  Check,
-  ChevronDown,
-  ChevronUp,
-  LogOut,
-  Settings,
-  Slash
-} from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 import { User } from '~/types';
 
 export function Navigation({ user }: { user: User }) {
@@ -48,8 +39,8 @@ export function Navigation({ user }: { user: User }) {
           >
             <Logo />
           </Link>
-          <Slash className="h-6 w-6 -rotate-12 stroke-[1.5px] text-primary/10" />
-          <DropdownMenu modal={false}>
+          {/* <Slash className="h-6 w-6 -rotate-12 stroke-[1.5px] text-primary/10" /> */}
+          {/* <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
@@ -125,7 +116,7 @@ export function Navigation({ user }: { user: User }) {
                 </>
               )}
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
         </div>
 
         <div className="flex h-10 items-center gap-3">
@@ -216,62 +207,6 @@ export function Navigation({ user }: { user: User }) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-      </div>
-
-      <div className="mx-auto flex w-full max-w-screen-xl items-center gap-3">
-        <div
-          className={cn(
-            `flex h-12 items-center border-b-2`,
-            isDashboardPath ? 'border-primary' : 'border-transparent'
-          )}
-        >
-          <Link
-            to={DashboardRoute.fullPath}
-            className={cn(
-              `${buttonVariants({ variant: 'ghost', size: 'sm' })} text-primary/80`
-            )}
-          >
-            Overview
-          </Link>
-        </div>
-        <div
-          className={cn(
-            `flex h-12 items-center border-b-2`,
-            isSettingsPath ? 'border-primary' : 'border-transparent'
-          )}
-        >
-          <Link
-            to={SettingsRoute.fullPath}
-            className={cn(
-              `${buttonVariants({ variant: 'ghost', size: 'sm' })} text-primary/80`
-            )}
-          >
-            Map
-          </Link>
-        </div>
-        <div
-          className={cn(
-            `flex h-12 items-center border-b-2`,
-            isBillingPath ? 'border-primary' : 'border-transparent'
-          )}
-        >
-          <Link
-            to={BillingSettingsRoute.fullPath}
-            className={cn(
-              `${buttonVariants({ variant: 'ghost', size: 'sm' })} text-primary/80`
-            )}
-          >
-            Bases
-          </Link>
-          <Link
-            to={BillingSettingsRoute.fullPath}
-            className={cn(
-              `${buttonVariants({ variant: 'ghost', size: 'sm' })} text-primary/80`
-            )}
-          >
-            Faction
-          </Link>
         </div>
       </div>
     </nav>

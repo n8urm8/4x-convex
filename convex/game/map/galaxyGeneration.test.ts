@@ -213,13 +213,16 @@ describe('Galaxy Generation', () => {
 
     // Create a star system manually
     const systemId = await t.run(async (ctx) => {
-      return await ctx.db.insert('starSystems', {
+      return await ctx.db.insert('sectorSystems', {
         galaxySectorId: sectorId,
         systemX: 50,
         systemY: 50,
         starType: 'Yellow Dwarf',
         starSize: 1.0,
-        starColor: '#FFD700'
+        starColor: '#FFD700',
+        galaxyNumber: galaxyResult.number,
+        sectorX: sectors[0].sectorX,
+        sectorY: sectors[0].sectorY
       });
     });
 
@@ -247,7 +250,7 @@ describe('Galaxy Generation', () => {
 
     // Check planet properties
     for (const planet of planets) {
-      expect(planet.starSystemId).toBe(systemId);
+      expect(planet.sectorSystemId).toBe(systemId);
       expect(planet.planetTypeId).toBeTruthy();
       expect(planet.planetX).toBeGreaterThanOrEqual(0);
       expect(planet.planetX).toBeLessThan(9);
@@ -283,7 +286,7 @@ describe('Galaxy Generation', () => {
     );
 
     // Generate all systems with lower density for faster test
-    const result = await t.mutation(
+    const result = await t.action(
       api.game.map.galaxyGeneration.generateAllGalaxySystems,
       {
         galaxyId: galaxyResult.galaxyId,

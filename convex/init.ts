@@ -1,4 +1,4 @@
-import { internal } from '@cvx/_generated/api';
+import { api, internal } from '@cvx/_generated/api';
 import { internalAction, internalMutation } from '@cvx/_generated/server';
 import schema, {
   CURRENCIES,
@@ -12,7 +12,7 @@ import { stripe } from '@cvx/stripe';
 import { asyncMap } from 'convex-helpers';
 import { v } from 'convex/values';
 import { ERRORS } from '~/errors';
-import { seedPlanetTypes } from './seed/planetTypesSeed';
+import { planetTypesSeedData } from './seed/planetTypesSeed';
 
 const seedProducts = [
   {
@@ -61,126 +61,160 @@ export const insertSeedPlan = internalMutation({
 });
 
 // Seed Planet types
-export const seedPlanetTypesAction = internalMutation({
-  args: {},
-  returns: v.null(),
-  handler: async (ctx) => {
-    await seedPlanetTypes(ctx.db);
-    console.info('🌍 Planet types have been successfully seeded.');
-    return null;
+export const insertPlanetType = internalMutation({
+  args: schema.tables.planetTypes.validator,
+  handler: async (ctx, args) => {
+    return await ctx.db.insert('planetTypes', {
+      name: args.name,
+      category: args.category,
+      habitable: args.habitable,
+      space: args.space,
+      energy: args.energy,
+      minerals: args.minerals,
+      volatiles: args.volatiles,
+      description: args.description,
+      imageUrl: args.imageUrl
+    });
   }
 });
 
-export default internalAction(async (ctx) => {
-  // Seed Planet Types TODO: why is this not working?
-  await ctx.runMutation(internal.init.seedPlanetTypesAction, {});
-
+export default internalAction({
+  args: {},
+  returns: v.null(),
   /**
-   * Stripe Products.
+   * Planet Types.
    */
-  const products = await stripe.products.list({
-    limit: 1
-  });
-  if (products?.data?.length) {
-    console.info('🏃‍♂️ Skipping Stripe products creation and seeding.');
-    return;
-  }
-
-  const seededProducts = await asyncMap(seedProducts, async (product) => {
-    // Format prices to match Stripe's API.
-    const pricesByInterval = Object.entries(product.prices).flatMap(
-      ([interval, price]) => {
-        return Object.entries(price).map(([currency, amount]) => ({
-          interval,
-          currency,
-          amount
-        }));
-      }
+  handler: async (ctx) => {
+    const existingPlanetTypes = await ctx.runQuery(
+      api.game.map.galaxyQueries.getAllPlanetTypes,
+      {}
     );
 
-    // Create Stripe product.
-    const stripeProduct = await stripe.products.create({
-      name: product.name,
-      description: product.description
-    });
+    if (existingPlanetTypes && existingPlanetTypes.length > 0) {
+      console.log('🏃‍♂️ Skipping Planet Types seeding - types already exist.');
+    } else {
+      console.log('🪐 Seeding Planet Types...');
 
-    // Create Stripe price for the current product.
-    const stripePrices = await Promise.all(
-      pricesByInterval.map((price) => {
-        return stripe.prices.create({
-          product: stripeProduct.id,
-          currency: price.currency ?? 'usd',
-          unit_amount: price.amount ?? 0,
-          tax_behavior: 'inclusive',
-          recurring: {
-            interval: (price.interval as Interval) ?? INTERVALS.MONTH
-          }
-        });
-      })
-    );
+      // Seed all planet types
+      await asyncMap(planetTypesSeedData, async (planetType) => {
+        await ctx.runMutation(internal.init.insertPlanetType, planetType);
+      });
 
-    const getPrice = (currency: Currency, interval: Interval) => {
-      const price = stripePrices.find(
-        (price) =>
-          price.currency === currency && price.recurring?.interval === interval
+      console.info(
+        `🪐 ${planetTypesSeedData.length} Planet Types have been successfully seeded.`
       );
-      if (!price) {
-        throw new Error(ERRORS.STRIPE_SOMETHING_WENT_WRONG);
-      }
-      return { stripeId: price.id, amount: price.unit_amount || 0 };
-    };
+    }
 
-    await ctx.runMutation(internal.init.insertSeedPlan, {
-      stripeId: stripeProduct.id,
-      key: product.key as PlanKey,
-      name: product.name,
-      description: product.description,
-      prices: {
-        [INTERVALS.MONTH]: {
-          [CURRENCIES.USD]: getPrice(CURRENCIES.USD, INTERVALS.MONTH),
-          [CURRENCIES.EUR]: getPrice(CURRENCIES.EUR, INTERVALS.MONTH)
+    /**
+     * Stripe Products.
+     */
+    const products = await stripe.products.list({
+      limit: 1
+    });
+    if (products?.data?.length) {
+      console.info('🏃‍♂️ Skipping Stripe products creation and seeding.');
+      return;
+    }
+
+    const seededProducts = await asyncMap(seedProducts, async (product) => {
+      // Format prices to match Stripe's API.
+      const pricesByInterval = Object.entries(product.prices).flatMap(
+        ([interval, price]) => {
+          return Object.entries(price).map(([currency, amount]) => ({
+            interval,
+            currency,
+            amount
+          }));
+        }
+      );
+
+      // Create Stripe product.
+      const stripeProduct = await stripe.products.create({
+        name: product.name,
+        description: product.description
+      });
+
+      // Create Stripe price for the current product.
+      const stripePrices = await Promise.all(
+        pricesByInterval.map((price) => {
+          return stripe.prices.create({
+            product: stripeProduct.id,
+            currency: price.currency ?? 'usd',
+            unit_amount: price.amount ?? 0,
+            tax_behavior: 'inclusive',
+            recurring: {
+              interval: (price.interval as Interval) ?? INTERVALS.MONTH
+            }
+          });
+        })
+      );
+
+      const getPrice = (currency: Currency, interval: Interval) => {
+        const price = stripePrices.find(
+          (price) =>
+            price.currency === currency &&
+            price.recurring?.interval === interval
+        );
+        if (!price) {
+          throw new Error(ERRORS.STRIPE_SOMETHING_WENT_WRONG);
+        }
+        return { stripeId: price.id, amount: price.unit_amount || 0 };
+      };
+
+      await ctx.runMutation(internal.init.insertSeedPlan, {
+        stripeId: stripeProduct.id,
+        key: product.key as PlanKey,
+        name: product.name,
+        description: product.description,
+        prices: {
+          [INTERVALS.MONTH]: {
+            [CURRENCIES.USD]: getPrice(CURRENCIES.USD, INTERVALS.MONTH),
+            [CURRENCIES.EUR]: getPrice(CURRENCIES.EUR, INTERVALS.MONTH)
+          },
+          [INTERVALS.YEAR]: {
+            [CURRENCIES.USD]: getPrice(CURRENCIES.USD, INTERVALS.YEAR),
+            [CURRENCIES.EUR]: getPrice(CURRENCIES.EUR, INTERVALS.YEAR)
+          }
+        }
+      });
+
+      return {
+        key: product.key,
+        product: stripeProduct.id,
+        prices: stripePrices.map((price) => price.id)
+      };
+    });
+    console.info(`📦 Stripe Products has been successfully created.`);
+
+    // Configure Customer Portal.
+    await stripe.billingPortal.configurations.create({
+      business_profile: {
+        headline: 'Organization Name - Customer Portal'
+      },
+      features: {
+        customer_update: {
+          enabled: true,
+          allowed_updates: ['address', 'shipping', 'tax_id', 'email']
         },
-        [INTERVALS.YEAR]: {
-          [CURRENCIES.USD]: getPrice(CURRENCIES.USD, INTERVALS.YEAR),
-          [CURRENCIES.EUR]: getPrice(CURRENCIES.EUR, INTERVALS.YEAR)
+        invoice_history: { enabled: true },
+        payment_method_update: { enabled: true },
+        subscription_cancel: { enabled: true },
+        subscription_update: {
+          enabled: true,
+          default_allowed_updates: ['price'],
+          proration_behavior: 'always_invoice',
+          products: seededProducts
+            .filter(({ key }) => key !== PLANS.FREE)
+            .map(({ product, prices }) => ({ product, prices }))
         }
       }
     });
 
-    return {
-      key: product.key,
-      product: stripeProduct.id,
-      prices: stripePrices.map((price) => price.id)
-    };
-  });
-  console.info(`📦 Stripe Products has been successfully created.`);
+    console.info(`👒 Stripe Customer Portal has been successfully configured.`);
+    console.info(
+      '🎉 Visit: https://dashboard.stripe.com/test/products to see your products.'
+    );
 
-  // Configure Customer Portal.
-  await stripe.billingPortal.configurations.create({
-    business_profile: {
-      headline: 'Organization Name - Customer Portal'
-    },
-    features: {
-      customer_update: {
-        enabled: true,
-        allowed_updates: ['address', 'shipping', 'tax_id', 'email']
-      },
-      invoice_history: { enabled: true },
-      payment_method_update: { enabled: true },
-      subscription_cancel: { enabled: true },
-      subscription_update: {
-        enabled: true,
-        default_allowed_updates: ['price'],
-        proration_behavior: 'always_invoice',
-        products: seededProducts
-          .filter(({ key }) => key !== PLANS.FREE)
-          .map(({ product, prices }) => ({ product, prices }))
-      }
-    }
-  });
-
-  console.info(`👒 Stripe Customer Portal has been successfully configured.`);
-  console.info(
-    '🎉 Visit: https://dashboard.stripe.com/test/products to see your products.'
-  );
+    return null;
+  }
 });
