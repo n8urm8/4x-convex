@@ -117,6 +117,26 @@ export const getSectorSystems = query({
   }
 });
 
+// Get systems by sector coordinates
+export const getSectorSystemsByCoordinates = query({
+  args: {
+    galaxyNumber: v.number(),
+    sectorX: v.number(),
+    sectorY: v.number()
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('sectorSystems')
+      .withIndex('by_galaxy_sector_coordinates', (q) =>
+        q
+          .eq('galaxyNumber', args.galaxyNumber)
+          .eq('sectorX', args.sectorX)
+          .eq('sectorY', args.sectorY)
+      )
+      .collect();
+  }
+});
+
 // Get a specific star system by coordinates within a sector
 export const getStarSystemByCoordinates = query({
   args: {
