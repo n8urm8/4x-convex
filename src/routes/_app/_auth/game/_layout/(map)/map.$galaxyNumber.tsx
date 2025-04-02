@@ -1,4 +1,5 @@
 import { GalaxyGridItem } from '@/components/map/GalaxyGridItem';
+import { GalaxySystem } from '@/components/map/GalaxySystem';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
@@ -156,6 +157,8 @@ export default function GalaxyMap() {
                     );
                   })
                 )
+              ) : selectedSystem ? (
+                <GalaxySystem />
               ) : (
                 <GalaxyGridItem
                   key={`system-${selectedSector.x}-${selectedSector.y}`}

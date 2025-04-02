@@ -140,16 +140,20 @@ export const getSectorSystemsByCoordinates = query({
 // Get a specific star system by coordinates within a sector
 export const getStarSystemByCoordinates = query({
   args: {
-    sectorId: v.id('galaxySectors'),
+    galaxyNumber: v.number(),
+    sectorX: v.number(),
+    sectorY: v.number(),
     systemX: v.number(),
     systemY: v.number()
   },
   handler: async (ctx, args) => {
     return await ctx.db
       .query('sectorSystems')
-      .withIndex('by_coordinates', (q) =>
+      .withIndex('by_absolute_coordinates', (q) =>
         q
-          .eq('galaxySectorId', args.sectorId)
+          .eq('galaxyNumber', args.galaxyNumber)
+          .eq('sectorX', args.sectorX)
+          .eq('sectorY', args.sectorY)
           .eq('systemX', args.systemX)
           .eq('systemY', args.systemY)
       )

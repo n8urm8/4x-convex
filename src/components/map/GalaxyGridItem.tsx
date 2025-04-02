@@ -27,11 +27,10 @@ export const GalaxyGridItem = ({
     })
   );
 
-  console.log(x, 'x', y, 'sectorSystems', sectorSystems);
   return (
     <div
-      key={`sector-${x}-${y}`}
-      className={`border aspect-square grid grid-cols-25 grid-rows-25 ${isSelected ? 'p-4' : ''}`}
+      // key={`sector-${x}-${y}`}
+      className={`border aspect-square grid grid-cols-25 grid-rows-25 ${isSelected ? 'p-4' : 'cursor-pointer'}`}
       onClick={() => setSelectedSector(x, y)}
     >
       {Array.from({ length: 25 }, (_, y) =>
@@ -66,13 +65,13 @@ export const GalaxyGridItem = ({
               key={`sector-${x}-${y} - system-${x}-${y}`}
               className="rounded-full"
               style={{
+                cursor: 'pointer',
                 width: `${size}px`,
                 height: `${size}px`,
-                background: `radial-gradient(circle, white 0%, ${lightColor} 20%, ${baseColor} 40%, ${baseColor}40 60%, ${glowColor} 80%)`,
+                background: `radial-gradient(circle, white 0%, ${lightColor} 20%,  ${baseColor}40 60%, ${glowColor} 80%)`,
                 boxShadow: `0 0 ${size / 2}px ${size / 4}px ${baseColor}40`
-                // background: `radial-gradient(circle, ${baseColor} 0%, ${baseColor}40 30%, ${glowColor} 70%)`
-                // boxShadow: `0 0 ${size}px ${size / 2}px ${baseColor}40`
               }}
+              onClick={isSelected ? () => setSelectedSystem(x, y) : undefined}
             ></div>
           );
         })
