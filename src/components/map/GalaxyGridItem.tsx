@@ -7,7 +7,8 @@ interface GalaxyGridItemProps {
   x: number;
   y: number;
   isSelected: boolean;
-  setSelectedSector: (sector: { x: number; y: number }) => void;
+  setSelectedSector: (x: number, y: number) => void;
+  setSelectedSystem: (x: number, y: number) => void;
 }
 
 export const GalaxyGridItem = ({
@@ -15,16 +16,9 @@ export const GalaxyGridItem = ({
   x,
   y,
   isSelected,
-  setSelectedSector
+  setSelectedSector,
+  setSelectedSystem
 }: GalaxyGridItemProps) => {
-  //   const { data: sectorInfo } = useQuery(
-  //     convexQuery(api.game.map.galaxyQueries.getSectorByCoordinates, {
-  //       galaxyNumber: Number(galaxyNumber),
-  //       sectorX: x,
-  //       sectorY: y
-  //     })
-  //   );
-
   const { data: sectorSystems } = useQuery(
     convexQuery(api.game.map.galaxyQueries.getSectorSystemsByCoordinates, {
       galaxyNumber: Number(galaxyNumber),
@@ -38,7 +32,7 @@ export const GalaxyGridItem = ({
     <div
       key={`sector-${x}-${y}`}
       className={`border aspect-square grid grid-cols-25 grid-rows-25 ${isSelected ? 'p-4' : ''}`}
-      onClick={() => setSelectedSector({ x, y })}
+      onClick={() => setSelectedSector(x, y)}
     >
       {Array.from({ length: 25 }, (_, y) =>
         Array.from({ length: 25 }, (_, x) => {
@@ -61,6 +55,9 @@ export const GalaxyGridItem = ({
 
           // Create a glow effect with radial gradient
           const baseColor = system.starColor;
+          // Create a lighter version of the base color for the core
+          const lightColor =
+            baseColor === '#FFFFFF' ? '#FFFFFF' : `${baseColor}FF`;
           // Generate a slightly transparent version of the color for the glow
           const glowColor = `${baseColor}00`;
 
@@ -71,7 +68,9 @@ export const GalaxyGridItem = ({
               style={{
                 width: `${size}px`,
                 height: `${size}px`,
-                background: `radial-gradient(circle, ${baseColor} 0%, ${baseColor}40 30%, ${glowColor} 70%)`
+                background: `radial-gradient(circle, white 0%, ${lightColor} 20%, ${baseColor} 40%, ${baseColor}40 60%, ${glowColor} 80%)`,
+                boxShadow: `0 0 ${size / 2}px ${size / 4}px ${baseColor}40`
+                // background: `radial-gradient(circle, ${baseColor} 0%, ${baseColor}40 30%, ${glowColor} 70%)`
                 // boxShadow: `0 0 ${size}px ${size / 2}px ${baseColor}40`
               }}
             ></div>

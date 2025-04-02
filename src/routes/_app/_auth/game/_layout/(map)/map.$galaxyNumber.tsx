@@ -1,5 +1,5 @@
 import { GalaxyGridItem } from '@/components/map/GalaxyGridItem';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
 interface GalaxyMapSearch {
@@ -27,6 +27,7 @@ export const Route = createFileRoute(
 export default function GalaxyMap() {
   const { galaxyNumber } = Route.useParams();
   const { sectorX, sectorY, systemX, systemY } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const [selectedSector, setSelectedSector] = useState<{
     x: number;
     y: number;
@@ -36,6 +37,28 @@ export default function GalaxyMap() {
     x: number;
     y: number;
   } | null>(null);
+
+  const handleSectorClick = (x: number, y: number) => {
+    setSelectedSector({ x, y });
+    setSelectedSystem(null);
+    // Update the URL with the selected sector coordinates
+    navigate({
+      search: { sectorX: x, sectorY: y }
+    });
+  };
+
+  const handleSystemClick = (x: number, y: number) => {
+    setSelectedSystem({ x, y });
+    // Update the URL with the selected system coordinates
+    navigate({
+      search: {
+        sectorX: selectedSector?.x,
+        sectorY: selectedSector?.y,
+        systemX: x,
+        systemY: y
+      }
+    });
+  };
 
   useEffect(() => {
     // Check for sector coordinates in search params
@@ -127,7 +150,8 @@ export default function GalaxyMap() {
                         x={x}
                         y={y}
                         isSelected={false}
-                        setSelectedSector={setSelectedSector}
+                        setSelectedSector={handleSectorClick}
+                        setSelectedSystem={() => {}}
                       />
                     );
                   })
@@ -140,6 +164,7 @@ export default function GalaxyMap() {
                   y={selectedSector.y}
                   isSelected={true}
                   setSelectedSector={() => {}}
+                  setSelectedSystem={handleSystemClick}
                 />
               )}
             </div>
