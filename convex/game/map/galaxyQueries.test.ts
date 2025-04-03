@@ -175,7 +175,9 @@ describe('Galaxy Queries', () => {
     const system = await t.query(
       api.game.map.galaxyQueries.getStarSystemByCoordinates,
       {
-        sectorId: sector!._id,
+        galaxyNumber: 1,
+        sectorX: 1,
+        sectorY: 1,
         systemX: 1,
         systemY: 1
       }
