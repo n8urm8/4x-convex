@@ -8,6 +8,8 @@ interface GalaxyMapSearch {
   sectorY?: number;
   systemX?: number;
   systemY?: number;
+  planetX?: number;
+  planetY?: number;
 }
 
 export const Route = createFileRoute(
@@ -20,28 +22,25 @@ export const Route = createFileRoute(
       sectorX: search.sectorX ? Number(search.sectorX) : undefined,
       sectorY: search.sectorY ? Number(search.sectorY) : undefined,
       systemX: search.systemX ? Number(search.systemX) : undefined,
-      systemY: search.systemY ? Number(search.systemY) : undefined
+      systemY: search.systemY ? Number(search.systemY) : undefined,
+      planetX: search.planetX ? Number(search.planetX) : undefined,
+      planetY: search.planetY ? Number(search.planetY) : undefined
     };
   }
 });
 
 export default function GalaxyMap() {
   const { galaxyNumber } = Route.useParams();
-  const { sectorX, sectorY, systemX, systemY } = Route.useSearch();
+  const { sectorX, sectorY, systemX, systemY, planetX, planetY } =
+    Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
-  const [selectedSector, setSelectedSector] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-
-  const [selectedSystem, setSelectedSystem] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
+  const [selectedSector, setSelectedSector] = useState(false);
+  const [selectedSystem, setSelectedSystem] = useState(false);
+  const [selectedPlanet, setSelectedPlanet] = useState(false);
 
   const handleSectorClick = (x: number, y: number) => {
-    setSelectedSector({ x, y });
-    setSelectedSystem(null);
+    setSelectedSector(true);
+    setSelectedSystem(false);
     // Update the URL with the selected sector coordinates
     navigate({
       search: { sectorX: x, sectorY: y }
@@ -49,12 +48,12 @@ export default function GalaxyMap() {
   };
 
   const handleSystemClick = (x: number, y: number) => {
-    setSelectedSystem({ x, y });
+    setSelectedSystem(true);
     // Update the URL with the selected system coordinates
     navigate({
       search: {
-        sectorX: selectedSector?.x,
-        sectorY: selectedSector?.y,
+        sectorX: sectorX,
+        sectorY: sectorY,
         systemX: x,
         systemY: y
       }
@@ -64,25 +63,28 @@ export default function GalaxyMap() {
   useEffect(() => {
     // Check for sector coordinates in search params
     if (sectorX && sectorY) {
-      setSelectedSector({
-        x: sectorX,
-        y: sectorY
-      });
+      setSelectedSector(true);
 
       // Check for system coordinates in search params
       if (systemX && systemY) {
-        setSelectedSystem({
-          x: systemX,
-          y: systemY
-        });
+        setSelectedSystem(true);
+        // Check for planet coordinates in search params
+        if (planetX && planetY) {
+          setSelectedPlanet(true);
+        } else {
+          // Reset planet selection if only system is provided
+          setSelectedPlanet(false);
+        }
       } else {
         // Reset system selection if only sector is provided
-        setSelectedSystem(null);
+        setSelectedSystem(false);
+        setSelectedPlanet(false);
       }
     } else {
       // Reset both selections if no sector params
-      setSelectedSector(null);
-      setSelectedSystem(null);
+      setSelectedSector(false);
+      setSelectedSystem(false);
+      setSelectedPlanet(false);
     }
   }, [sectorX, sectorY, systemX, systemY]);
 
@@ -107,32 +109,53 @@ export default function GalaxyMap() {
                     to="/game/map/$galaxyNumber"
                     params={{ galaxyNumber: galaxyNumber }}
                     search={{
-                      sectorX: selectedSector.x,
-                      sectorY: selectedSector.y
+                      sectorX: sectorX,
+                      sectorY: sectorY
                     }}
                   >
                     {' '}
-                    {selectedSector.x}
-                    {selectedSector.y}{' '}
+                    {sectorX}
+                    {sectorY}{' '}
                   </Link>
                 </>
               )}
               {selectedSystem && selectedSector && (
                 <>
-                  <span> :: </span>
+                  <span className="pre"> :: </span>
                   <Link
                     to="/game/map/$galaxyNumber"
                     params={{ galaxyNumber: galaxyNumber }}
                     search={{
-                      sectorX: selectedSector.x,
-                      sectorY: selectedSector.y,
-                      systemX: selectedSystem.x,
-                      systemY: selectedSystem.y
+                      sectorX: sectorX,
+                      sectorY: sectorY,
+                      systemX: systemX,
+                      systemY: systemY
                     }}
                   >
                     {' '}
-                    {selectedSystem.x}
-                    {selectedSystem.y}{' '}
+                    {systemX}
+                    {systemY}{' '}
+                  </Link>
+                </>
+              )}
+              {selectedSystem && selectedSector && selectedPlanet && (
+                <>
+                  <span className="pre"> :: </span>
+                  <Link
+                    to="/game/map/$galaxyNumber"
+                    params={{ galaxyNumber: galaxyNumber }}
+                    search={{
+                      sectorX: sectorX,
+                      sectorY: sectorY,
+                      systemX: systemX,
+                      systemY: systemY,
+                      planetX: planetX,
+                      planetY: planetY
+                    }}
+                  >
+                    {' '}
+                    {planetX}
+                    {planetY}{' '}
                   </Link>
                 </>
               )}
@@ -158,13 +181,17 @@ export default function GalaxyMap() {
                   })
                 )
               ) : selectedSystem ? (
-                <GalaxySystem />
+                selectedPlanet ? (
+                  <></>
+                ) : (
+                  <GalaxySystem />
+                )
               ) : (
                 <GalaxyGridItem
-                  key={`system-${selectedSector.x}-${selectedSector.y}`}
+                  key={`system-${sectorX}-${sectorY}`}
                   galaxyNumber={Number(galaxyNumber)}
-                  x={selectedSector.x}
-                  y={selectedSector.y}
+                  x={sectorX!}
+                  y={sectorY!}
                   isSelected={true}
                   setSelectedSector={() => {}}
                   setSelectedSystem={handleSystemClick}

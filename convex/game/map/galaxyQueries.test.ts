@@ -197,7 +197,11 @@ describe('Galaxy Queries', () => {
     const planet = await t.query(
       api.game.map.galaxyQueries.getPlanetByCoordinates,
       {
-        systemId: system!._id,
+        galaxyNumber: 1,
+        sectorX: 1,
+        sectorY: 1,
+        systemX: 1,
+        systemY: 1,
         planetX: 1,
         planetY: 1
       }

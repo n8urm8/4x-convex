@@ -188,16 +188,24 @@ export const getSystemPlanets = query({
 // Get a specific planet by coordinates within a system
 export const getPlanetByCoordinates = query({
   args: {
-    systemId: v.id('sectorSystems'),
+    galaxyNumber: v.number(),
+    sectorX: v.number(),
+    sectorY: v.number(),
+    systemX: v.number(),
+    systemY: v.number(),
     planetX: v.number(),
     planetY: v.number()
   },
   handler: async (ctx, args) => {
     const planet = await ctx.db
       .query('systemPlanets')
-      .withIndex('by_coordinates', (q) =>
+      .withIndex('by_absolute_coordinates', (q) =>
         q
-          .eq('sectorSystemId', args.systemId)
+          .eq('galaxyNumber', args.galaxyNumber)
+          .eq('sectorX', args.sectorX)
+          .eq('sectorY', args.sectorY)
+          .eq('systemX', args.systemX)
+          .eq('systemY', args.systemY)
           .eq('planetX', args.planetX)
           .eq('planetY', args.planetY)
       )
