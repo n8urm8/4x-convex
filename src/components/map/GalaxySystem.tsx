@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 export const GalaxySystem = () => {
   const { sectorX, sectorY, systemX, systemY } = Route.useSearch();
   const { galaxyNumber } = Route.useParams();
+  const navigate = Route.useNavigate();
 
   const { data: system, isLoading: loadingSystem } = useQuery(
     convexQuery(api.game.map.galaxyQueries.getStarSystemByCoordinates, {
@@ -26,7 +27,19 @@ export const GalaxySystem = () => {
     enabled: !!system?._id
   });
 
-  console.log(' systemPlanets: ', systemPlanets);
+  const handlePlanetClick = (x: number, y: number) => {
+    // Update the URL with the selected planet coordinates
+    navigate({
+      search: {
+        sectorX: sectorX,
+        sectorY: sectorY,
+        systemX: systemX,
+        systemY: systemY,
+        planetX: x,
+        planetY: y
+      }
+    });
+  };
 
   return (
     <div>
@@ -65,6 +78,7 @@ export const GalaxySystem = () => {
                   >
                     <div
                       className="rounded-full"
+                      onClick={() => handlePlanetClick(x, y)}
                       style={{
                         cursor: 'pointer',
                         width: `${size}px`,
@@ -85,7 +99,7 @@ export const GalaxySystem = () => {
               if (!planet)
                 return (
                   <div
-                    key={`system-${x}-${y} - planet-${x}-${y}`}
+                    key={`system-${systemX}-${systemY} - planet-${x}-${y}`}
                     className="h-full w-full"
                   ></div>
                 );
@@ -95,7 +109,8 @@ export const GalaxySystem = () => {
 
               return (
                 <div
-                  key={`system-${x}-${y} - planet-${x}-${y}`}
+                  onClick={() => handlePlanetClick(x, y)}
+                  key={`system-${systemX}-${systemY} - planet-${x}-${y}`}
                   className={`h-${size} w-${size} bg-gray-500 rounded-full`}
                 ></div>
               );

@@ -1,5 +1,6 @@
 import { GalaxyGridItem } from '@/components/map/GalaxyGridItem';
 import { GalaxySystem } from '@/components/map/GalaxySystem';
+import { PlanetView } from '@/components/map/PlanetView';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
@@ -86,7 +87,7 @@ export default function GalaxyMap() {
       setSelectedSystem(false);
       setSelectedPlanet(false);
     }
-  }, [sectorX, sectorY, systemX, systemY]);
+  }, [sectorX, sectorY, systemX, systemY, planetX, planetY]);
 
   return (
     <div className="flex h-full w-full bg-secondary px-6 py-8 dark:bg-black">
@@ -98,14 +99,16 @@ export default function GalaxyMap() {
               <Link
                 to="/game/map/$galaxyNumber"
                 params={{ galaxyNumber: galaxyNumber }}
+                className="whitespace-pre"
               >
                 {' '}
                 {galaxyNumber}{' '}
               </Link>
               {selectedSector && (
                 <>
-                  <span> :: </span>
+                  <span className="whitespace-pre"> :: </span>
                   <Link
+                    className="whitespace-pre"
                     to="/game/map/$galaxyNumber"
                     params={{ galaxyNumber: galaxyNumber }}
                     search={{
@@ -114,15 +117,15 @@ export default function GalaxyMap() {
                     }}
                   >
                     {' '}
-                    {sectorX}
-                    {sectorY}{' '}
+                    {sectorX}:{sectorY}{' '}
                   </Link>
                 </>
               )}
               {selectedSystem && selectedSector && (
                 <>
-                  <span className="pre"> :: </span>
+                  <span className="whitespace-pre"> :: </span>
                   <Link
+                    className="whitespace-pre"
                     to="/game/map/$galaxyNumber"
                     params={{ galaxyNumber: galaxyNumber }}
                     search={{
@@ -133,15 +136,15 @@ export default function GalaxyMap() {
                     }}
                   >
                     {' '}
-                    {systemX}
-                    {systemY}{' '}
+                    {systemX}:{systemY}{' '}
                   </Link>
                 </>
               )}
               {selectedSystem && selectedSector && selectedPlanet && (
                 <>
-                  <span className="pre"> :: </span>
+                  <span className="whitespace-pre"> :: </span>
                   <Link
+                    className="whitespace-pre"
                     to="/game/map/$galaxyNumber"
                     params={{ galaxyNumber: galaxyNumber }}
                     search={{
@@ -154,8 +157,7 @@ export default function GalaxyMap() {
                     }}
                   >
                     {' '}
-                    {planetX}
-                    {planetY}{' '}
+                    {planetX}:{planetY}{' '}
                   </Link>
                 </>
               )}
@@ -182,7 +184,7 @@ export default function GalaxyMap() {
                 )
               ) : selectedSystem ? (
                 selectedPlanet ? (
-                  <></>
+                  <PlanetView />
                 ) : (
                   <GalaxySystem />
                 )

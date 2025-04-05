@@ -1,3 +1,4 @@
+import RedStar from '@/assets/red-star.jpeg';
 import { Route } from '@/routes/_app/_auth/game/_layout/(map)/map.$galaxyNumber';
 import { convexQuery } from '@convex-dev/react-query';
 import { api } from '@cvx/_generated/api';
@@ -6,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 export const PlanetView = () => {
   const { sectorX, sectorY, systemX, systemY, planetX, planetY } =
     Route.useSearch();
+
   const { galaxyNumber } = Route.useParams();
   const { data: planet, isLoading: loadingPlanet } = useQuery(
     convexQuery(api.game.map.galaxyQueries.getPlanetByCoordinates, {
@@ -19,6 +21,9 @@ export const PlanetView = () => {
     })
   );
 
+  const isStar = planetX === 4 && planetY === 4;
+  console.log('planet view: ', planet);
+
   return (
     <div>
       <div
@@ -31,8 +36,14 @@ export const PlanetView = () => {
         )}
         {planet && (
           <div className="col-span-9 row-span-9 flex items-center justify-center">
-            <h1>{planet.name}</h1>
+            <img src={RedStar} alt="star" />
             <p>Type: {planet.type?.name}</p>
+          </div>
+        )}
+        {!planet && isStar && (
+          <div className="col-span-9 row-span-9 flex items-center justify-center">
+            <img src={RedStar} alt="star" />
+            <p>Type: Star</p>
           </div>
         )}
       </div>
