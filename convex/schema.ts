@@ -1,6 +1,7 @@
 import { authTables } from '@convex-dev/auth/server';
 import { defineSchema, defineTable } from 'convex/server';
 import { Infer, v } from 'convex/values';
+import { baseStructures, playerBases, structureDefinitions, structureRequirements } from './game/bases/bases.schema';
 
 export const CURRENCIES = {
   USD: 'usd',
@@ -184,7 +185,13 @@ const schema = defineSchema({
     cancelAtPeriodEnd: v.boolean()
   })
     .index('userId', ['userId'])
-    .index('stripeId', ['stripeId'])
+    .index('stripeId', ['stripeId']),
+
+      // Include your base schema tables
+  structureDefinitions,
+  structureRequirements,
+  playerBases,
+  baseStructures,
 });
 
 export default schema;
