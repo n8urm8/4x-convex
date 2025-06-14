@@ -1,4 +1,4 @@
-import RedStar from '@/assets/red-star.jpeg';
+import RedStar from '@/assets/stars/star_red01.png';
 import { Route } from '@/routes/_app/_auth/game/_layout/(map)/map.$galaxyNumber';
 import { convexQuery } from '@convex-dev/react-query';
 import { api } from '@cvx/_generated/api';
@@ -9,16 +9,32 @@ export const PlanetView = () => {
     Route.useSearch();
 
   const { galaxyNumber } = Route.useParams();
+
+  const queryArgs =
+    galaxyNumber !== undefined &&
+    sectorX !== undefined &&
+    sectorY !== undefined &&
+    systemX !== undefined &&
+    systemY !== undefined &&
+    planetX !== undefined &&
+    planetY !== undefined
+      ? {
+          galaxyNumber: Number(galaxyNumber),
+          sectorX: sectorX,
+          sectorY: sectorY,
+          systemX: systemX,
+          systemY: systemY,
+          planetX: planetX,
+          planetY: planetY
+        }
+      : 'skip';
+
   const { data: planet, isLoading: loadingPlanet } = useQuery(
-    convexQuery(api.game.map.galaxyQueries.getPlanetByCoordinates, {
-      galaxyNumber: Number(galaxyNumber),
-      sectorX: sectorX!,
-      sectorY: sectorY!,
-      systemX: systemX!,
-      systemY: systemY!,
-      planetX: planetX!,
-      planetY: planetY!
-    })
+    convexQuery(
+      api.game.map.galaxyQueries.getPlanetByCoordinates,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      queryArgs as any
+    )
   );
 
   const isStar = planetX === 4 && planetY === 4;

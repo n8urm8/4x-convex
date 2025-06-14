@@ -84,21 +84,27 @@ export const AdminSectorsTab = ({
     )
   });
 
+  const galaxyQueryArgs = selectedGalaxyId
+    ? { galaxyId: selectedGalaxyId }
+    : 'skip';
+
   // Get density map for selected galaxy
-  const { data: galaxyDensityMap = [] } = useQuery({
-    ...convexQuery(api.game.map.galaxyGeneration.getGalaxyDensityMap, {
-      galaxyId: selectedGalaxyId!
-    }),
-    enabled: !!selectedGalaxyId
-  });
+  const { data: galaxyDensityMap = [] } = useQuery(
+    convexQuery(
+      api.game.map.galaxyGeneration.getGalaxyDensityMap,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      galaxyQueryArgs as any
+    )
+  );
 
   // Query to get sectors for selected galaxy
-  const { data: galaxySectors = [] } = useQuery({
-    ...convexQuery(api.game.map.galaxyQueries.getGalaxySectors, {
-      galaxyId: selectedGalaxyId!
-    }),
-    enabled: !!selectedGalaxyId
-  });
+  const { data: galaxySectors = [] } = useQuery(
+    convexQuery(
+      api.game.map.galaxyQueries.getGalaxySectors,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      galaxyQueryArgs as any
+    )
+  );
   // Handle generating systems for a sector
   // const handleGenerateSectorSystems = async (sectorId: Id<'galaxySectors'>) => {
   //   try {

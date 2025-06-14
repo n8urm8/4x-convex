@@ -49,6 +49,11 @@ export const createGalaxy = mutation({
   args: {
     groupId: v.optional(v.string())
   },
+  returns: v.object({
+    message: v.string(),
+    number: v.number(),
+    galaxyId: v.id('galaxies')
+  }),
   handler: async (ctx, args) => {
     // Get the highest galaxy number so far
     const galaxies = await ctx.db.query('galaxies').collect();
@@ -587,6 +592,13 @@ export const generateAllGalaxySystems = action({
 // Query to get galaxy density map
 export const getGalaxyDensityMap = query({
   args: { galaxyId: v.id('galaxies') },
+  returns: v.array(
+    v.object({
+      sectorX: v.number(),
+      sectorY: v.number(),
+      density: v.number()
+    })
+  ),
   handler: async (ctx, args) => {
     // Get all sectors for this galaxy
     const sectors = await ctx.db

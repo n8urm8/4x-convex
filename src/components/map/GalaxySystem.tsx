@@ -1,6 +1,7 @@
 import { Route } from '@/routes/_app/_auth/game/_layout/(map)/map.$galaxyNumber';
 import { convexQuery } from '@convex-dev/react-query';
 import { api } from '@cvx/_generated/api';
+import { Doc } from '@cvx/_generated/dataModel';
 import { useQuery } from '@tanstack/react-query';
 
 export const GalaxySystem = () => {
@@ -8,24 +9,39 @@ export const GalaxySystem = () => {
   const { galaxyNumber } = Route.useParams();
   const navigate = Route.useNavigate();
 
+  const systemQueryArgs =
+    galaxyNumber !== undefined &&
+    sectorX !== undefined &&
+    sectorY !== undefined &&
+    systemX !== undefined &&
+    systemY !== undefined
+      ? {
+          galaxyNumber: Number(galaxyNumber),
+          sectorX: sectorX,
+          sectorY: sectorY,
+          systemX: systemX,
+          systemY: systemY
+        }
+      : 'skip';
+
   const { data: system, isLoading: loadingSystem } = useQuery(
-    convexQuery(api.game.map.galaxyQueries.getStarSystemByCoordinates, {
-      galaxyNumber: Number(galaxyNumber),
-      systemX: systemX!,
-      systemY: systemY!,
-      sectorX: sectorX!,
-      sectorY: sectorY!
-    })
+    convexQuery(
+      api.game.map.galaxyQueries.getStarSystemByCoordinates,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      systemQueryArgs as any
+    )
   );
   console.log(' system: ', system);
 
-  const { data: systemPlanets, isLoading: loadingPlanets } = useQuery({
-    ...convexQuery(api.game.map.galaxyQueries.getSystemPlanets, {
-      // @ts-expect-error undefined, but doesn't run until defined
-      systemId: system?._id
-    }),
-    enabled: !!system?._id
-  });
+  const planetsQueryArgs = system?._id ? { systemId: system._id } : 'skip';
+
+  const { data: systemPlanets, isLoading: loadingPlanets } = useQuery(
+    convexQuery(
+      api.game.map.galaxyQueries.getSystemPlanets,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      planetsQueryArgs as any
+    )
+  );
 
   const handlePlanetClick = (x: number, y: number) => {
     // Update the URL with the selected planet coordinates
@@ -46,7 +62,7 @@ export const GalaxySystem = () => {
       <div
         className={`border rounded-sm aspect-square grid grid-cols-9 grid-rows-9 `}
       >
-        {loadingSystem && (
+        {(loadingSystem || loadingPlanets) && (
           <div className="col-span-9 row-span-9 flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white-100"></div>
           </div>
@@ -56,7 +72,7 @@ export const GalaxySystem = () => {
           Array.from({ length: 9 }, (_, y) =>
             Array.from({ length: 9 }, (_, x) => {
               const planet = systemPlanets?.find(
-                (planet) => planet.planetX === x && planet.planetY === y
+                (planet: Doc<'systemPlanets'>) => planet.planetX === x && planet.planetY === y
               );
 
               if (x === 4 && y === 4) {

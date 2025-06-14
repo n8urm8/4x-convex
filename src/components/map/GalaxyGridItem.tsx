@@ -19,12 +19,20 @@ export const GalaxyGridItem = ({
   setSelectedSector,
   setSelectedSystem
 }: GalaxyGridItemProps) => {
+  const queryArgs =
+    galaxyNumber !== undefined && x !== undefined && y !== undefined
+      ? {
+          galaxyNumber: Number(galaxyNumber),
+          sectorX: x,
+          sectorY: y
+        }
+      : 'skip';
   const { data: sectorSystems } = useQuery(
-    convexQuery(api.game.map.galaxyQueries.getSectorSystemsByCoordinates, {
-      galaxyNumber: Number(galaxyNumber),
-      sectorX: x,
-      sectorY: y
-    })
+    convexQuery(
+      api.game.map.galaxyQueries.getSectorSystemsByCoordinates,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      queryArgs as any
+    )
   );
 
   return (

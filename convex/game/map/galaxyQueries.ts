@@ -19,6 +19,14 @@ export const getPlanetTypesByCategory = query({
 
 // Get all galaxies
 export const getAllGalaxies = query({
+  returns: v.array(
+    v.object({
+      _id: v.id('galaxies'),
+      _creationTime: v.number(),
+      number: v.number(),
+      groupId: v.string()
+    })
+  ),
   handler: async (ctx) => {
     return await ctx.db.query('galaxies').collect();
   }
@@ -51,6 +59,16 @@ export const getGalaxySectorIds = internalQuery({
 
 // Get sectors for a galaxy
 export const getGalaxySectors = query({
+  returns: v.array(
+    v.object({
+      _id: v.id('galaxySectors'),
+      _creationTime: v.number(),
+      galaxyId: v.id('galaxies'),
+      galaxyNumber: v.number(),
+      sectorX: v.number(),
+      sectorY: v.number()
+    })
+  ),
   args: { galaxyId: v.id('galaxies') },
   handler: async (ctx, args) => {
     return await ctx.db
@@ -108,6 +126,21 @@ export const getSectorByCoordinates = query({
 
 // Get star systems for a sector
 export const getSectorSystems = query({
+  returns: v.array(
+    v.object({
+      _id: v.id('sectorSystems'),
+      _creationTime: v.number(),
+      galaxySectorId: v.id('galaxySectors'),
+      galaxyNumber: v.number(),
+      sectorX: v.number(),
+      sectorY: v.number(),
+      systemX: v.number(),
+      systemY: v.number(),
+      starType: v.string(),
+      starSize: v.number(),
+      starColor: v.string()
+    })
+  ),
   args: { sectorId: v.id('galaxySectors') },
   handler: async (ctx, args) => {
     return await ctx.db
@@ -163,6 +196,7 @@ export const getStarSystemByCoordinates = query({
 
 // Get planets for a star system
 export const getSystemPlanets = query({
+  returns: v.array(v.any()),
   args: { systemId: v.id('sectorSystems') },
   handler: async (ctx, args) => {
     const planets = await ctx.db

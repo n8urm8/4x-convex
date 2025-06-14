@@ -2,6 +2,7 @@ import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 import { api } from '../../_generated/api';
 import schema from '../../schema';
+import { Doc } from '../../_generated/dataModel';
 
 describe('Galaxy Generation', () => {
   test('createGalaxy creates a new galaxy with sectors', async () => {
@@ -101,7 +102,7 @@ describe('Galaxy Generation', () => {
     });
 
     // Choose center sector (5,5) which should have higher density
-    const centerSector = sectors.find(
+        const centerSector = (sectors as Doc<'galaxySectors'>[]).find(
       (s) => s.sectorX === 5 && s.sectorY === 5
     );
     expect(centerSector).toBeTruthy();
@@ -260,7 +261,9 @@ describe('Galaxy Generation', () => {
 
     // Verify star position is not used (star is at 4,4 in a 9x9 grid)
     const starPosition = '4,4';
-    const planetPositions = planets.map((p) => `${p.planetX},${p.planetY}`);
+        const planetPositions = (planets as Doc<'systemPlanets'>[]).map(
+      (p) => `${p.planetX},${p.planetY}`
+    );
     expect(planetPositions).not.toContain(starPosition);
 
     // Test generating planets for same system again
@@ -349,17 +352,22 @@ describe('Galaxy Generation', () => {
     expect(densityMap.length).toBe(100); // 10x10 grid
 
     // Center should have higher density than edges
-    const centerDensity = densityMap.find(
+    const typedDensityMap = densityMap as {
+      sectorX: number;
+      sectorY: number;
+      density: number;
+    }[];
+    const centerDensity = typedDensityMap.find(
       (d) => d.sectorX === 5 && d.sectorY === 5
     )?.density;
-    const cornerDensity = densityMap.find(
+    const cornerDensity = typedDensityMap.find(
       (d) => d.sectorX === 0 && d.sectorY === 0
     )?.density;
 
     expect(centerDensity).toBeGreaterThan(cornerDensity!);
 
     // All densities should be between edge and center values
-    for (const point of densityMap) {
+    for (const point of typedDensityMap) {
       expect(point.density).toBeGreaterThanOrEqual(0.05); // GALAXY_EDGE_DENSITY
       expect(point.density).toBeLessThanOrEqual(0.7); // GALAXY_CENTER_DENSITY
     }

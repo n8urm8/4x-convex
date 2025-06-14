@@ -2,6 +2,7 @@
 import { mutation } from '../../_generated/server';
 import { v } from 'convex/values';
 import { Doc, Id } from '../../_generated/dataModel';
+import { api } from '../../_generated/api';
 
 // Create a new base on a planet
 export const createBase = mutation({
@@ -144,13 +145,7 @@ export const buildStructure = mutation({
       throw new Error("Not enough energy available in the base");
     }
     
-    // Check if the requirements are met
-    const requirements = await ctx.db
-      .query('structureRequirements')
-      .withIndex('by_structure', (q) => q.eq('structureId', args.structureDefId))
-      .collect();
-    
-    // TODO: Check if player has unlocked the required research
+    // TODO: Implement logic to check requirements against player's tech and resources
     // This would depend on your research system implementation
     
     // Calculate build time based on nova cost and base bonuses
@@ -531,7 +526,7 @@ export const rushComplete = mutation({
   args: {
     structureId: v.id('baseStructures')
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ success: boolean; newLevel: number; }> => {
     // Get the structure
     const structure = await ctx.db.get(args.structureId);
     if (!structure) {
@@ -546,17 +541,14 @@ export const rushComplete = mutation({
     const remaining = structure.upgradeCompleteTime ? structure.upgradeCompleteTime - Date.now() : 0;
     if (remaining <= 0) {
       // Already complete, just finish it
-      return await completeStructureUpgrade(ctx, { structureId: args.structureId });
+      return await ctx.runMutation(api.game.bases.baseMutations.completeStructureUpgrade, { structureId: args.structureId });
     }
-    
-    // Calculate rush cost: 1 nova per 1 second remaining, with a minimum of 100
-    const rushCost = Math.max(100, Math.ceil(remaining / 1000));
     
     // TODO: Check if player has enough nova currency to rush
     // This would require a user resources/currency system
     
     // Complete the structure immediately
-    return await completeStructureUpgrade(ctx, { structureId: args.structureId });
+    return await ctx.runMutation(api.game.bases.baseMutations.completeStructureUpgrade, { structureId: args.structureId });
   }
 });
 
@@ -614,7 +606,7 @@ export const checkCompletedUpgrades = mutation({
   args: {
     baseId: v.id('playerBases')
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ completedStructures: { structureId: Id<'baseStructures'>; newLevel: number }[] }> => {
     // Get all upgrading structures for this base
     const upgradingStructures = await ctx.db
       .query('baseStructures')
@@ -624,13 +616,13 @@ export const checkCompletedUpgrades = mutation({
       .collect();
     
     const now = Date.now();
-    const completedStructures = [];
+        const completedStructures: { structureId: Id<'baseStructures'>; newLevel: number }[] = [];
     
     // Check each structure if it's complete
     for (const structure of upgradingStructures) {
       if (structure.upgradeCompleteTime && structure.upgradeCompleteTime <= now) {
         // Complete the upgrade
-        const result = await completeStructureUpgrade(ctx, { structureId: structure._id });
+        const result = await ctx.runMutation(api.game.bases.baseMutations.completeStructureUpgrade, { structureId: structure._id });
         completedStructures.push({
           structureId: structure._id,
           newLevel: result.newLevel
