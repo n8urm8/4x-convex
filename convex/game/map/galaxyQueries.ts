@@ -170,6 +170,32 @@ export const getSectorSystemsByCoordinates = query({
   }
 });
 
+// Get a specific star system by its ID
+export const getStarSystemById = query({
+  args: { systemId: v.id('sectorSystems') },
+  returns: v.union(
+    v.object({
+      _id: v.id('sectorSystems'),
+      _creationTime: v.number(),
+      galaxySectorId: v.id('galaxySectors'),
+      galaxyNumber: v.number(),
+      sectorX: v.number(),
+      sectorY: v.number(),
+      systemX: v.number(),
+      systemY: v.number(),
+      starType: v.string(),
+      starSize: v.number(),
+      starColor: v.string(),
+      exploredBy: v.optional(v.id('users')),
+      // Add any other fields that are part of the sectorSystems document
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.systemId);
+  }
+});
+
 // Get a specific star system by coordinates within a sector
 export const getStarSystemByCoordinates = query({
   args: {

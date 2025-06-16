@@ -61,10 +61,12 @@ const schema = defineSchema({
     phoneVerificationTime: v.optional(v.number()),
     isAnonymous: v.optional(v.boolean()),
     customerId: v.optional(v.string()),
-    role: v.optional(roleValidator)
+    role: v.optional(roleValidator),
+    subject: v.string(),
   })
     .index('email', ['email'])
-    .index('customerId', ['customerId']),
+    .index('customerId', ['customerId'])
+    .index('by_subject', ['subject']),
 
   // Planet Types table
   planetTypes: defineTable({

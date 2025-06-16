@@ -7,7 +7,6 @@ import { api } from '../../_generated/api';
 // Create a new base on a planet
 export const createBase = mutation({
   args: {
-    userId: v.id('users'),
     planetId: v.id('systemPlanets'),
     name: v.string(),
     galaxyNumber: v.number(),
@@ -19,6 +18,17 @@ export const createBase = mutation({
     planetY: v.number()
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error('User must be authenticated to create a base.');
+    }
+
+    const user = await ctx.db.query('users').withIndex('by_subject', (q) => q.eq('subject', identity.subject)).first();
+    if (!user) {
+        throw new Error('User not found.');
+    }
+    const userId = user._id;
+
     // Get the planet to check if it's habitable
     const planet = await ctx.db.get(args.planetId);
     if (!planet) {
@@ -38,7 +48,7 @@ export const createBase = mutation({
     // Get existing bases for this user to check if they've reached the limit
     const userBases = await ctx.db
       .query('playerBases')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q) => q.eq('userId', userId))
       .collect();
     
    
@@ -55,7 +65,10 @@ export const createBase = mutation({
       .first();
     
     if (existingBaseOnPlanet) {
-      throw new Error("There is already a base on this planet");
+      if (existingBaseOnPlanet.userId === userId) {
+        throw new Error('User already has a base on this planet.');
+      }
+      throw new Error('A base already exists on this planet.');
     }
     
     // Calculate initial base stats based on planet type
@@ -66,7 +79,7 @@ export const createBase = mutation({
     
     // Create the base
     const baseId = await ctx.db.insert('playerBases', {
-      userId: args.userId,
+      userId: userId, // Use server-derived userId
       name: args.name,
       galaxyNumber: args.galaxyNumber,
       sectorX: args.sectorX,
@@ -468,56 +481,76 @@ export const demolishStructure = mutation({
     return { success: true };
   }
 });
-
-// Rename a base
 export const renameBase = mutation({
   args: {
     baseId: v.id('playerBases'),
-    name: v.string()
+    name: v.string(),
   },
   handler: async (ctx, args) => {
-    // Get the base
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error('User must be authenticated to rename a base.');
+    }
+    const user = await ctx.db.query('users').withIndex('by_subject', (q) => q.eq('subject', identity.subject)).first();
+    if (!user) {
+        throw new Error('User not found.');
+    }
+
     const base = await ctx.db.get(args.baseId);
     if (!base) {
-      throw new Error("Base not found");
+        throw new Error('Base not found');
     }
-    
-    // Update the base name
-    await ctx.db.patch(args.baseId, {
+
+    if (base.userId !== user._id) {
+        throw new Error('User is not the owner of the base');
+    }
+
+    await ctx.db.patch(args.baseId, { 
       name: args.name,
       lastUpdated: Date.now()
     });
-    
     return { success: true };
-  }
+  },
 });
 
 // Abandon a base
 export const abandonBase = mutation({
-  args: {
-    baseId: v.id('playerBases')
-  },
-  handler: async (ctx, args) => {
-    // Get the base
-    const base = await ctx.db.get(args.baseId);
-    if (!base) {
-      throw new Error("Base not found");
-    }
-    
-    // Delete all structures in the base
-    const baseStructures = await ctx.db
-      .query('baseStructures')
-      .withIndex('by_base', (q) => q.eq('baseId', args.baseId))
-      .collect();
-    
-    for (const structure of baseStructures) {
-      await ctx.db.delete(structure._id);
-    }
-    
-    // Delete the base
-    await ctx.db.delete(args.baseId);
-    
-    return { success: true };
+    args: {
+        baseId: v.id('playerBases'),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error('User must be authenticated to abandon a base.');
+        }
+        const user = await ctx.db.query('users').withIndex('by_subject', (q) => q.eq('subject', identity.subject)).first();
+        if (!user) {
+            throw new Error('User not found.');
+        }
+
+        const base = await ctx.db.get(args.baseId);
+        if (!base) {
+            throw new Error('Base not found');
+        }
+
+        if (base.userId !== user._id) {
+            throw new Error('User is not the owner of the base');
+        }
+
+        // Find all structures in the base and delete them
+        const baseStructures = await ctx.db
+            .query('baseStructures')
+            .withIndex('by_base', (q) => q.eq('baseId', args.baseId))
+            .collect();
+        
+        for (const structure of baseStructures) {
+          await ctx.db.delete(structure._id);
+        }
+        
+        // Delete the base
+        await ctx.db.delete(args.baseId);
+        
+        return { success: true };
   }
 });
 

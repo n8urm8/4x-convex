@@ -22,6 +22,7 @@ import type * as game_bases_baseMutations from "../game/bases/baseMutations.js";
 import type * as game_bases_baseQueries from "../game/bases/baseQueries.js";
 import type * as game_map_galaxyGeneration from "../game/map/galaxyGeneration.js";
 import type * as game_map_galaxyQueries from "../game/map/galaxyQueries.js";
+import type * as game_map_systemMutations from "../game/map/systemMutations.js";
 import type * as http from "../http.js";
 import type * as init from "../init.js";
 import type * as otp_ResendOTP from "../otp/ResendOTP.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   "game/bases/baseQueries": typeof game_bases_baseQueries;
   "game/map/galaxyGeneration": typeof game_map_galaxyGeneration;
   "game/map/galaxyQueries": typeof game_map_galaxyQueries;
+  "game/map/systemMutations": typeof game_map_systemMutations;
   http: typeof http;
   init: typeof init;
   "otp/ResendOTP": typeof otp_ResendOTP;
