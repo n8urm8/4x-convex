@@ -62,7 +62,7 @@ const schema = defineSchema({
     isAnonymous: v.optional(v.boolean()),
     customerId: v.optional(v.string()),
     role: v.optional(roleValidator),
-    subject: v.string(),
+    subject: v.optional(v.string()),
   })
     .index('email', ['email'])
     .index('customerId', ['customerId'])
