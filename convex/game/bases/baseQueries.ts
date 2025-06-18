@@ -66,6 +66,24 @@ export const getDetailedBaseStructures = query({
     baseId: v.id('playerBases')
   },
   handler: async (ctx, args) => {
+    // Check user authentication
+    const identity = await ctx.auth.getUserIdentity();
+    const user = identity
+      ? await ctx.db
+          .query('users')
+          .withIndex('by_subject', (q) => q.eq('subject', identity.subject))
+          .first()
+      : null;
+
+    // Get the base to check for ownership
+    const base = await ctx.db.get(args.baseId);
+    if (!base) {
+      // Base not found, return empty array as no structures can be found.
+      return [];
+    }
+
+    const isOwner = user && base.userId === user._id;
+
     // Get all structures in this base
     const baseStructures = await ctx.db
       .query('baseStructures')
@@ -76,10 +94,26 @@ export const getDetailedBaseStructures = query({
     const structuresWithDetails = await Promise.all(
       baseStructures.map(async (structure) => {
         const definition = await ctx.db.get(structure.structureDefId);
-        return {
-          ...structure,
-          definition
-        };
+        if (isOwner) {
+          return {
+            ...structure,
+            definition
+          };
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const {
+            upgrading, // still useful to know if it's upgrading, just not the details
+            upgradeCompleteTime,
+            upgradeLevel,
+            upgradeNovaCost,
+            ...publicStructureData
+          } = structure;
+          return {
+            ...publicStructureData,
+            upgrading, // explicitly include upgrading status
+            definition
+          };
+        }
       })
     );
 
@@ -93,6 +127,25 @@ export const getUpgradingStructures = query({
     baseId: v.id('playerBases')
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const user = identity
+      ? await ctx.db
+          .query('users')
+          .withIndex('by_subject', (q) => q.eq('subject', identity.subject))
+          .first()
+      : null;
+
+    const base = await ctx.db.get(args.baseId);
+    if (!base) {
+      return [];
+    }
+
+    const isOwner = user && base.userId === user._id;
+
+    if (!isOwner) {
+      return [];
+    }
+
     return await ctx.db
       .query('baseStructures')
       .withIndex('by_upgrading', (q) =>

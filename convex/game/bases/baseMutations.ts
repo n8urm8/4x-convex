@@ -1,8 +1,35 @@
 // src/game/bases/structureMutations.ts
 import { mutation } from '../../_generated/server';
+import { QueryCtx, MutationCtx } from '../../_generated/server';
 import { v } from 'convex/values';
 import { Doc, Id } from '../../_generated/dataModel';
 import { api } from '../../_generated/api';
+
+// Helper to get user and check base ownership
+const checkBaseOwnership = async (ctx: MutationCtx | QueryCtx, baseId: Id<'playerBases'>) => {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error('User must be authenticated.');
+  }
+  const user = await ctx.db
+    .query('users')
+    .withIndex('by_subject', (q) => q.eq('subject', identity.subject))
+    .first();
+  if (!user) {
+    throw new Error('User not found.');
+  }
+
+  const base = await ctx.db.get(baseId);
+  if (!base) {
+    throw new Error('Base not found.');
+  }
+
+  if (base.userId !== user._id) {
+    throw new Error('User does not have permission to modify this base.');
+  }
+
+  return { user, base };
+};
 
 // Create a new base on a planet
 export const createBase = mutation({
@@ -246,11 +273,8 @@ export const completeStructureUpgrade = mutation({
       throw new Error("Structure definition not found");
     }
     
-    // Get the base
-    const base = await ctx.db.get(structure.baseId);
-    if (!base) {
-      throw new Error("Base not found");
-    }
+    // Get the base and ensure ownership (also implicitly checks if base is null)
+    const { base } = await checkBaseOwnership(ctx, structure.baseId);
     
     // Calculate the effects at the new level
     const newLevel = structure.upgradeLevel || (structure.level + 1);
@@ -334,6 +358,8 @@ export const startStructureUpgrade = mutation({
       throw new Error("Structure not found");
     }
     
+    const { base } = await checkBaseOwnership(ctx, structure.baseId);
+
     if (structure.upgrading) {
       throw new Error("Structure is already being upgraded");
     }
@@ -347,12 +373,6 @@ export const startStructureUpgrade = mutation({
     // Check if already at max level
     if (structureDef.maxLevel && structure.level >= structureDef.maxLevel) {
       throw new Error("Structure already at maximum level");
-    }
-    
-    // Get the base
-    const base = await ctx.db.get(structure.baseId);
-    if (!base) {
-      throw new Error("Base not found");
     }
     
     // Calculate upgrade cost based on current level
@@ -398,6 +418,8 @@ export const cancelStructureUpgrade = mutation({
       throw new Error("Structure not found");
     }
     
+    await checkBaseOwnership(ctx, structure.baseId);
+
     if (!structure.upgrading) {
       throw new Error("Structure is not being upgraded");
     }
@@ -443,26 +465,22 @@ export const demolishStructure = mutation({
       throw new Error("Structure not found");
     }
     
+    const { base } = await checkBaseOwnership(ctx, structure.baseId);
+
     // Can't demolish a structure that's being upgraded
     if (structure.upgrading) {
       throw new Error("Cannot demolish a structure that is being upgraded");
-    }
-    
-    // Get the base
-    const base = await ctx.db.get(structure.baseId);
-    if (!base) {
-      throw new Error("Base not found");
-    }
+    } 
     
     // Get structure effects to remove from the base
     const effects = structure.currentEffects || {};
     
-    // Update the base to remove structure effects
+    // Update the base to remove structure effects and costs
     await ctx.db.patch(structure.baseId, {
       usedSpace: base.usedSpace - structure.spaceCost,
       usedEnergy: base.usedEnergy - structure.energyCost,
-      totalSpace: base.totalSpace - (effects.space || 0),
-      totalEnergy: base.totalEnergy - (effects.energy || 0),
+      totalSpace: base.totalSpace - (effects.space || 0), 
+      totalEnergy: base.totalEnergy - (effects.energy || 0), 
       researchPerCycle: base.researchPerCycle - (effects.research || 0),
       novaPerCycle: base.novaPerCycle - (effects.novaPerCycle || 0),
       mineralsPerCycle: base.mineralsPerCycle - (effects.minerals || 0),
@@ -481,29 +499,14 @@ export const demolishStructure = mutation({
     return { success: true };
   }
 });
+
 export const renameBase = mutation({
   args: {
     baseId: v.id('playerBases'),
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error('User must be authenticated to rename a base.');
-    }
-    const user = await ctx.db.query('users').withIndex('by_subject', (q) => q.eq('subject', identity.subject)).first();
-    if (!user) {
-        throw new Error('User not found.');
-    }
-
-    const base = await ctx.db.get(args.baseId);
-    if (!base) {
-        throw new Error('Base not found');
-    }
-
-    if (base.userId !== user._id) {
-        throw new Error('User is not the owner of the base');
-    }
+    await checkBaseOwnership(ctx, args.baseId);
 
     await ctx.db.patch(args.baseId, { 
       name: args.name,
@@ -519,23 +522,7 @@ export const abandonBase = mutation({
         baseId: v.id('playerBases'),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
-            throw new Error('User must be authenticated to abandon a base.');
-        }
-        const user = await ctx.db.query('users').withIndex('by_subject', (q) => q.eq('subject', identity.subject)).first();
-        if (!user) {
-            throw new Error('User not found.');
-        }
-
-        const base = await ctx.db.get(args.baseId);
-        if (!base) {
-            throw new Error('Base not found');
-        }
-
-        if (base.userId !== user._id) {
-            throw new Error('User is not the owner of the base');
-        }
+        await checkBaseOwnership(ctx, args.baseId);
 
         // Find all structures in the base and delete them
         const baseStructures = await ctx.db
@@ -560,11 +547,12 @@ export const rushComplete = mutation({
     structureId: v.id('baseStructures')
   },
   handler: async (ctx, args): Promise<{ success: boolean; newLevel: number; }> => {
-    // Get the structure
     const structure = await ctx.db.get(args.structureId);
     if (!structure) {
       throw new Error("Structure not found");
     }
+
+    await checkBaseOwnership(ctx, structure.baseId);
     
     if (!structure.upgrading) {
       throw new Error("Structure is not being built or upgraded");
@@ -591,11 +579,8 @@ export const collectBaseResources = mutation({
     baseId: v.id('playerBases')
   },
   handler: async (ctx, args) => {
-    // Get the base
-    const base = await ctx.db.get(args.baseId);
-    if (!base) {
-      throw new Error("Base not found");
-    }
+    // Get the base and check ownership
+    const { base } = await checkBaseOwnership(ctx, args.baseId);
     
     // Calculate time since last update
     const now = Date.now();
@@ -640,6 +625,8 @@ export const checkCompletedUpgrades = mutation({
     baseId: v.id('playerBases')
   },
   handler: async (ctx, args): Promise<{ completedStructures: { structureId: Id<'baseStructures'>; newLevel: number }[] }> => {
+    await checkBaseOwnership(ctx, args.baseId);
+
     // Get all upgrading structures for this base
     const upgradingStructures = await ctx.db
       .query('baseStructures')

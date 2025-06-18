@@ -348,4 +348,26 @@ describe('Base Mutations', () => {
         await expect(t.mutation(api.game.bases.baseMutations.abandonBase, { baseId })).rejects.toThrow('User must be authenticated to abandon a base.');
     });
   });
+
+  describe('collectBaseResources', () => {
+    test('should fail to collect resources if not the owner', async () => {
+      const t = convexTest(schema);
+      const { baseId } = await t.run(async (ctx) => {
+        const user1Id = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1 });
+        await ctx.db.insert('users', { name: 'User 2', email: mockUserEmail2, subject: mockUserEmail2 });
+        const galaxyId = await ctx.db.insert('galaxies', { number: 1, groupId: 'test-group' });
+        const sectorId = await ctx.db.insert('galaxySectors', { galaxyId, galaxyNumber: 1, sectorX: 1, sectorY: 1 });
+        const systemId = await ctx.db.insert('sectorSystems', { galaxySectorId: sectorId, galaxyNumber: 1, sectorX: 1, sectorY: 1, systemX: 1, systemY: 1, starType: 'Test', starColor: '#FFFFFF', starSize: 1 });
+        const planetTypeId = await ctx.db.insert('planetTypes', { name: 'Habitable', category: 'Test', habitable: true, space: 100, energy: 100, minerals: 100, volatiles: 100, description: '...' });
+        const planetId = await ctx.db.insert('systemPlanets', { sectorSystemId: systemId, galaxyNumber: 1, sectorX: 1, sectorY: 1, systemX: 1, systemY: 1, planetTypeId, planetX: 1, planetY: 1 });
+        const baseId = await ctx.db.insert('playerBases', { ...defaultBaseData, userId: user1Id, planetId, name: 'Base to Collect' });
+        return { baseId };
+      });
+
+      await expect(
+        t.withIdentity({ subject: mockUserEmail2 })
+         .mutation(api.game.bases.baseMutations.collectBaseResources, { baseId })
+      ).rejects.toThrow('User does not have permission to modify this base.');
+    });
+  });
 });
