@@ -167,7 +167,7 @@ export default internalAction({
     let existingResearchDefinitions: unknown[] = [];
     try {
       existingResearchDefinitions = await ctx.runQuery(
-        internal.game.research.researchQueries.adminGetAllResearchDefinitions,
+        api.game.research.researchQueries.listResearchDefinitions,
         {}
       );
     } catch (e) {

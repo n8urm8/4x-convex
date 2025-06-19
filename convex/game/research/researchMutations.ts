@@ -1,18 +1,53 @@
 import { v } from 'convex/values';
-import { internalMutation } from '../../_generated/server';
-import { Doc } from '../../_generated/dataModel';
-import { researchDefinitions } from './research.schema';
+import { internalMutation, mutation } from '../../_generated/server';
+import { internal } from '../../_generated/api';
+import { Doc, Id } from '../../_generated/dataModel';
+import { getAdminUser } from '../../utils';
+import { researchDefinitions, researchDefinitionSchema } from './research.schema';
 
-// --- Admin CRUD for Research Definitions ---
+// --- Public Admin Mutations for Research Definitions ---
+
+export const createResearchDefinition = mutation({
+  args: researchDefinitionSchema,
+  handler: async (ctx, args): Promise<Id<'researchDefinitions'>> => {
+    await getAdminUser(ctx);
+    return await ctx.runMutation(internal.game.research.researchMutations.adminCreateResearchDefinition, args);
+  },
+});
+
+export const updateResearchDefinition = mutation({
+  args: {
+    id: v.id('researchDefinitions'),
+    updates: v.object(
+      Object.fromEntries(
+        Object.entries(researchDefinitionSchema).map(([key, val]) => [
+          key,
+          v.optional(val),
+        ]),
+      ),
+    ),
+  },
+  handler: async (ctx, args): Promise<Doc<'researchDefinitions'> | null> => {
+    await getAdminUser(ctx);
+    return await ctx.runMutation(internal.game.research.researchMutations.adminUpdateResearchDefinition, args);
+  },
+});
+
+export const deleteResearchDefinition = mutation({
+  args: { id: v.id('researchDefinitions') },
+  handler: async (ctx, args): Promise<{ success: boolean; deletedId: Id<'researchDefinitions'> }> => {
+    await getAdminUser(ctx);
+    return await ctx.runMutation(internal.game.research.researchMutations.adminDeleteResearchDefinition, args);
+  },
+});
+
+// --- Internal Admin CRUD for Research Definitions ---
 
 export const adminCreateResearchDefinition = internalMutation({
-  args: researchDefinitions.validator, // Use the full validator for creation args
+  args: researchDefinitionSchema, // Use the full validator for creation args
   handler: async (ctx, args) => {
-    // TODO: Add admin authentication check here
-    // const identity = await ctx.auth.getUserIdentity();
-    // if (!identity || !isAdmin(identity.subject)) { // isAdmin would be a helper
-    //   throw new Error('User is not authorized to create research definitions.');
-    // }
+    // Admin check is done by the public wrapper
+
 
     const existing = await ctx.db
       .query('researchDefinitions')
@@ -30,20 +65,16 @@ export const adminUpdateResearchDefinition = internalMutation({
   args: {
     id: v.id('researchDefinitions'),
     updates: v.object(
-      // Create an object where each field from researchDefinitions.validator.fields is optional.
-      // This allows for partial updates.
       Object.fromEntries(
         Object.entries(researchDefinitions.validator.fields).map(([key, val]) => [
-          key, v.optional(val)
-        ])
-      ) as Partial<typeof researchDefinitions.validator.fields>
-      // The 'as Partial<...>' provides a more specific type for the resulting validator object.
-      // Convex's v.object typing is inherently somewhat dynamic here.
-      // In the handler, args.updates will be correctly typed as Partial<Infer<typeof researchDefinitions.validator>>.
+          key,
+          v.optional(val),
+        ]),
+      ),
     ),
   },
   handler: async (ctx, { id, updates }) => {
-    // TODO: Add admin authentication check here
+    // Admin check is done by the public wrapper
 
     const existing = await ctx.db.get(id);
     if (!existing) {
@@ -69,7 +100,7 @@ export const adminUpdateResearchDefinition = internalMutation({
 export const adminDeleteResearchDefinition = internalMutation({
   args: { id: v.id('researchDefinitions') },
   handler: async (ctx, { id }) => {
-    // TODO: Add admin authentication check here
+    // Admin check is done by the public wrapper
 
     const existing = await ctx.db.get(id);
     if (!existing) {

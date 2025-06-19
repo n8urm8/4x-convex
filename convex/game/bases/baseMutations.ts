@@ -4,6 +4,7 @@ import { QueryCtx, MutationCtx } from '../../_generated/server';
 import { v } from 'convex/values';
 import { Doc, Id } from '../../_generated/dataModel';
 import { api } from '../../_generated/api';
+import { getAdminUser } from '../../utils';
 import { structureDefinitions } from './bases.schema';
 
 // Helper to get user and check base ownership
@@ -660,11 +661,8 @@ export const checkCompletedUpgrades = mutation({
 export const adminCreateStructureDefinition = mutation({
   args: structureDefinitions.validator, // Use the full validator for creation args
   handler: async (ctx, args) => {
-    // TODO: Add admin authentication check here
-    // const identity = await ctx.auth.getUserIdentity();
-    // if (!identity || !isAdmin(identity.subject)) { // isAdmin would be a helper
-    //   throw new Error('User is not authorized to create structure definitions.');
-    // }
+    await getAdminUser(ctx);
+
 
     const existing = await ctx.db
       .query('structureDefinitions')
@@ -696,7 +694,7 @@ export const adminUpdateStructureDefinition = mutation({
     ),
   },
   handler: async (ctx, { id, updates }) => {
-    // TODO: Add admin authentication check here
+    await getAdminUser(ctx);
 
     const existing = await ctx.db.get(id);
     if (!existing) {
@@ -722,7 +720,7 @@ export const adminUpdateStructureDefinition = mutation({
 export const adminDeleteStructureDefinition = mutation({
   args: { id: v.id('structureDefinitions') },
   handler: async (ctx, { id }) => {
-    // TODO: Add admin authentication check here
+    await getAdminUser(ctx);
 
     const existing = await ctx.db.get(id);
     if (!existing) {

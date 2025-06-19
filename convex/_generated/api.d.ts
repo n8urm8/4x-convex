@@ -33,6 +33,7 @@ import type * as seed_planetTypesSeed from "../seed/planetTypesSeed.js";
 import type * as seed_researchSeed from "../seed/researchSeed.js";
 import type * as seed_structuresSeed from "../seed/structuresSeed.js";
 import type * as stripe from "../stripe.js";
+import type * as utils from "../utils.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   "seed/researchSeed": typeof seed_researchSeed;
   "seed/structuresSeed": typeof seed_structuresSeed;
   stripe: typeof stripe;
+  utils: typeof utils;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,
