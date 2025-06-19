@@ -1,6 +1,6 @@
 // bases.schema.ts
 import { defineTable } from 'convex/server';
-import { v } from 'convex/values';
+import { v, Infer } from 'convex/values';
 
 // Available structure categories
 export const STRUCTURE_CATEGORIES = {
@@ -34,29 +34,29 @@ export const structureDefinitions = defineTable({
   baseEnergyCost: v.number(), // Base energy cost (negative means it produces energy)
   baseNovaCost: v.number(), // Base cost in nova currency
   maxLevel: v.optional(v.number()), // Maximum level (if any)
-
-  // Effects per level
-  effects: v.optional(
-    v.object({
-      space: v.optional(v.number()), // Additional space provided per level
-      energy: v.optional(v.number()), // Additional energy provided per level
-      minerals: v.optional(v.number()), // Additional minerals provided per level
-      volatiles: v.optional(v.number()), // Additional volatiles provided per level
-      research: v.optional(v.number()), // Research points per cycle per level
-      novaPerCycle: v.optional(v.number()), // Nova generated per cycle per level
-      buildTimeReduction: v.optional(v.number()), // % reduction in build time per level
-      shipProductionSpeed: v.optional(v.number()), // % increase in ship production per level
-      defense: v.optional(v.number()), // Defense strength per level
-      damage: v.optional(v.number()), // Damage capability per level
-      shielding: v.optional(v.number()), // Shielding strength per level
-      allProductionBonus: v.optional(v.number()), // % bonus to all production per level
-      researchSpeed: v.optional(v.number()), // % increase in research speed per level
-      baseDefense: v.optional(v.number()) // % increase in base defense per level
-    })
-  )
+  effects: v.string(), // Effects of the structure
+  upgradeBenefits: v.string(), // Benefits of upgrading the structure
+  researchRequirementName: v.string(), // Name of the research required
+  imageUrl: v.optional(v.string()) // Optional image URL for the structure
 })
+
   .index('by_category', ['category'])
   .index('by_name', ['name']);
+
+// For seeding purposes, a plain TypeScript type matching the structureDefinitions fields
+export type StructureDefinitionSeed = {
+  name: string;
+  category: Infer<typeof structureCategoryValidator>;
+  description: string;
+  baseSpaceCost: number;
+  baseEnergyCost: number;
+  baseNovaCost: number;
+  maxLevel?: number;
+  effects: string;
+  upgradeBenefits: string;
+  researchRequirementName: string;
+  imageUrl?: string;
+};
 
 // Research requirements for structures
 export const structureRequirements = defineTable({

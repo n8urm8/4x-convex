@@ -1,10 +1,10 @@
 // src/game/bases/structureQueries.ts
 import { v } from 'convex/values';
-import { query } from '../../_generated/server';
+import { internalQuery, query } from '../../_generated/server';
 import { structureCategoryValidator } from './bases.schema';
 
 // Get all structure definitions
-export const getAllStructureDefinitions = query({
+export const getAllStructureDefinitions = internalQuery({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query('structureDefinitions').collect();
@@ -412,4 +412,38 @@ export const getBaseOnPlanet = query({
       .withIndex('by_planet', (q) => q.eq('planetId', args.planetId))
       .first();
   }
+});
+
+// --- Admin CRUD Queries for Structure Definitions ---
+
+export const adminGetStructureDefinitionById = internalQuery({
+  args: { id: v.id('structureDefinitions') },
+  handler: async (ctx, args) => {
+    // TODO: Add admin authentication check here
+    // const identity = await ctx.auth.getUserIdentity();
+    // if (!identity || !isAdmin(identity.subject)) { // isAdmin would be a helper
+    //   throw new Error('User is not authorized to access structure definitions.');
+    // }
+    return await ctx.db.get(args.id);
+  },
+});
+
+export const adminGetAllStructureDefinitions = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    // TODO: Add admin authentication check here
+    return await ctx.db.query('structureDefinitions').collect();
+  },
+});
+
+export const adminGetStructureDefinitionByName = internalQuery({
+  args: { name: v.string() },
+  handler: async (ctx, args) => {
+    // TODO: Add admin authentication check here
+    const structureDef = await ctx.db
+      .query('structureDefinitions')
+      .withIndex('by_name', (q) => q.eq('name', args.name))
+      .unique();
+    return structureDef;
+  },
 });

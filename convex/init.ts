@@ -1,5 +1,6 @@
 import { api, internal } from '@cvx/_generated/api';
 import { internalAction, internalMutation } from '@cvx/_generated/server';
+import { v } from 'convex/values';
 import schema, {
   CURRENCIES,
   Currency,
@@ -10,9 +11,11 @@ import schema, {
 } from '@cvx/schema';
 import { stripe } from '@cvx/stripe';
 import { asyncMap } from 'convex-helpers';
-import { v } from 'convex/values';
-import { ERRORS } from '~/errors';
+import { ERRORS } from '~/errors'; // v is now imported above with Doc
 import { planetTypesSeedData } from './seed/planetTypesSeed';
+import { researchSeedData } from './seed/researchSeed';
+import { structuresSeedData } from './seed/structuresSeed';
+// ResearchCategory import removed as ResearchDefinitionDoc is removed
 
 const seedProducts = [
   {
@@ -78,6 +81,32 @@ export const insertPlanetType = internalMutation({
   }
 });
 
+// Seed Structures
+export const insertStructure = internalMutation({
+  args: schema.tables.structureDefinitions.validator,
+  handler: async (ctx, args) => {
+    return await ctx.db.insert('structureDefinitions', args);
+  }
+});
+
+// Seed Research Definitions
+export const insertResearchDefinition = internalMutation({
+  args: schema.tables.researchDefinitions.validator,
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query('researchDefinitions')
+      .withIndex('by_name', (q) => q.eq('name', args.name))
+      .unique();
+
+    if (existing) {
+      console.log(`🔬 Research '${args.name}' already exists. Skipping.`);
+      return existing._id;
+    }
+    console.log(`🔬 Seeding research: ${args.name}`);
+    return await ctx.db.insert('researchDefinitions', args);
+  }
+});
+
 export default internalAction({
   args: {},
   returns: v.null(),
@@ -102,6 +131,66 @@ export default internalAction({
 
       console.info(
         `🪐 ${planetTypesSeedData.length} Planet Types have been successfully seeded.`
+      );
+    }
+
+    /**
+     * Structures.
+     */
+    const existingStructures = await ctx.runQuery(
+      internal.game.bases.baseQueries.getAllStructureDefinitions, // Path to be created/moved
+      {}
+    );
+
+    if (existingStructures && existingStructures.length > 0) {
+      console.log(
+        '🏗️ Skipping Structure Definitions seeding - definitions already exist.'
+      );
+    } else {
+      console.log('🛠️ Seeding Structure Definitions...');
+
+      await asyncMap(structuresSeedData, async (structure) => {
+        await ctx.runMutation(internal.init.insertStructure, structure);
+      });
+
+      console.info(
+        `🏗️ ${structuresSeedData.length} Structure Definitions have been successfully seeded.`
+      );
+    }
+
+    /**
+     * Research Definitions.
+     */
+    // TODO: Create internal.game.research.researchQueries.getAllResearchDefinitions
+    // For now, we assume it will exist. If seeding runs before it's created, this might cause an error
+    // or simply always re-seed if the query path is invalid and returns nothing.
+    let existingResearchDefinitions: unknown[] = [];
+    try {
+      existingResearchDefinitions = await ctx.runQuery(
+        internal.game.research.researchQueries.adminGetAllResearchDefinitions,
+        {}
+      );
+    } catch (e) {
+      console.warn(
+        "Warning: Couldn't query existing research definitions. This might be due to the query not existing yet. Proceeding with seeding check, assuming no definitions exist.",
+        e
+      );
+      // existingResearchDefinitions is already initialized to [] so no change needed here on error
+    }
+
+    if (existingResearchDefinitions && existingResearchDefinitions.length > 0) {
+      console.log(
+        '🔬 Skipping Research Definitions seeding - definitions already exist.'
+      );
+    } else {
+      console.log('🧪 Seeding Research Definitions...');
+
+      await asyncMap(researchSeedData, async (research) => {
+        await ctx.runMutation(internal.init.insertResearchDefinition, research); // Using 'as any' temporarily if types don't align perfectly due to Partial in seed type
+      });
+
+      console.info(
+        `🧪 ${researchSeedData.length} Research Definitions have been successfully seeded.`
       );
     }
 

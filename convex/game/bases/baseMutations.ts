@@ -4,6 +4,7 @@ import { QueryCtx, MutationCtx } from '../../_generated/server';
 import { v } from 'convex/values';
 import { Doc, Id } from '../../_generated/dataModel';
 import { api } from '../../_generated/api';
+import { structureDefinitions } from './bases.schema';
 
 // Helper to get user and check base ownership
 const checkBaseOwnership = async (ctx: MutationCtx | QueryCtx, baseId: Id<'playerBases'>) => {
@@ -652,4 +653,87 @@ export const checkCompletedUpgrades = mutation({
     
     return { completedStructures };
   }
+});
+
+// --- Admin CRUD for Structure Definitions ---
+
+export const adminCreateStructureDefinition = mutation({
+  args: structureDefinitions.validator, // Use the full validator for creation args
+  handler: async (ctx, args) => {
+    // TODO: Add admin authentication check here
+    // const identity = await ctx.auth.getUserIdentity();
+    // if (!identity || !isAdmin(identity.subject)) { // isAdmin would be a helper
+    //   throw new Error('User is not authorized to create structure definitions.');
+    // }
+
+    const existing = await ctx.db
+      .query('structureDefinitions')
+      .withIndex('by_name', (q) => q.eq('name', args.name))
+      .unique();
+
+    if (existing) {
+      throw new Error(`Structure definition with name '${args.name}' already exists.`);
+    }
+
+    return await ctx.db.insert('structureDefinitions', args);
+  },
+});
+
+export const adminUpdateStructureDefinition = mutation({
+  args: {
+    id: v.id('structureDefinitions'),
+    updates: v.object(
+      // Create an object where each field from structureDefinitions.validator.fields is optional.
+      // This allows for partial updates.
+      Object.fromEntries(
+        Object.entries(structureDefinitions.validator.fields).map(([key, value]) => [
+          key, v.optional(value)
+        ])
+      ) as Record<keyof typeof structureDefinitions.validator.fields, ReturnType<typeof v.optional>>
+      // The 'as Record<...>' provides a more specific type than 'any' for the resulting validator object,
+      // though Convex's v.object typing is inherently somewhat dynamic here.
+      // For the handler, args.updates will be correctly typed as Partial<Infer<typeof structureDefinitions.validator>>.
+    ),
+  },
+  handler: async (ctx, { id, updates }) => {
+    // TODO: Add admin authentication check here
+
+    const existing = await ctx.db.get(id);
+    if (!existing) {
+      throw new Error(`Structure definition with id '${id}' not found.`);
+    }
+
+    // Prevent changing the name if it's part of updates and already exists elsewhere
+    if (updates.name && typeof updates.name === 'string' && updates.name !== existing.name) {
+      const conflicting = await ctx.db
+        .query('structureDefinitions')
+        .withIndex('by_name', (q) => q.eq('name', updates.name as string))
+        .unique();
+      if (conflicting && conflicting._id !== id) {
+        throw new Error(`Another structure definition with name '${updates.name}' already exists.`);
+      }
+    }
+
+    await ctx.db.patch(id, updates as Partial<Doc<'structureDefinitions'>>);
+    return await ctx.db.get(id);
+  },
+});
+
+export const adminDeleteStructureDefinition = mutation({
+  args: { id: v.id('structureDefinitions') },
+  handler: async (ctx, { id }) => {
+    // TODO: Add admin authentication check here
+
+    const existing = await ctx.db.get(id);
+    if (!existing) {
+      throw new Error(`Structure definition with id '${id}' not found.`);
+    }
+
+    // TODO: Consider implications of deleting a structure definition
+    // e.g., what happens to existing player structures of this type?
+    // Or prevent deletion if in use.
+
+    await ctx.db.delete(id);
+    return { success: true, deletedId: id };
+  },
 });

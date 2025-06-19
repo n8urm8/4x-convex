@@ -2,6 +2,7 @@ import { authTables } from '@convex-dev/auth/server';
 import { defineSchema, defineTable } from 'convex/server';
 import { Infer, v } from 'convex/values';
 import { baseStructures, playerBases, structureDefinitions, structureRequirements } from './game/bases/bases.schema';
+import { researchDefinitions } from './game/research/research.schema';
 
 export const CURRENCIES = {
   USD: 'usd',
@@ -194,6 +195,10 @@ const schema = defineSchema({
   structureRequirements,
   playerBases,
   baseStructures,
+
+  // Research definitions
+  researchDefinitions,
+
 });
 
 export default schema;

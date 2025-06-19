@@ -23,11 +23,15 @@ import type * as game_bases_baseQueries from "../game/bases/baseQueries.js";
 import type * as game_map_galaxyGeneration from "../game/map/galaxyGeneration.js";
 import type * as game_map_galaxyQueries from "../game/map/galaxyQueries.js";
 import type * as game_map_systemMutations from "../game/map/systemMutations.js";
+import type * as game_research_researchMutations from "../game/research/researchMutations.js";
+import type * as game_research_researchQueries from "../game/research/researchQueries.js";
 import type * as http from "../http.js";
 import type * as init from "../init.js";
 import type * as otp_ResendOTP from "../otp/ResendOTP.js";
 import type * as otp_VerificationCodeEmail from "../otp/VerificationCodeEmail.js";
 import type * as seed_planetTypesSeed from "../seed/planetTypesSeed.js";
+import type * as seed_researchSeed from "../seed/researchSeed.js";
+import type * as seed_structuresSeed from "../seed/structuresSeed.js";
 import type * as stripe from "../stripe.js";
 
 /**
@@ -49,11 +53,15 @@ declare const fullApi: ApiFromModules<{
   "game/map/galaxyGeneration": typeof game_map_galaxyGeneration;
   "game/map/galaxyQueries": typeof game_map_galaxyQueries;
   "game/map/systemMutations": typeof game_map_systemMutations;
+  "game/research/researchMutations": typeof game_research_researchMutations;
+  "game/research/researchQueries": typeof game_research_researchQueries;
   http: typeof http;
   init: typeof init;
   "otp/ResendOTP": typeof otp_ResendOTP;
   "otp/VerificationCodeEmail": typeof otp_VerificationCodeEmail;
   "seed/planetTypesSeed": typeof seed_planetTypesSeed;
+  "seed/researchSeed": typeof seed_researchSeed;
+  "seed/structuresSeed": typeof seed_structuresSeed;
   stripe: typeof stripe;
 }>;
 export declare const api: FilterApi<
