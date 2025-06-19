@@ -20,6 +20,8 @@ import type * as email_templates_subscriptionEmail from "../email/templates/subs
 import type * as env from "../env.js";
 import type * as game_bases_baseMutations from "../game/bases/baseMutations.js";
 import type * as game_bases_baseQueries from "../game/bases/baseQueries.js";
+import type * as game_bases_structureMutations from "../game/bases/structureMutations.js";
+import type * as game_bases_structureQueries from "../game/bases/structureQueries.js";
 import type * as game_map_galaxyGeneration from "../game/map/galaxyGeneration.js";
 import type * as game_map_galaxyQueries from "../game/map/galaxyQueries.js";
 import type * as game_map_systemMutations from "../game/map/systemMutations.js";
@@ -51,6 +53,8 @@ declare const fullApi: ApiFromModules<{
   env: typeof env;
   "game/bases/baseMutations": typeof game_bases_baseMutations;
   "game/bases/baseQueries": typeof game_bases_baseQueries;
+  "game/bases/structureMutations": typeof game_bases_structureMutations;
+  "game/bases/structureQueries": typeof game_bases_structureQueries;
   "game/map/galaxyGeneration": typeof game_map_galaxyGeneration;
   "game/map/galaxyQueries": typeof game_map_galaxyQueries;
   "game/map/systemMutations": typeof game_map_systemMutations;

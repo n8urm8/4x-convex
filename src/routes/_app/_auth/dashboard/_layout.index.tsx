@@ -4,6 +4,7 @@ import { AdminGalaxiesTab } from '@/components/admin/dashboard/GalaxiesTab';
 import { AdminSectorsTab } from '@/components/admin/dashboard/SectorsTab';
 import { AdminSystemsTab } from '@/components/admin/dashboard/SystemsTab';
 import { AdminResearchTab } from '../../../../components/admin/dashboard/AdminResearchTab';
+import { AdminStructuresTab } from '../../../../components/admin/dashboard/AdminStructuresTab';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Id } from '@cvx/_generated/dataModel';
 import { createFileRoute } from '@tanstack/react-router';
@@ -40,6 +41,7 @@ export default function Dashboard() {
                 <TabsTrigger value="sectors">Sectors</TabsTrigger>
                 <TabsTrigger value="systems">Star Systems</TabsTrigger>
                 <TabsTrigger value="research">Research</TabsTrigger>
+                <TabsTrigger value="structures">Structures</TabsTrigger>
               </TabsList>
 
               {/* GALAXIES TAB */}
@@ -68,6 +70,11 @@ export default function Dashboard() {
               {/* RESEARCH TAB */}
               <TabsContent value="research">
                 <AdminResearchTab />
+              </TabsContent>
+
+              {/* STRUCTURES TAB */}
+              <TabsContent value="structures">
+                <AdminStructuresTab />
               </TabsContent>
             </Tabs>
           </div>
