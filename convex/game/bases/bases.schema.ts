@@ -164,3 +164,12 @@ export const baseStructures = defineTable({
   .index('by_base', ['baseId'])
   .index('by_structure_type', ['baseId', 'structureDefId'])
   .index('by_upgrading', ['baseId', 'upgrading']);
+
+// Player's resources
+export const playerResources = defineTable({
+  userId: v.string(), // The user this resource belongs to
+  nova: v.number(),
+  minerals: v.number(),
+  volatiles: v.number(),
+})
+  .index('by_userId', ['userId']);

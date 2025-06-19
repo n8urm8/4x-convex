@@ -37,12 +37,16 @@ export const AdminSystemsTab = ({
     ? allGalaxies.find((g) => g._id === selectedGalaxyId)
     : null;
   // Query to get systems for selected sector
-  const { data: sectorSystems = [] } = useQuery({
-    ...convexQuery(api.game.map.galaxyQueries.getSectorSystems, {
-      sectorId: selectedSectorId!
-    }),
-    enabled: !!selectedSectorId
-  });
+  const sectorSystemsArgs = selectedSectorId
+    ? { sectorId: selectedSectorId }
+    : 'skip';
+
+  const { data: sectorSystems = [] } = useQuery(
+    // @ts-expect-error The convexQuery helper type inference struggles with the 'skip' token
+    // when the underlying Convex query has mandatory arguments. However, 'skip' is the
+    // intended mechanism for conditional queries with TanStack Query via this helper.
+    convexQuery(api.game.map.galaxyQueries.getSectorSystems, sectorSystemsArgs)
+  );
 
   const generateSystemPlanetsMutation = useMutation({
     mutationFn: useConvexMutation(
