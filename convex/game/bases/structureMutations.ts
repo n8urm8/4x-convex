@@ -19,6 +19,9 @@ export const adminCreateStructureDefinition = internalMutation({
     effects: v.string(),
     upgradeBenefits: v.string(),
     researchRequirementName: v.string(),
+    damage: v.optional(v.number()),
+    defense: v.optional(v.number()),
+    shielding: v.optional(v.number()),
     imageUrl: v.optional(v.string())
   },
   handler: async (ctx, args) => {
@@ -42,6 +45,9 @@ export const createStructureDefinition = mutation({
     effects: v.string(),
     upgradeBenefits: v.string(),
     researchRequirementName: v.string(),
+    damage: v.optional(v.number()),
+    defense: v.optional(v.number()),
+    shielding: v.optional(v.number()),
     imageUrl: v.optional(v.string())
   },
   handler: async (ctx, args): Promise<Id<'structureDefinitions'>> => {
@@ -70,6 +76,9 @@ export const adminUpdateStructureDefinition = internalMutation({
       effects: v.optional(v.string()),
       upgradeBenefits: v.optional(v.string()),
       researchRequirementName: v.optional(v.string()),
+      damage: v.optional(v.number()),
+      defense: v.optional(v.number()),
+      shielding: v.optional(v.number()),
       imageUrl: v.optional(v.string())
     })
   },
@@ -94,6 +103,9 @@ export const updateStructureDefinition = mutation({
       effects: v.optional(v.string()),
       upgradeBenefits: v.optional(v.string()),
       researchRequirementName: v.optional(v.string()),
+      damage: v.optional(v.number()),
+      defense: v.optional(v.number()),
+      shielding: v.optional(v.number()),
       imageUrl: v.optional(v.string())
     })
   },

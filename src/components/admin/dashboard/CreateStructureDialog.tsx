@@ -49,6 +49,9 @@ const structureFormSchema = z.object({
   effects: z.string().min(2, { message: 'Effects must be at least 2 characters.' }),
   upgradeBenefits: z.string().min(2, { message: 'Upgrade benefits must be at least 2 characters.' }),
   researchRequirementName: z.string().min(2, { message: 'Research requirement must be at least 2 characters.' }),
+  damage: z.coerce.number().int().optional(),
+  defense: z.coerce.number().int().optional(),
+  shielding: z.coerce.number().int().optional(),
   imageUrl: z.string().url({ message: 'Please enter a valid URL.' }).optional(),
 });
 
@@ -71,6 +74,9 @@ export function CreateStructureDialog({ isOpen, onOpenChange }: CreateStructureD
       baseSpaceCost: 0,
       baseEnergyCost: 0,
       baseNovaCost: 0,
+      damage: 0,
+      defense: 0,
+      shielding: 0,
       effects: '',
       upgradeBenefits: '',
       researchRequirementName: '',
@@ -171,6 +177,45 @@ export function CreateStructureDialog({ isOpen, onOpenChange }: CreateStructureD
                   <FormLabel>Base Nova Cost</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="e.g., 300" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="damage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Damage</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="e.g., 25" {...field} onChange={event => field.onChange(event.target.value === '' ? undefined : +event.target.value)} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="defense"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Defense</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="e.g., 10" {...field} onChange={event => field.onChange(event.target.value === '' ? undefined : +event.target.value)} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="shielding"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Shielding</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="e.g., 5" {...field} onChange={event => field.onChange(event.target.value === '' ? undefined : +event.target.value)} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

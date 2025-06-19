@@ -37,6 +37,9 @@ export const structureDefinitions = defineTable({
   effects: v.string(), // Effects of the structure
   upgradeBenefits: v.string(), // Benefits of upgrading the structure
   researchRequirementName: v.string(), // Name of the research required
+  damage: v.optional(v.number()), // Damage output
+  defense: v.optional(v.number()), // Defensive value
+  shielding: v.optional(v.number()), // Shielding value
   imageUrl: v.optional(v.string()) // Optional image URL for the structure
 })
 
@@ -55,6 +58,9 @@ export type StructureDefinitionSeed = {
   effects: string;
   upgradeBenefits: string;
   researchRequirementName: string;
+  damage?: number;
+  defense?: number;
+  shielding?: number;
   imageUrl?: string;
 };
 

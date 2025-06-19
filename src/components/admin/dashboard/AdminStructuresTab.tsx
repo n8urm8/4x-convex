@@ -63,6 +63,9 @@ export function AdminStructuresTab() {
               <TableHead>Space Cost</TableHead>
               <TableHead>Energy Cost</TableHead>
               <TableHead>Nova Cost</TableHead>
+              <TableHead>Damage</TableHead>
+              <TableHead>Defense</TableHead>
+              <TableHead>Shielding</TableHead>
               <TableHead>Requires</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -75,6 +78,9 @@ export function AdminStructuresTab() {
                 <TableCell>{def.baseSpaceCost}</TableCell>
                 <TableCell>{def.baseEnergyCost}</TableCell>
                 <TableCell>{def.baseNovaCost}</TableCell>
+                <TableCell>{def.damage ?? 'N/A'}</TableCell>
+                <TableCell>{def.defense ?? 'N/A'}</TableCell>
+                <TableCell>{def.shielding ?? 'N/A'}</TableCell>
                 <TableCell>{def.researchRequirementName}</TableCell>
                 <TableCell className="text-right">
                   <Button variant="outline" size="sm" className="mr-2" onClick={() => { setEditingStructure(def); setIsEditDialogOpen(true); }}>
