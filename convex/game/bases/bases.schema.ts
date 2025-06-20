@@ -167,7 +167,7 @@ export const baseStructures = defineTable({
 
 // Player's resources
 export const playerResources = defineTable({
-  userId: v.string(), // The user this resource belongs to
+  userId: v.id('users'), // The user this resource belongs to
   nova: v.number(),
   minerals: v.number(),
   volatiles: v.number(),

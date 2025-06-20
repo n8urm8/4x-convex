@@ -3,6 +3,12 @@ import { defineSchema, defineTable } from 'convex/server';
 import { Infer, v } from 'convex/values';
 import { baseStructures, playerBases, playerResources, structureDefinitions, structureRequirements } from './game/bases/bases.schema';
 import { researchDefinitions } from './game/research/research.schema';
+import { playerTechnologies } from './game/research/playerResearch.schema';
+import {
+  fleets,
+  playerShips,
+  shipBlueprints
+} from './game/ships/ships.schema';
 
 export const CURRENCIES = {
   USD: 'usd',
@@ -199,6 +205,12 @@ const schema = defineSchema({
 
   // Research definitions
   researchDefinitions,
+  playerTechnologies,
+
+  // Ship definitions
+  shipBlueprints,
+  playerShips,
+  fleets,
 
 });
 

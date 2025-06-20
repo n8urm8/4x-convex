@@ -1,18 +1,15 @@
 import { convexTest } from 'convex-test';
 import { beforeEach, describe, expect, test } from 'vitest';
+import { WithoutSystemFields } from 'convex/server';
 import { api, internal } from '../../_generated/api';
+import { Doc } from '../../_generated/dataModel';
 import schema from '../../schema';
 import { RESEARCH_CATEGORIES } from './research.schema';
 
 describe('Research Mutations', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let t: any;
-  const adminUser = {
-    subject: `test-admin|${Math.random().toString(36).substring(2)}`,
-    name: 'Test Admin',
-    username: 'testadmin',
-    role: 'admin' as const,
-  };
+  let adminUser: WithoutSystemFields<Doc<'users'>>;
 
   const testDefinition = {
     name: 'Test Research',
@@ -20,20 +17,27 @@ describe('Research Mutations', () => {
     category: RESEARCH_CATEGORIES.STRUCTURES,
     primaryEffect: 'Test Effect',
     unlocks: ['Test Unlock'],
-    description: 'A test research definition.',
+    description: 'A test research definition.'
   };
 
   beforeEach(async () => {
+    adminUser = {
+      subject: `test-admin|${Math.random().toString(36).substring(2)}`,
+      name: 'Test Admin',
+      username: 'testadmin',
+      role: 'admin'
+    };
     t = convexTest(schema).withIdentity(adminUser);
     // Seed the admin user for the tests
-    await t.db.insert('users', adminUser);
+    // @ts-expect-error figure this out later
+    await t.run(async (ctx) => ctx.db.insert('users', adminUser));
   });
 
   describe('adminCreateResearchDefinition', () => {
     test('should create a new research definition successfully', async () => {
       const result = await t.mutation(
         internal.game.research.researchMutations.adminCreateResearchDefinition,
-        testDefinition,
+        testDefinition
       );
 
       expect(result).toBeDefined();
@@ -41,7 +45,7 @@ describe('Research Mutations', () => {
 
       const newDef = await t.query(
         api.game.research.researchQueries.adminGetResearchDefinitionByName,
-        { name: 'Test Research' },
+        { name: 'Test Research' }
       );
       expect(newDef).not.toBeNull();
       expect(newDef?.name).toBe(testDefinition.name);
@@ -50,16 +54,17 @@ describe('Research Mutations', () => {
     test('should throw an error if a definition with the same name already exists', async () => {
       await t.mutation(
         internal.game.research.researchMutations.adminCreateResearchDefinition,
-        testDefinition,
+        testDefinition
       );
 
       await expect(
         t.mutation(
-          internal.game.research.researchMutations.adminCreateResearchDefinition,
-          testDefinition,
-        ),
+          internal.game.research.researchMutations
+            .adminCreateResearchDefinition,
+          testDefinition
+        )
       ).rejects.toThrow(
-        `Research definition with name '${testDefinition.name}' already exists.`,
+        `Research definition with name '${testDefinition.name}' already exists.`
       );
     });
   });
@@ -68,22 +73,22 @@ describe('Research Mutations', () => {
     test('should update an existing research definition successfully', async () => {
       const researchId = await t.mutation(
         internal.game.research.researchMutations.adminCreateResearchDefinition,
-        testDefinition,
+        testDefinition
       );
 
       const updates = {
         tier: 2,
-        description: 'Updated description.',
+        description: 'Updated description.'
       };
 
       await t.mutation(
         internal.game.research.researchMutations.adminUpdateResearchDefinition,
-        { id: researchId, updates },
+        { id: researchId, updates }
       );
 
       const updatedDef = await t.query(
         api.game.research.researchQueries.adminGetResearchDefinitionById,
-        { id: researchId },
+        { id: researchId }
       );
       expect(updatedDef?.tier).toBe(2);
       expect(updatedDef?.description).toBe('Updated description.');
@@ -92,22 +97,23 @@ describe('Research Mutations', () => {
     test('should throw an error if updating to a name that already exists', async () => {
       await t.mutation(
         internal.game.research.researchMutations.adminCreateResearchDefinition,
-        { ...testDefinition, name: 'Another Research' },
+        { ...testDefinition, name: 'Another Research' }
       );
       const researchIdToUpdate = await t.mutation(
         internal.game.research.researchMutations.adminCreateResearchDefinition,
-        testDefinition,
+        testDefinition
       );
 
       const updates = { name: 'Another Research' };
 
       await expect(
         t.mutation(
-          internal.game.research.researchMutations.adminUpdateResearchDefinition,
-          { id: researchIdToUpdate, updates },
-        ),
+          internal.game.research.researchMutations
+            .adminUpdateResearchDefinition,
+          { id: researchIdToUpdate, updates }
+        )
       ).rejects.toThrow(
-        "Another research definition with name 'Another Research' already exists.",
+        "Another research definition with name 'Another Research' already exists."
       );
     });
   });
@@ -116,18 +122,18 @@ describe('Research Mutations', () => {
     test('should delete an existing research definition successfully', async () => {
       const researchId = await t.mutation(
         internal.game.research.researchMutations.adminCreateResearchDefinition,
-        testDefinition,
+        testDefinition
       );
 
       const result = await t.mutation(
         internal.game.research.researchMutations.adminDeleteResearchDefinition,
-        { id: researchId },
+        { id: researchId }
       );
       expect(result.success).toBe(true);
 
       const deletedDef = await t.query(
         api.game.research.researchQueries.adminGetResearchDefinitionById,
-        { id: researchId },
+        { id: researchId }
       );
       expect(deletedDef).toBeNull();
     });
@@ -136,20 +142,21 @@ describe('Research Mutations', () => {
       // Create a real ID and then delete it to ensure it's a valid but non-existent ID
       const researchId = await t.mutation(
         internal.game.research.researchMutations.adminCreateResearchDefinition,
-        testDefinition,
+        testDefinition
       );
       await t.mutation(
         internal.game.research.researchMutations.adminDeleteResearchDefinition,
-        { id: researchId },
+        { id: researchId }
       );
 
       await expect(
         t.mutation(
-          internal.game.research.researchMutations.adminDeleteResearchDefinition,
-          { id: researchId },
-        ),
+          internal.game.research.researchMutations
+            .adminDeleteResearchDefinition,
+          { id: researchId }
+        )
       ).rejects.toThrow(
-        `Research definition with id '${researchId}' not found.`,
+        `Research definition with id '${researchId}' not found.`
       );
     });
   });

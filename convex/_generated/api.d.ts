@@ -26,8 +26,11 @@ import type * as game_bases_structureQueries from "../game/bases/structureQuerie
 import type * as game_map_galaxyGeneration from "../game/map/galaxyGeneration.js";
 import type * as game_map_galaxyQueries from "../game/map/galaxyQueries.js";
 import type * as game_map_systemMutations from "../game/map/systemMutations.js";
+import type * as game_research_researchActions from "../game/research/researchActions.js";
 import type * as game_research_researchMutations from "../game/research/researchMutations.js";
 import type * as game_research_researchQueries from "../game/research/researchQueries.js";
+import type * as game_ships_shipActions from "../game/ships/shipActions.js";
+import type * as game_ships_shipBlueprints from "../game/ships/shipBlueprints.js";
 import type * as http from "../http.js";
 import type * as init from "../init.js";
 import type * as otp_ResendOTP from "../otp/ResendOTP.js";
@@ -60,8 +63,11 @@ declare const fullApi: ApiFromModules<{
   "game/map/galaxyGeneration": typeof game_map_galaxyGeneration;
   "game/map/galaxyQueries": typeof game_map_galaxyQueries;
   "game/map/systemMutations": typeof game_map_systemMutations;
+  "game/research/researchActions": typeof game_research_researchActions;
   "game/research/researchMutations": typeof game_research_researchMutations;
   "game/research/researchQueries": typeof game_research_researchQueries;
+  "game/ships/shipActions": typeof game_ships_shipActions;
+  "game/ships/shipBlueprints": typeof game_ships_shipBlueprints;
   http: typeof http;
   init: typeof init;
   "otp/ResendOTP": typeof otp_ResendOTP;

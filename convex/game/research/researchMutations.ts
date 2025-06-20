@@ -114,3 +114,48 @@ export const adminDeleteResearchDefinition = internalMutation({
     return { success: true, deletedId: id };
   },
 });
+
+export const seedResearchDefinitions = internalMutation({
+  handler: async (ctx) => {
+    const researchDefinitionsToSeed = [
+      {
+        name: 'Basic Propulsion',
+        category: 'Ships' as const,
+        tier: 1,
+        description: 'Fundamental principles of sublight travel.',
+        primaryEffect: 'Unlocks basic ship engines.',
+        unlocks: ['ship_engine_1'],
+      },
+      {
+        name: 'Spacecraft Design',
+        category: 'Ships' as const,
+        tier: 1,
+        description: 'Enables construction of basic shipyards.',
+        primaryEffect: 'Unlocks Shipyard structure.',
+        unlocks: ['shipyard'],
+      },
+      {
+        name: 'Basic Construction',
+        category: 'Structures' as const,
+        tier: 1,
+        description: 'Enables construction of basic structures.',
+        primaryEffect: 'Unlocks Construction Yard.',
+        unlocks: ['construction_yard'],
+      },
+    ];
+
+    let seededCount = 0;
+    for (const def of researchDefinitionsToSeed) {
+      const existing = await ctx.db
+        .query('researchDefinitions')
+        .withIndex('by_name', (q) => q.eq('name', def.name))
+        .unique();
+
+      if (!existing) {
+        await ctx.db.insert('researchDefinitions', def);
+        seededCount++;
+      }
+    }
+    return `Seeded ${seededCount} research definitions.`;
+  },
+});

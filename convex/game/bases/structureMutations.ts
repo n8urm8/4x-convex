@@ -138,3 +138,48 @@ export const deleteStructureDefinition = mutation({
     );
   }
 });
+
+export const seedStructureDefinitions = internalMutation({
+  handler: async (ctx) => {
+    const structuresToSeed = [
+      {
+        name: 'Shipyard',
+        category: 'production' as const,
+        description: 'Constructs basic ships.',
+        baseSpaceCost: 10,
+        baseEnergyCost: 5,
+        baseNovaCost: 500,
+        researchRequirementName: 'Spacecraft Design',
+        effects: 'Unlocks Basic Ships',
+        upgradeBenefits: '=+10% Ship Production Speed per level',
+        maxLevel: 10,
+      },
+      {
+        name: 'Construction Yard',
+        category: 'construction' as const,
+        description: 'Reduces build times for structures and ships.',
+        baseSpaceCost: 8,
+        baseEnergyCost: 3,
+        baseNovaCost: 400,
+        researchRequirementName: 'Basic Construction',
+        effects: '-10% Build Time',
+        upgradeBenefits: '-5% Build Time per level',
+        maxLevel: 10,
+      },
+    ];
+
+    let seededCount = 0;
+    for (const def of structuresToSeed) {
+      const existing = await ctx.db
+        .query('structureDefinitions')
+        .withIndex('by_name', (q) => q.eq('name', def.name))
+        .unique();
+
+      if (!existing) {
+        await ctx.db.insert('structureDefinitions', def);
+        seededCount++;
+      }
+    }
+    return `Seeded ${seededCount} structure definitions.`;
+  },
+});
