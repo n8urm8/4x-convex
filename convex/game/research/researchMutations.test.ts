@@ -1,6 +1,5 @@
 import { convexTest } from 'convex-test';
 import { beforeEach, describe, expect, test } from 'vitest';
-import { WithoutSystemFields } from 'convex/server';
 import { api, internal } from '../../_generated/api';
 import { Doc } from '../../_generated/dataModel';
 import schema from '../../schema';
@@ -9,7 +8,7 @@ import { RESEARCH_CATEGORIES } from './research.schema';
 describe('Research Mutations', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let t: any;
-  let adminUser: WithoutSystemFields<Doc<'users'>>;
+  let adminUser: Partial<Doc<'users'>>;
 
   const testDefinition = {
     name: 'Test Research',

@@ -1,3 +1,4 @@
+import { Id } from './_generated/dataModel';
 import { MutationCtx, QueryCtx } from './_generated/server';
 
 export const getAdminUser = async (ctx: MutationCtx | QueryCtx) => {
@@ -7,10 +8,15 @@ export const getAdminUser = async (ctx: MutationCtx | QueryCtx) => {
     throw new Error('User must be authenticated.');
   }
 
-  const user = await ctx.db
-    .query('users')
-    .withIndex('by_subject', (q) => q.eq('subject', identity.subject))
-    .unique();
+  const id = identity.subject.split('|')[0];
+  let user = await ctx.db.get(id as Id<'users'>);
+
+  if (!user) {
+    user = await ctx.db
+      .query('users')
+      .withIndex('by_subject', (q) => q.eq('subject', identity.subject))
+      .unique();
+  }
 
   if (!user) {
     throw new Error('User not found.');
