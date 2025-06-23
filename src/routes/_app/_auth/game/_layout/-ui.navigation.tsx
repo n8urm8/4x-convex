@@ -33,12 +33,17 @@ export function Navigation({ user }: { user: User }) {
     <nav className="sticky top-0 z-50 flex w-full flex-col border-b border-border bg-card px-6">
       <div className="mx-auto flex w-full max-w-screen-xl items-center justify-between py-3">
         <div className="flex h-10 items-center gap-2">
-          <Link
-            to={DashboardRoute.fullPath}
-            className="flex h-10 items-center gap-1"
-          >
-            <Logo />
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              to={DashboardRoute.fullPath}
+              className="flex h-10 items-center gap-1"
+            >
+              <Logo />
+            </Link>
+                        <Link to="/game/bases" className="text-sm font-medium text-primary/80 hover:text-primary">
+              Bases
+            </Link>
+          </div>
           {/* <Slash className="h-6 w-6 -rotate-12 stroke-[1.5px] text-primary/10" /> */}
           {/* <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>

@@ -2,11 +2,20 @@ import RedStar from '@/assets/stars/star_red01.png'; // Assuming other planet/st
 import { Route } from '@/routes/_app/_auth/game/_layout/(map)/map.$galaxyNumber';
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import { api } from '@cvx/_generated/api';
-import { Id } from '@cvx/_generated/dataModel';
+
 import { useQuery, useMutation } from '@tanstack/react-query'; // Added useMutation
 import { Button } from '@/components/ui/button'; // Assuming a Button component exists
+import { Id } from '@cvx/_generated/dataModel';
 
+const ExplorerName = ({ explorerId }: { explorerId: Id<'users'> }) => {
+  const { data: explorer, isLoading } = useQuery({
+    ...convexQuery(api.app.getUserById, { userId: explorerId }),
+    enabled: !!explorerId
+  });
 
+  if (isLoading) return <>...</>;
+  return <>{explorer?.username ?? 'Another Player'}</>;
+};
 
 export const PlanetView = () => {
   const { sectorX, sectorY, systemX, systemY, planetX, planetY } =
@@ -14,7 +23,7 @@ export const PlanetView = () => {
 
   const { galaxyNumber } = Route.useParams();
 
-  const planetQueryEnabled = 
+  const planetQueryEnabled =
     galaxyNumber !== undefined &&
     sectorX !== undefined &&
     sectorY !== undefined &&
@@ -23,79 +32,93 @@ export const PlanetView = () => {
     planetX !== undefined &&
     planetY !== undefined;
 
-  const planetQueryArgs = planetQueryEnabled ? {
-    galaxyNumber: Number(galaxyNumber!),
-    sectorX: Number(sectorX!),
-    sectorY: Number(sectorY!),
-    systemX: Number(systemX!),
-    systemY: Number(systemY!),
-    planetX: Number(planetX!),
-    planetY: Number(planetY!),
-  } : { galaxyNumber: 0, sectorX: 0, sectorY: 0, systemX: 0, systemY: 0, planetX: 0, planetY: 0 }; // Default args when disabled
+  const planetQueryArgs = planetQueryEnabled
+    ? {
+        galaxyNumber: Number(galaxyNumber!),
+        sectorX: Number(sectorX!),
+        sectorY: Number(sectorY!),
+        systemX: Number(systemX!),
+        systemY: Number(systemY!),
+        planetX: Number(planetX!),
+        planetY: Number(planetY!)
+      }
+    : {
+        galaxyNumber: 0,
+        sectorX: 0,
+        sectorY: 0,
+        systemX: 0,
+        systemY: 0,
+        planetX: 0,
+        planetY: 0
+      }; // Default args when disabled
 
   const { data: planet, isLoading: loadingPlanet } = useQuery({
     ...convexQuery(
       api.game.map.galaxyQueries.getPlanetByCoordinates,
       planetQueryArgs // Always pass args, enabled flag controls execution
     ),
-    enabled: planetQueryEnabled,
+    enabled: planetQueryEnabled
   });
 
   // Query for the star system to check exploration status
-  const starSystemQueryEnabled = 
+  const starSystemQueryEnabled =
     galaxyNumber !== undefined &&
     sectorX !== undefined &&
     sectorY !== undefined &&
     systemX !== undefined &&
     systemY !== undefined;
 
-  const starSystemQueryArgs = starSystemQueryEnabled ? {
-    galaxyNumber: Number(galaxyNumber!),
-    sectorX: Number(sectorX!),
-    sectorY: Number(sectorY!),
-    systemX: Number(systemX!),
-    systemY: Number(systemY!),
-  } : { galaxyNumber: 0, sectorX: 0, sectorY: 0, systemX: 0, systemY: 0 }; // Default args when disabled
+  const starSystemQueryArgs = starSystemQueryEnabled
+    ? {
+        galaxyNumber: Number(galaxyNumber!),
+        sectorX: Number(sectorX!),
+        sectorY: Number(sectorY!),
+        systemX: Number(systemX!),
+        systemY: Number(systemY!)
+      }
+    : { galaxyNumber: 0, sectorX: 0, sectorY: 0, systemX: 0, systemY: 0 }; // Default args when disabled
 
   const { data: starSystem, isLoading: loadingStarSystem } = useQuery({
     ...convexQuery(
       api.game.map.galaxyQueries.getStarSystemByCoordinates,
       starSystemQueryArgs // Always pass args, enabled flag controls execution
     ),
-    enabled: starSystemQueryEnabled,
+    enabled: starSystemQueryEnabled
   });
 
   // Query for base on the planet
-  const baseQueryEnabled = !!planet?._id;
-  const baseQueryArgs = baseQueryEnabled 
-    ? { planetId: planet._id as Id<'systemPlanets'> } 
-    : { planetId: 'dummySystemPlanetId' as Id<'systemPlanets'> }; // Default args when disabled
-
+  const baseQueryArgs = planet?._id ? { planetId: planet._id } : undefined;
   const { data: baseOnPlanet, isLoading: loadingBase } = useQuery({
-    ...convexQuery(
-      api.game.bases.baseQueries.getBaseOnPlanet,
-      baseQueryArgs // Always pass args, enabled flag controls execution
-    ),
-    enabled: baseQueryEnabled,
+    ...convexQuery(api.game.bases.baseQueries.getBaseOnPlanet, baseQueryArgs!),
+    enabled: !!baseQueryArgs
   });
 
-  const { data: currentUser, isLoading: loadingCurrentUser } = useQuery(convexQuery(api.app.getCurrentUser, {}));
+  const { data: currentUser, isLoading: loadingCurrentUser } = useQuery(
+    convexQuery(api.app.getCurrentUser, {})
+  );
 
-  const discoverSystemAdapter = useConvexMutation(api.game.map.systemMutations.discoverSystem);
-  const { mutate: discoverSystemMutateFn, isPending: isDiscoveringSystem } = useMutation({
-    mutationFn: discoverSystemAdapter,
-  });
+  const discoverSystemAdapter = useConvexMutation(
+    api.game.map.systemMutations.discoverSystem
+  );
+  const { mutate: discoverSystemMutateFn, isPending: isDiscoveringSystem } =
+    useMutation({
+      mutationFn: discoverSystemAdapter
+    });
 
-  const createBaseAdapter = useConvexMutation(api.game.bases.baseMutations.createBase);
-  const { mutate: createBaseMutateFn, isPending: isCreatingBase } = useMutation({
-    mutationFn: createBaseAdapter,
-  });
+  const createBaseAdapter = useConvexMutation(
+    api.game.bases.baseMutations.createBase
+  );
+  const { mutate: createBaseMutateFn, isPending: isCreatingBase } = useMutation(
+    {
+      mutationFn: createBaseAdapter
+    }
+  );
 
   const handleDiscoverSystem = async () => {
     if (!starSystem?._id || !currentUser?._id) return;
     try {
       discoverSystemMutateFn({
-        systemId: starSystem._id,
+        systemId: starSystem._id
       });
       // Optionally, refetch starSystem or handle UI update
     } catch (error) {
@@ -104,10 +127,17 @@ export const PlanetView = () => {
   };
 
   const handleBuildBase = async () => {
-    if (!planet?._id || !currentUser?._id || 
-        galaxyNumber === undefined || sectorX === undefined || sectorY === undefined || 
-        systemX === undefined || systemY === undefined || 
-        planet.planetX === undefined || planet.planetY === undefined) {
+    if (
+      !planet?._id ||
+      !currentUser?._id ||
+      galaxyNumber === undefined ||
+      sectorX === undefined ||
+      sectorY === undefined ||
+      systemX === undefined ||
+      systemY === undefined ||
+      planet.planetX === undefined ||
+      planet.planetY === undefined
+    ) {
       console.error('Missing required data to create base');
       return;
     }
@@ -125,7 +155,7 @@ export const PlanetView = () => {
         systemX: Number(systemX),
         systemY: Number(systemY),
         planetX: planet.planetX, // Use direct properties from planet object
-        planetY: planet.planetY  // Use direct properties from planet object
+        planetY: planet.planetY // Use direct properties from planet object
       });
       // Optionally, refetch baseOnPlanet or handle UI update
     } catch (error) {
@@ -138,7 +168,8 @@ export const PlanetView = () => {
   // console.log('starSystem view: ', starSystem);
   // console.log('baseOnPlanet view: ', baseOnPlanet);
 
-    const isLoading = loadingPlanet || loadingStarSystem || loadingBase || loadingCurrentUser;
+  const isLoading =
+    loadingPlanet || loadingStarSystem || loadingBase || loadingCurrentUser;
 
   if (isLoading) {
     return (
@@ -148,16 +179,16 @@ export const PlanetView = () => {
     );
   }
 
-  const canBuildBase = 
-    starSystem && starSystem.exploredBy && 
-    planet && !isStar && 
-    !baseOnPlanet;
+  const canBuildBase =
+    starSystem && starSystem.exploredBy && planet && !isStar && !baseOnPlanet;
 
   const canDiscoverSystem = starSystem && starSystem.exploredBy === undefined;
 
   // Determine what to display (star or planet)
-  
-  const displayName = isStar ? `System ${systemX}-${systemY}` : planet?.type?.name || `Planet ${planetX}-${planetY}`; // Use planet.type.name
+
+  const displayName = isStar
+    ? `System ${systemX}-${systemY}`
+    : planet?.type?.name || `Planet ${planetX}-${planetY}`; // Use planet.type.name
   const displayType = isStar ? starSystem?.starType : planet?.type?.name;
   const imageSrc = RedStar; // Placeholder, ideally dynamic based on type
 
@@ -165,7 +196,11 @@ export const PlanetView = () => {
     <div className="p-4 space-y-4">
       {/* Image Section - Smaller */}
       <div className="w-32 h-32 mx-auto border rounded-md flex items-center justify-center overflow-hidden">
-        <img src={imageSrc} alt={displayName} className="max-w-full max-h-full object-contain" />
+        <img
+          src={imageSrc}
+          alt={displayName}
+          className="max-w-full max-h-full object-contain"
+        />
       </div>
 
       {/* Details Section */}
@@ -178,9 +213,13 @@ export const PlanetView = () => {
         </p>
         {starSystem && (
           <p className="text-sm">
-            {starSystem.exploredBy 
-              ? `Explored by: ${starSystem.exploredBy === currentUser?._id ? currentUser?.name : 'Another Player'}` // Changed to flat currentUser access
-              : 'Unexplored'}
+            {starSystem.exploredBy ? (
+              <>
+                Explored by: <ExplorerName explorerId={starSystem.exploredBy} />
+              </>
+            ) : (
+              'Unexplored'
+            )}
           </p>
         )}
       </div>
@@ -204,8 +243,13 @@ export const PlanetView = () => {
         <div className="mt-4 p-3 border rounded-md bg-gray-800">
           <h3 className="font-semibold">Base Present</h3>
           <p>Name: {baseOnPlanet.name}</p>
-          <p>Owner: {baseOnPlanet.userId === currentUser?._id ? currentUser?.name : 'Another Player'} {/* Changed to flat currentUser access */}
-             {/* TODO: Fetch player name if not current user */}
+          <p>
+            Owner:{' '}
+            {baseOnPlanet.userId === currentUser?._id
+              ? currentUser?.name
+              : 'Another Player'}{' '}
+            {/* Changed to flat currentUser access */}
+            {/* TODO: Fetch player name if not current user */}
           </p>
         </div>
       )}
@@ -213,5 +257,4 @@ export const PlanetView = () => {
       {/* TODO: Fleets Table Section */}
     </div>
   );
-
 };

@@ -378,6 +378,47 @@ export const getStructureEffectsAtLevel = query({
   }
 });
 
+export const getPlayerBasesOverview = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return [];
+    }
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_subject', (q) => q.eq('subject', identity.subject))
+      .first();
+
+    if (!user) {
+      return [];
+    }
+
+    const playerBases = await ctx.db
+      .query('playerBases')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .collect();
+
+    const basesWithUpgradingStructures = await Promise.all(
+      playerBases.map(async (base) => {
+        const upgradingStructures = await ctx.db
+          .query('baseStructures')
+          .withIndex('by_upgrading', (q) =>
+            q.eq('baseId', base._id).eq('upgrading', true)
+          )
+          .collect();
+        return {
+          ...base,
+          upgradingStructures,
+        };
+      })
+    );
+
+    return basesWithUpgradingStructures;
+  },
+});
+
 // Get all player bases
 export const getPlayerBases = query({
   args: {

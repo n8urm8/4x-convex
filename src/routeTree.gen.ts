@@ -28,6 +28,7 @@ import { Route as AppAuthGameLayoutOverviewImport } from './routes/_app/_auth/ga
 import { Route as AppAuthDashboardLayoutSettingsImport } from './routes/_app/_auth/dashboard/_layout.settings'
 import { Route as AppAuthDashboardLayoutCheckoutImport } from './routes/_app/_auth/dashboard/_layout.checkout'
 import { Route as AppAuthDashboardLayoutSettingsIndexImport } from './routes/_app/_auth/dashboard/_layout.settings.index'
+import { Route as AppAuthGameLayoutbasesBasesImport } from './routes/_app/_auth/game/_layout/(bases)/bases'
 import { Route as AppAuthDashboardLayoutSettingsBillingImport } from './routes/_app/_auth/dashboard/_layout.settings.billing'
 import { Route as AppAuthGameLayoutmapMapIndexImport } from './routes/_app/_auth/game/_layout/(map)/map.index'
 import { Route as AppAuthGameLayoutmapMapGalaxyNumberImport } from './routes/_app/_auth/game/_layout/(map)/map.$galaxyNumber'
@@ -139,6 +140,12 @@ const AppAuthDashboardLayoutSettingsIndexRoute =
   AppAuthDashboardLayoutSettingsIndexImport.update({
     path: '/',
     getParentRoute: () => AppAuthDashboardLayoutSettingsRoute,
+  } as any)
+
+const AppAuthGameLayoutbasesBasesRoute =
+  AppAuthGameLayoutbasesBasesImport.update({
+    path: '/bases',
+    getParentRoute: () => AppAuthGameLayoutRouteRoute,
   } as any)
 
 const AppAuthDashboardLayoutSettingsBillingRoute =
@@ -296,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthDashboardLayoutSettingsBillingImport
       parentRoute: typeof AppAuthDashboardLayoutSettingsImport
     }
+    '/_app/_auth/game/_layout/(bases)/bases': {
+      id: '/_app/_auth/game/_layout/bases'
+      path: '/bases'
+      fullPath: '/game/bases'
+      preLoaderRoute: typeof AppAuthGameLayoutbasesBasesImport
+      parentRoute: typeof AppAuthGameLayoutRouteImport
+    }
     '/_app/_auth/dashboard/_layout/settings/': {
       id: '/_app/_auth/dashboard/_layout/settings/'
       path: '/'
@@ -330,6 +344,7 @@ export const routeTree = rootRoute.addChildren({
         AppAuthGameLayoutRouteRoute: AppAuthGameLayoutRouteRoute.addChildren({
           AppAuthGameLayoutOverviewRoute,
           AppAuthGameLayoutIndexRoute,
+          AppAuthGameLayoutbasesBasesRoute,
           AppAuthGameLayoutmapMapGalaxyNumberRoute,
           AppAuthGameLayoutmapMapIndexRoute,
         }),
@@ -417,6 +432,7 @@ export const routeTree = rootRoute.addChildren({
       "children": [
         "/_app/_auth/game/_layout/overview",
         "/_app/_auth/game/_layout/",
+        "/_app/_auth/game/_layout/bases",
         "/_app/_auth/game/_layout/map/$galaxyNumber",
         "/_app/_auth/game/_layout/map/"
       ]
@@ -486,6 +502,10 @@ export const routeTree = rootRoute.addChildren({
     "/_app/_auth/dashboard/_layout/settings/billing": {
       "filePath": "_app/_auth/dashboard/_layout.settings.billing.tsx",
       "parent": "/_app/_auth/dashboard/_layout/settings"
+    },
+    "/_app/_auth/game/_layout/bases": {
+      "filePath": "_app/_auth/game/_layout/(bases)/bases.tsx",
+      "parent": "/_app/_auth/game/_layout"
     },
     "/_app/_auth/dashboard/_layout/settings/": {
       "filePath": "_app/_auth/dashboard/_layout.settings.index.tsx",
