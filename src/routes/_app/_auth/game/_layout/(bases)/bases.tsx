@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { Link, createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { convexQuery } from '@convex-dev/react-query';
 import { api } from '@cvx/_generated/api';
@@ -26,7 +26,12 @@ function BasesOverviewPage() {
       <h1 className="text-2xl font-bold mb-4">Bases Overview</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {bases?.map((base: BaseWithUpgrades) => (
-          <div key={base._id} className="border p-4 rounded-lg">
+          <Link
+            key={base._id}
+            to="/game/bases/$baseId"
+            params={{ baseId: base._id }}
+            className="block border p-4 rounded-lg hover:bg-muted/50"
+          >
             <h2 className="text-xl font-semibold">{base.name}</h2>
             <p>
               Location: G{base.galaxyNumber}-S{base.sectorX}.{base.sectorY}-S
@@ -52,7 +57,7 @@ function BasesOverviewPage() {
                 <p>None</p>
               )}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

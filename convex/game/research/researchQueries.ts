@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { getAdminUser } from '../../utils';
+import { getAdminUser, getAuthedUser } from '../../utils';
 import { query } from '../../_generated/server';
 
 /**
@@ -33,6 +33,38 @@ export const adminGetResearchDefinitionByName = query({
       .withIndex('by_name', (q) => q.eq('name', args.name))
       .unique();
     return researchDef;
+  },
+});
+
+export const getPlayerTechnologies = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthedUser(ctx);
+
+    // 1. Get all research definitions
+    const allResearch = await ctx.db.query('researchDefinitions').collect();
+
+    // 2. Get all technologies researched by the player
+    const playerResearched = await ctx.db
+      .query('playerTechnologies')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .collect();
+
+    const playerResearchedIds = new Set(
+      playerResearched.map((r) => r.researchDefinitionId)
+    );
+
+    // 3. Combine the data
+    const technologies = allResearch.map((tech) => ({
+      ...tech,
+      isResearched: playerResearchedIds.has(tech._id),
+    }));
+
+    return {
+      technologies,
+      researchingId: user.researchingId,
+      researchFinishesAt: user.researchFinishesAt,
+    };
   },
 });
 

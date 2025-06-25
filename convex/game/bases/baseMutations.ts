@@ -357,54 +357,87 @@ export const startStructureUpgrade = mutation({
     // Get the structure
     const structure = await ctx.db.get(args.structureId);
     if (!structure) {
-      throw new Error("Structure not found");
+      throw new Error('Structure not found');
     }
-    
-    const { base } = await checkBaseOwnership(ctx, structure.baseId);
+    const { user, base } = await checkBaseOwnership(ctx, structure.baseId);
 
     if (structure.upgrading) {
-      throw new Error("Structure is already being upgraded");
+      throw new Error('Structure is already upgrading.');
     }
-    
-    // Get the structure definition
+
     const structureDef = await ctx.db.get(structure.structureDefId);
     if (!structureDef) {
-      throw new Error("Structure definition not found");
+      throw new Error('Structure definition not found.');
     }
-    
-    // Check if already at max level
-    if (structureDef.maxLevel && structure.level >= structureDef.maxLevel) {
-      throw new Error("Structure already at maximum level");
+
+    // Check research requirements
+    if (structureDef.researchRequirementName) {
+      const requiredResearch = await ctx.db
+        .query('researchDefinitions')
+        .withIndex('by_name', (q) =>
+          q.eq('name', structureDef.researchRequirementName)
+        )
+        .unique();
+
+      if (requiredResearch) {
+        const playerResearch = await ctx.db
+          .query('playerTechnologies')
+          .withIndex('by_user_research', (q) =>
+            q
+              .eq('userId', user._id)
+              .eq('researchDefinitionId', requiredResearch._id)
+          )
+          .first();
+
+        if (!playerResearch) {
+          throw new Error(
+            `Research '${structureDef.researchRequirementName}' is required.`
+          );
+        }
+      }
     }
-    
-    // Calculate upgrade cost based on current level
-    const level = structure.level;
-    const nextLevel = level + 1;
-    
-    // Nova cost increases by 50% per level
-    const novaCost = Math.round(structureDef.baseNovaCost * (1 + (level * 0.5)));
-    
-    // Calculate upgrade time based on nova cost and base bonuses
-    const buildTimeReduction = base.buildTimeReduction; // % reduction
-    const upgradeTime = Math.round(
-      (3600000 * (novaCost / 1000) * (1 + (level * 0.2))) * (1 - buildTimeReduction / 100)
-    ); // Base time is 1 hour per 1000 nova cost, increasing with level
-    
-    const upgradeCompleteTime = Date.now() + upgradeTime;
-    
-    // Start the upgrade
-    await ctx.db.patch(args.structureId, {
-      upgrading: true,
-      upgradeCompleteTime,
-      upgradeLevel: nextLevel,
-      upgradeNovaCost: novaCost
+
+    const nextLevel = structure.level + 1;
+    const upgradeNovaCost = structureDef.baseNovaCost * nextLevel; // Simplified cost
+    const upgradeEnergyCost = structureDef.baseEnergyCost * nextLevel;
+
+    // Check resources
+    const playerResources = await ctx.db
+      .query('playerResources')
+      .withIndex('by_userId', (q) => q.eq('userId', user._id))
+      .unique();
+
+    if (!playerResources || playerResources.nova < upgradeNovaCost) {
+      throw new Error('Insufficient Nova for upgrade.');
+    }
+
+    if (base.totalEnergy < base.usedEnergy + upgradeEnergyCost) {
+      throw new Error('Insufficient energy capacity for this upgrade.');
+    }
+
+    // Deduct resources
+    await ctx.db.patch(playerResources._id, {
+      nova: playerResources.nova - upgradeNovaCost
     });
-    
-    return { 
-      upgradeCompleteTime,
-      newLevel: nextLevel,
-      novaCost
-    };
+
+    // Update base energy usage
+    await ctx.db.patch(base._id, {
+      usedEnergy: base.usedEnergy + upgradeEnergyCost
+    });
+
+    // Calculate upgrade time (e.g., 5 minutes per level)
+    const upgradeTime = 1000 * 60 * 5 * nextLevel; // in milliseconds
+    const upgradeCompleteTime = Date.now() + upgradeTime;
+
+    // Mark structure as upgrading
+    await ctx.db.patch(structure._id, {
+      upgrading: true,
+      upgradeLevel: nextLevel,
+      upgradeCompleteTime: upgradeCompleteTime,
+      upgradeNovaCost: upgradeNovaCost
+    });
+
+    return { success: true, upgradeCompleteTime };
   }
 });
 

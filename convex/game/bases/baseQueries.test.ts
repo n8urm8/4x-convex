@@ -35,8 +35,8 @@ describe('Base Queries', () => {
     test('should retrieve all bases for a given user', async () => {
       const t = convexTest(schema);
       const { userId1, userId2 } = await t.run(async (ctx) => {
-        const userId1 = await ctx.db.insert('users', { name: 'Test User 1', email: mockUserEmail1, subject: mockUserEmail1 });
-        const userId2 = await ctx.db.insert('users', { name: 'Test User 2', email: mockUserEmail2, subject: mockUserEmail2 });
+        const userId1 = await ctx.db.insert('users', { name: 'Test User 1', email: mockUserEmail1, subject: mockUserEmail1, nova: 0, minerals: 0, volatiles: 0 });
+        const userId2 = await ctx.db.insert('users', { name: 'Test User 2', email: mockUserEmail2, subject: mockUserEmail2, nova: 0, minerals: 0, volatiles: 0 });
 
         const galaxyId = await ctx.db.insert('galaxies', { number: 1, groupId: 'test-group' });
         const sectorId = await ctx.db.insert('galaxySectors', { galaxyId, galaxyNumber: 1, sectorX: 1, sectorY: 1 });
@@ -97,7 +97,7 @@ describe('Base Queries', () => {
     test('should retrieve a specific base by its ID', async () => {
       const t = convexTest(schema);
       const { baseId } = await t.run(async (ctx) => {
-        const userId = await ctx.db.insert('users', { name: 'Test User 1', email: mockUserEmail1, subject: mockUserEmail1 });
+        const userId = await ctx.db.insert('users', { name: 'Test User 1', email: mockUserEmail1, subject: mockUserEmail1, nova: 0, minerals: 0, volatiles: 0 });
         const galaxyId = await ctx.db.insert('galaxies', { number: 1, groupId: 'test-group' });
         const sectorId = await ctx.db.insert('galaxySectors', { galaxyId, galaxyNumber: 1, sectorX: 1, sectorY: 1 });
         const systemId = await ctx.db.insert('sectorSystems', {
@@ -147,7 +147,7 @@ describe('Base Queries', () => {
     test('should retrieve the base on a specific planet', async () => {
       const t = convexTest(schema);
       const { planetId, baseId } = await t.run(async (ctx) => {
-        const userId = await ctx.db.insert('users', { name: 'Test User 1', email: mockUserEmail1, subject: mockUserEmail1 });
+        const userId = await ctx.db.insert('users', { name: 'Test User 1', email: mockUserEmail1, subject: mockUserEmail1, nova: 0, minerals: 0, volatiles: 0 });
         const galaxyId = await ctx.db.insert('galaxies', { number: 1, groupId: 'test-group' });
         const sectorId = await ctx.db.insert('galaxySectors', { galaxyId, galaxyNumber: 1, sectorX: 1, sectorY: 1 });
         const systemId = await ctx.db.insert('sectorSystems', {

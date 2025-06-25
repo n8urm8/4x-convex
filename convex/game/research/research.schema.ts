@@ -24,8 +24,10 @@ export const researchDefinitionSchema = {
   primaryEffect: v.string(),
   unlocks: v.optional(v.array(v.string())), // Names of structures, ships, or other technologies unlocked
   description: v.optional(v.string()), // Optional detailed description
-  // cost: v.optional(v.number()), // Future: Research point cost to unlock
-  // prerequisites: v.optional(v.array(v.id('researchDefinitions'))), // Future: For tech tree dependencies
+  novaCost: v.optional(v.number()),
+  mineralCost: v.optional(v.number()),
+  volatileCost: v.optional(v.number()),
+  prerequisites: v.optional(v.array(v.id('researchDefinitions'))), // For tech tree dependencies
 };
 
 export const researchDefinitions = defineTable(researchDefinitionSchema)

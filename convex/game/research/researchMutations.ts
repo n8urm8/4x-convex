@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 import { internalMutation, mutation } from '../../_generated/server';
 import { internal } from '../../_generated/api';
 import { Doc, Id } from '../../_generated/dataModel';
-import { getAdminUser } from '../../utils';
+import { getAdminUser, getAuthedUser } from '../../utils';
 import { researchDefinitions, researchDefinitionSchema } from './research.schema';
 
 // --- Public Admin Mutations for Research Definitions ---
@@ -157,5 +157,103 @@ export const seedResearchDefinitions = internalMutation({
       }
     }
     return `Seeded ${seededCount} research definitions.`;
+  },
+});
+
+export const startResearch = mutation({
+  args: {
+    researchId: v.id('researchDefinitions'),
+  },
+  handler: async (ctx, args) => {
+    const user = await getAuthedUser(ctx);
+
+    if (user.researchingId) {
+      throw new Error('You are already researching a technology.');
+    }
+
+    const researchDefinition = await ctx.db.get(args.researchId);
+    if (!researchDefinition) {
+      throw new Error('Research definition not found.');
+    }
+
+    const alreadyResearched = await ctx.db
+      .query('playerTechnologies')
+      .withIndex('by_user_research', (q) =>
+        q.eq('userId', user._id).eq('researchDefinitionId', args.researchId)
+      )
+      .first();
+
+    if (alreadyResearched) {
+      throw new Error('You have already researched this technology.');
+    }
+
+    // Check for costs and prerequisites
+    const novaCost = researchDefinition.novaCost ?? 0;
+    const mineralCost = researchDefinition.mineralCost ?? 0;
+    const volatileCost = researchDefinition.volatileCost ?? 0;
+
+    if (
+      user.nova < novaCost ||
+      user.minerals < mineralCost ||
+      user.volatiles < volatileCost
+    ) {
+      throw new Error('Insufficient resources to start research.');
+    }
+
+    if (researchDefinition.prerequisites) {
+      const playerResearched = await ctx.db
+        .query('playerTechnologies')
+        .withIndex('by_user', (q) => q.eq('userId', user._id))
+        .collect();
+      const playerResearchedIds = new Set(
+        playerResearched.map((tech) => tech.researchDefinitionId),
+      );
+      for (const prereqId of researchDefinition.prerequisites) {
+        if (!playerResearchedIds.has(prereqId)) {
+          throw new Error('Prerequisite research not completed.');
+        }
+      }
+    }
+
+    const researchTime = 60 * 5; // 5 minutes for now
+    const finishesAt = Date.now() + researchTime * 1000;
+
+    await ctx.db.patch(user._id, {
+      researchingId: args.researchId,
+      researchFinishesAt: finishesAt,
+      nova: user.nova - novaCost,
+      minerals: user.minerals - mineralCost,
+      volatiles: user.volatiles - volatileCost,
+    });
+
+    return { success: true, finishesAt };
+  },
+});
+
+export const completeResearch = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthedUser(ctx);
+
+    if (!user.researchingId || !user.researchFinishesAt) {
+      throw new Error('You are not currently researching anything.');
+    }
+
+    if (Date.now() < user.researchFinishesAt) {
+      throw new Error('Research is not yet complete.');
+    }
+
+    await ctx.db.insert('playerTechnologies', {
+      userId: user._id,
+      researchDefinitionId: user.researchingId,
+      researchedAt: Date.now(),
+    });
+
+    await ctx.db.patch(user._id, {
+      researchingId: undefined,
+      researchFinishesAt: undefined,
+    });
+
+    return { success: true };
   },
 });

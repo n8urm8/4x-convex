@@ -45,7 +45,7 @@ describe('Base Mutations', () => {
         planetX,
         planetY,
       } = await t.run(async (ctx) => {
-        await ctx.db.insert('users', { name: 'Test User 1', email: mockUserEmail1, subject: mockUserEmail1 });
+        await ctx.db.insert('users', { name: 'Test User 1', email: mockUserEmail1, subject: mockUserEmail1, nova: 0, minerals: 0, volatiles: 0 });
         const galaxyId = await ctx.db.insert('galaxies', { number: 1, groupId: 'test-group' });
         const sectorId = await ctx.db.insert('galaxySectors', { galaxyId, galaxyNumber: 1, sectorX: 1, sectorY: 1 });
         const systemId = await ctx.db.insert('sectorSystems', {
@@ -129,7 +129,7 @@ describe('Base Mutations', () => {
     test('should fail if planet is not habitable', async () => {
         const t = convexTest(schema);
         const { planetId } = await t.run(async (ctx) => {
-            await ctx.db.insert('users', { name: 'Test User 1', email: mockUserEmail1, subject: mockUserEmail1 });
+            await ctx.db.insert('users', { name: 'Test User 1', email: mockUserEmail1, subject: mockUserEmail1, nova: 0, minerals: 0, volatiles: 0 });
             const galaxyId = await ctx.db.insert('galaxies', { number: 1, groupId: 'test-group' });
             const sectorId = await ctx.db.insert('galaxySectors', { galaxyId, galaxyNumber: 1, sectorX: 1, sectorY: 1 });
             const systemId = await ctx.db.insert('sectorSystems', { galaxySectorId: sectorId, galaxyNumber: 1, sectorX: 1, sectorY: 1, systemX: 1, systemY: 1, starType: 'Test', starColor: '#FFFFFF', starSize: 1 });
@@ -148,8 +148,8 @@ describe('Base Mutations', () => {
     test('should fail if another base already exists on the planet', async () => {
         const t = convexTest(schema);
         const { planetId } = await t.run(async (ctx) => {
-            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1 });
-            await ctx.db.insert('users', { name: 'User 2', email: mockUserEmail2, subject: mockUserEmail2 });
+            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1, nova: 0, minerals: 0, volatiles: 0 });
+            await ctx.db.insert('users', { name: 'User 2', email: mockUserEmail2, subject: mockUserEmail2, nova: 0, minerals: 0, volatiles: 0 });
             const galaxyId = await ctx.db.insert('galaxies', { number: 1, groupId: 'test-group' });
             const sectorId = await ctx.db.insert('galaxySectors', { galaxyId, galaxyNumber: 1, sectorX: 1, sectorY: 1 });
             const systemId = await ctx.db.insert('sectorSystems', { galaxySectorId: sectorId, galaxyNumber: 1, sectorX: 1, sectorY: 1, systemX: 1, systemY: 1, starType: 'Test', starColor: '#FFFFFF', starSize: 1 });
@@ -169,7 +169,7 @@ describe('Base Mutations', () => {
     test('should fail if the same user tries to build on the same planet twice', async () => {
         const t = convexTest(schema);
         const { planetId } = await t.run(async (ctx) => {
-            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1 });
+            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1, nova: 0, minerals: 0, volatiles: 0 });
             const galaxyId = await ctx.db.insert('galaxies', { number: 1, groupId: 'test-group' });
             const sectorId = await ctx.db.insert('galaxySectors', { galaxyId, galaxyNumber: 1, sectorX: 1, sectorY: 1 });
             const systemId = await ctx.db.insert('sectorSystems', { galaxySectorId: sectorId, galaxyNumber: 1, sectorX: 1, sectorY: 1, systemX: 1, systemY: 1, starType: 'Test', starColor: '#FFFFFF', starSize: 1 });
@@ -190,7 +190,7 @@ describe('Base Mutations', () => {
         const t = convexTest(schema);
         // Generate a valid ID for a non-existent planet
         const { nonExistentPlanetId } = await t.run(async (ctx) => {
-            await ctx.db.insert('users', { name: 'Test User 1', email: mockUserEmail1, subject: mockUserEmail1 });
+            await ctx.db.insert('users', { name: 'Test User 1', email: mockUserEmail1, subject: mockUserEmail1, nova: 0, minerals: 0, volatiles: 0 });
             const tempGalaxyId = await ctx.db.insert('galaxies', { number: 98, groupId: 'temp-galaxy-nonexist-test' });
             const tempSectorId = await ctx.db.insert('galaxySectors', { galaxyId: tempGalaxyId, galaxyNumber: 98, sectorX: 0, sectorY: 0 });
             const tempSystemId = await ctx.db.insert('sectorSystems', { galaxySectorId: tempSectorId, galaxyNumber: 98, sectorX: 0, sectorY: 0, systemX: 0, systemY: 0, starType: 'Temp', starColor: '#000', starSize: 1 });
@@ -217,7 +217,7 @@ describe('Base Mutations', () => {
     test('should rename a base successfully', async () => {
         const t = convexTest(schema);
         const { baseId } = await t.run(async (ctx) => {
-            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1 });
+            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1, nova: 0, minerals: 0, volatiles: 0 });
             const galaxyId = await ctx.db.insert('galaxies', { number: 1, groupId: 'test-group' });
             const sectorId = await ctx.db.insert('galaxySectors', { galaxyId, galaxyNumber: 1, sectorX: 1, sectorY: 1 });
             const systemId = await ctx.db.insert('sectorSystems', { galaxySectorId: sectorId, galaxyNumber: 1, sectorX: 1, sectorY: 1, systemX: 1, systemY: 1, starType: 'Test', starColor: '#FFFFFF', starSize: 1 });
@@ -239,8 +239,8 @@ describe('Base Mutations', () => {
     test('should fail to rename a base if not the owner', async () => {
         const t = convexTest(schema);
         const { baseId } = await t.run(async (ctx) => {
-            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1 });
-            await ctx.db.insert('users', { name: 'User 2', email: mockUserEmail2, subject: mockUserEmail2 });
+            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1, nova: 0, minerals: 0, volatiles: 0 });
+            await ctx.db.insert('users', { name: 'User 2', email: mockUserEmail2, subject: mockUserEmail2, nova: 0, minerals: 0, volatiles: 0 });
             const galaxyId = await ctx.db.insert('galaxies', { number: 1, groupId: 'test-group' });
             const sectorId = await ctx.db.insert('galaxySectors', { galaxyId, galaxyNumber: 1, sectorX: 1, sectorY: 1 });
             const systemId = await ctx.db.insert('sectorSystems', { galaxySectorId: sectorId, galaxyNumber: 1, sectorX: 1, sectorY: 1, systemX: 1, systemY: 1, starType: 'Test', starColor: '#FFFFFF', starSize: 1 });
@@ -259,7 +259,7 @@ describe('Base Mutations', () => {
     test('should fail to rename a base if not authenticated', async () => {
         const t = convexTest(schema);
         const { baseId } = await t.run(async (ctx) => {
-            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1 });
+            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1, nova: 0, minerals: 0, volatiles: 0 });
             const galaxyId = await ctx.db.insert('galaxies', { number: 1, groupId: 'test-group' });
             const sectorId = await ctx.db.insert('galaxySectors', { galaxyId, galaxyNumber: 1, sectorX: 1, sectorY: 1 });
             const systemId = await ctx.db.insert('sectorSystems', { galaxySectorId: sectorId, galaxyNumber: 1, sectorX: 1, sectorY: 1, systemX: 1, systemY: 1, starType: 'Test', starColor: '#FFFFFF', starSize: 1 });
@@ -280,7 +280,7 @@ describe('Base Mutations', () => {
     test('should abandon a base successfully', async () => {
         const t = convexTest(schema);
         const { baseId } = await t.run(async (ctx) => {
-            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1 });
+            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1, nova: 0, minerals: 0, volatiles: 0 });
             const galaxyId = await ctx.db.insert('galaxies', { number: 1, groupId: 'test-group' });
             const sectorId = await ctx.db.insert('galaxySectors', { galaxyId, galaxyNumber: 1, sectorX: 1, sectorY: 1 });
             const systemId = await ctx.db.insert('sectorSystems', { galaxySectorId: sectorId, galaxyNumber: 1, sectorX: 1, sectorY: 1, systemX: 1, systemY: 1, starType: 'Test', starColor: '#FFFFFF', starSize: 1 });
@@ -299,8 +299,8 @@ describe('Base Mutations', () => {
     test('should fail to abandon a base if not the owner', async () => {
         const t = convexTest(schema);
         const { baseId } = await t.run(async (ctx) => {
-            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1 });
-            await ctx.db.insert('users', { name: 'User 2', email: mockUserEmail2, subject: mockUserEmail2 });
+            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1, nova: 0, minerals: 0, volatiles: 0 });
+            await ctx.db.insert('users', { name: 'User 2', email: mockUserEmail2, subject: mockUserEmail2, nova: 0, minerals: 0, volatiles: 0 });
             const galaxyId = await ctx.db.insert('galaxies', { number: 1, groupId: 'test-group' });
             const sectorId = await ctx.db.insert('galaxySectors', { galaxyId, galaxyNumber: 1, sectorX: 1, sectorY: 1 });
             const systemId = await ctx.db.insert('sectorSystems', { galaxySectorId: sectorId, galaxyNumber: 1, sectorX: 1, sectorY: 1, systemX: 1, systemY: 1, starType: 'Test', starColor: '#FFFFFF', starSize: 1 });
@@ -316,7 +316,7 @@ describe('Base Mutations', () => {
     test('should fail to abandon a base if not authenticated', async () => {
         const t = convexTest(schema);
         const { baseId } = await t.run(async (ctx) => {
-            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1 });
+            const user1 = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1, nova: 0, minerals: 0, volatiles: 0 });
             const galaxyId = await ctx.db.insert('galaxies', { number: 1, groupId: 'test-group' });
             const sectorId = await ctx.db.insert('galaxySectors', { galaxyId, galaxyNumber: 1, sectorX: 1, sectorY: 1 });
             const systemId = await ctx.db.insert('sectorSystems', { galaxySectorId: sectorId, galaxyNumber: 1, sectorX: 1, sectorY: 1, systemX: 1, systemY: 1, starType: 'Test', starColor: '#FFFFFF', starSize: 1 });
@@ -334,8 +334,8 @@ describe('Base Mutations', () => {
     test('should fail to collect resources if not the owner', async () => {
       const t = convexTest(schema);
       const { baseId } = await t.run(async (ctx) => {
-        const user1Id = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1 });
-        await ctx.db.insert('users', { name: 'User 2', email: mockUserEmail2, subject: mockUserEmail2 });
+        const user1Id = await ctx.db.insert('users', { name: 'User 1', email: mockUserEmail1, subject: mockUserEmail1, nova: 0, minerals: 0, volatiles: 0 });
+        await ctx.db.insert('users', { name: 'User 2', email: mockUserEmail2, subject: mockUserEmail2, nova: 0, minerals: 0, volatiles: 0 });
         const galaxyId = await ctx.db.insert('galaxies', { number: 1, groupId: 'test-group' });
         const sectorId = await ctx.db.insert('galaxySectors', { galaxyId, galaxyNumber: 1, sectorX: 1, sectorY: 1 });
         const systemId = await ctx.db.insert('sectorSystems', { galaxySectorId: sectorId, galaxyNumber: 1, sectorX: 1, sectorY: 1, systemX: 1, systemY: 1, starType: 'Test', starColor: '#FFFFFF', starSize: 1 });

@@ -7,4 +7,5 @@ export const playerTechnologies = defineTable({
   researchDefinitionId: v.id('researchDefinitions'), // ID of the researched tech
   researchedAt: v.number(),
 })
-  .index('by_user_research', ['userId', 'researchDefinitionId']);
+  .index('by_user_research', ['userId', 'researchDefinitionId'])
+  .index('by_user', ['userId']);

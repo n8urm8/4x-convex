@@ -442,6 +442,64 @@ export const getBaseById = query({
   }
 });
 
+// Get full details for a specific base, for the base detail page
+export const getBaseDetails = query({
+  args: {
+    baseId: v.id('playerBases')
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      // Not authenticated, so can't be the owner.
+      return null;
+    }
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_subject', (q) => q.eq('subject', identity.subject))
+      .first();
+
+    if (!user) {
+      // User not found in DB
+      return null;
+    }
+
+    const base = await ctx.db.get(args.baseId);
+    if (!base) {
+      // Base not found
+      return null;
+    }
+
+    // Check for ownership
+    if (base.userId !== user._id) {
+      // Not the owner, return null as they shouldn't see details
+      return null;
+    }
+
+    // Get all structures in this base
+    const baseStructures = await ctx.db
+      .query('baseStructures')
+      .withIndex('by_base', (q) => q.eq('baseId', args.baseId))
+      .collect();
+
+    // For each structure, get its definition
+    const structuresWithDetails = await Promise.all(
+      baseStructures.map(async (structure) => {
+        const definition = await ctx.db.get(structure.structureDefId);
+        return {
+          ...structure,
+          definition
+        };
+      })
+    );
+
+    return {
+      ...base,
+      structures: structuresWithDetails
+    };
+  }
+});
+
 // Get bases on a specific planet
 export const getBaseOnPlanet = query({
   args: {

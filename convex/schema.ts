@@ -70,6 +70,11 @@ const schema = defineSchema({
     customerId: v.optional(v.string()),
     role: v.optional(roleValidator),
     subject: v.optional(v.string()),
+    researchingId: v.optional(v.id('researchDefinitions')),
+    researchFinishesAt: v.optional(v.number()),
+    nova: v.number(),
+    minerals: v.number(),
+    volatiles: v.number(),
   })
     .index('email', ['email'])
     .index('customerId', ['customerId'])
