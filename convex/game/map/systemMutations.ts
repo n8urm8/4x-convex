@@ -1,6 +1,8 @@
 // convex/game/map/systemMutations.ts
 import { v } from 'convex/values';
+import { auth } from '../../auth';
 import { mutation } from '../../_generated/server';
+import { api } from '../../_generated/api';
 
 export const discoverSystem = mutation({
   args: {
@@ -11,19 +13,24 @@ export const discoverSystem = mutation({
     if (!identity) {
       throw new Error('User must be authenticated to discover a system.');
     }
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_subject', (q) => q.eq('subject', identity.subject))
-      .unique();
+
+    const userId = await auth.getUserId(ctx);
+    if (!userId) {
+      throw new Error('Could not get user ID from auth.');
+    }
+
+    const user = await ctx.db.get(userId);
 
     if (!user) {
-      // Depending on app logic, you might auto-create a user here,
-      // or throw if a user record is expected to exist.
-      throw new Error(
-        `User record not found for subject: ${identity.subject}. Please ensure user exists.`
-      );
+      throw new Error(`User record not found for id: ${userId}.`);
     }
-    const userDocumentId = user._id; // This is the actual Id<'users'>
+
+    // Patch the user with the subject if it's missing
+    if (!user.subject) {
+      await ctx.db.patch(user._id, { subject: identity.subject });
+    }
+
+    const userDocumentId = user._id;
 
     const system = await ctx.db.get(args.systemId);
     if (!system) {
@@ -40,6 +47,13 @@ export const discoverSystem = mutation({
     }
 
     await ctx.db.patch(args.systemId, { exploredBy: userDocumentId });
+    await ctx.scheduler.runAfter(
+      0,
+      api.game.map.galaxyGeneration.generateSystemPlanets,
+      {
+        systemId: args.systemId
+      }
+    );
     console.log(`System ${args.systemId} discovered by ${userDocumentId}`);
     return { success: true, message: 'System discovered.' };
   }

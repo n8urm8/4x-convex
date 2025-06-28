@@ -4,7 +4,7 @@ import { PlanetView } from '@/components/map/PlanetView';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
-interface GalaxyMapSearch {
+export interface GalaxyMapSearch {
   sectorX?: number;
   sectorY?: number;
   systemX?: number;

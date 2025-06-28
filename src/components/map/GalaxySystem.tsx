@@ -1,5 +1,7 @@
 import { Route } from '@/routes/_app/_auth/game/_layout/(map)/map.$galaxyNumber';
 import { convexQuery } from '@convex-dev/react-query';
+import { getPlanetImage } from '@/lib/planet-images';
+import { getStarImage } from '@/lib/star-images';
 import { api } from '@cvx/_generated/api';
 import { Doc } from '@cvx/_generated/dataModel';
 import { useQuery } from '@tanstack/react-query';
@@ -43,6 +45,8 @@ export const GalaxySystem = () => {
     )
   );
 
+  console.log('planets: ', systemPlanets);
+
   const handlePlanetClick = (x: number, y: number) => {
     // Update the URL with the selected planet coordinates
     navigate({
@@ -72,64 +76,47 @@ export const GalaxySystem = () => {
           Array.from({ length: 9 }, (_, y) =>
             Array.from({ length: 9 }, (_, x) => {
               const planet = systemPlanets?.find(
-                (planet: Doc<'systemPlanets'>) => planet.planetX === x && planet.planetY === y
+                (planet: Doc<'systemPlanets'>) =>
+                  planet.planetX === x && planet.planetY === y
               );
 
               if (x === 4 && y === 4) {
-                // Center star
-                // Calculate size based on star size, with minimum of 1.5
-                const size = Math.max(30, (system.starSize ?? 0) * 30);
-
-                // Create a glow effect with radial gradient
-                const baseColor = system.starColor;
-                // Create a lighter version of the base color for the core
-                const lightColor =
-                  baseColor === '#FFFFFF' ? '#FFFFFF' : `${baseColor}FF`;
-                // Generate a slightly transparent version of the color for the glow
-                const glowColor = `${baseColor}00`;
+                // Star in the center
                 return (
                   <div
-                    key={`system-${systemX}-${systemY} - star-${x}-${y}`}
-                    className="h-full w-full flex flex-col justify-center items-center"
+                    key={`${x}-${y}`}
+                    className="group relative h-16 w-16 cursor-pointer transition-transform hover:scale-110"
+                    onClick={() => handlePlanetClick(x, y)}
                   >
-                    <div
-                      className="rounded-full"
-                      onClick={() => handlePlanetClick(x, y)}
-                      style={{
-                        cursor: 'pointer',
-                        width: `${size}px`,
-                        height: `${size}px`,
-                        background: `radial-gradient(circle, white 0%, ${lightColor} 20%,  ${baseColor}40 60%, ${glowColor} 80%)`,
-                        boxShadow: `0 0 ${size / 2}px ${size / 4}px ${baseColor}40`
-                      }}
-                    ></div>
-                    {system.exploredBy == undefined && (
-                      <div className="text-xs text-nowrap text-gray-200 pt-2">
-                        System Undiscovered
-                      </div>
-                    )}
+                    <img
+                      src={getStarImage(system.starType)}
+                      alt={system.starType}
+                      className="h-full w-full rounded-full object-cover"
+                    />
                   </div>
                 );
-              }
-
-              if (!planet)
+              } else if (planet && planet.type) {
+                // Planet
                 return (
                   <div
-                    key={`system-${systemX}-${systemY} - planet-${x}-${y}`}
-                    className="h-full w-full"
-                  ></div>
+                    key={`${x}-${y}`}
+                    className="group relative h-12 w-12 cursor-pointer transition-transform hover:scale-110"
+                    onClick={() => handlePlanetClick(x, y)}
+                  >
+                    <img
+                      src={getPlanetImage(
+                        planet.type.name,
+                        planet._creationTime
+                      )}
+                      alt={planet.type.name}
+                      className="h-full w-full rounded-full object-cover"
+                    />
+                  </div>
                 );
-
-              // Calculate size based on star size, with minimum of 1.5
-              const size = 10;
-
-              return (
-                <div
-                  onClick={() => handlePlanetClick(x, y)}
-                  key={`system-${systemX}-${systemY} - planet-${x}-${y}`}
-                  className={`h-${size} w-${size} bg-gray-500 rounded-full`}
-                ></div>
-              );
+              } else {
+                // Empty space
+                return <div key={`${x}-${y}`} className="h-12 w-12" />;
+              }
             })
           )}
       </div>
