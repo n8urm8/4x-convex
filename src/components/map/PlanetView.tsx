@@ -158,7 +158,7 @@ export function PlanetView() {
   const displayType = isStar ? starSystem?.starType : planet?.type?.name;
   const imageSrc = isStar
     ? getStarImage(starSystem?.starType)
-    : getPlanetImage(planet?.type?.name ?? '', planet?._creationTime ?? 0);
+    : getPlanetImage(planet?.type?.name ?? '');
 
   return (
     <div className="p-4 space-y-4">

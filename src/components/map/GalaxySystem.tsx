@@ -33,7 +33,6 @@ export const GalaxySystem = () => {
       systemQueryArgs as any
     )
   );
-  console.log(' system: ', system);
 
   const planetsQueryArgs = system?._id ? { systemId: system._id } : 'skip';
 
@@ -44,8 +43,6 @@ export const GalaxySystem = () => {
       planetsQueryArgs as any
     )
   );
-
-  console.log('planets: ', systemPlanets);
 
   const handlePlanetClick = (x: number, y: number) => {
     // Update the URL with the selected planet coordinates
@@ -104,10 +101,7 @@ export const GalaxySystem = () => {
                     onClick={() => handlePlanetClick(x, y)}
                   >
                     <img
-                      src={getPlanetImage(
-                        planet.type.name,
-                        planet._creationTime
-                      )}
+                      src={getPlanetImage(planet.type.name)}
                       alt={planet.type.name}
                       className="h-full w-full rounded-full object-cover"
                     />
