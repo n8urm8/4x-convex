@@ -9,7 +9,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { api } from '@cvx/_generated/api';
 import { Id } from '@cvx/_generated/dataModel';
 
-export const Route = createFileRoute('/_app/_auth/game/_layout/(bases)/$baseId/')({
+export const Route = createFileRoute('/_app/_auth/game/_layout/bases/$baseId/')({
   component: BasePage,
 });
 

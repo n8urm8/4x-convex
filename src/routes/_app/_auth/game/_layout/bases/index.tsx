@@ -4,8 +4,8 @@ import { convexQuery } from '@convex-dev/react-query';
 import { api } from '@cvx/_generated/api';
 import { Doc } from '@cvx/_generated/dataModel';
 
-export const Route = createFileRoute('/_app/_auth/game/_layout/(bases)/bases')({
-  component: BasesOverviewPage,
+export const Route = createFileRoute('/_app/_auth/game/_layout/bases/')({
+  component: BasesOverviewPage
 });
 
 type BaseWithUpgrades = Doc<'playerBases'> & {
@@ -14,7 +14,7 @@ type BaseWithUpgrades = Doc<'playerBases'> & {
 
 function BasesOverviewPage() {
   const { data: bases, isLoading } = useQuery({
-    ...convexQuery(api.game.bases.baseQueries.getPlayerBasesOverview, {}),
+    ...convexQuery(api.game.bases.baseQueries.getPlayerBasesOverview, {})
   });
 
   if (isLoading) {
