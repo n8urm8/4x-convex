@@ -1,7 +1,7 @@
 import { Route } from '@/routes/_app/_auth/game/_layout/(map)/map.$galaxyNumber';
 import { convexQuery } from '@convex-dev/react-query';
-import { getPlanetImage } from '@/lib/planet-images';
-import { getStarImage } from '@/lib/star-images';
+import { getStarImage } from '../../lib/star-images';
+import { SystemPlanet } from './SystemPlanet';
 import { api } from '@cvx/_generated/api';
 import { Doc } from '@cvx/_generated/dataModel';
 import { useQuery } from '@tanstack/react-query';
@@ -95,17 +95,11 @@ export const GalaxySystem = () => {
               } else if (planet && planet.type) {
                 // Planet
                 return (
-                  <div
-                    key={`${x}-${y}`}
-                    className="group relative h-12 w-12 cursor-pointer transition-transform hover:scale-110"
+                  <SystemPlanet
+                    planetId={planet._id}
+                    planetType={planet.type}
                     onClick={() => handlePlanetClick(x, y)}
-                  >
-                    <img
-                      src={getPlanetImage(planet.type.name)}
-                      alt={planet.type.name}
-                      className="h-full w-full rounded-full object-cover"
-                    />
-                  </div>
+                  />
                 );
               } else {
                 // Empty space
