@@ -3,7 +3,7 @@ import { convexQuery } from '@convex-dev/react-query';
 import { api } from '@cvx/_generated/api';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Outlet } from '@tanstack/react-router';
-import { Navigation } from './-ui.navigation';
+import { Navigation } from '@/components/ui/Navigation';
 
 export const Route = createFileRoute('/_app/_auth/dashboard/_layout')({
   component: DashboardLayout
@@ -16,7 +16,7 @@ function DashboardLayout() {
   }
   return (
     <div className="flex min-h-[100vh] w-full flex-col bg-secondary dark:bg-black">
-      <Navigation user={user} />
+      <Navigation user={user} showSecondaryNav={true} />
       <Header />
       <Outlet />
     </div>

@@ -2,7 +2,7 @@ import { convexQuery } from '@convex-dev/react-query';
 import { api } from '@cvx/_generated/api';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Outlet } from '@tanstack/react-router';
-import { Navigation } from './-ui.navigation';
+import { Navigation } from '@/components/ui/Navigation';
 
 export const Route = createFileRoute('/_app/_auth/game/_layout')({
   component: GameLayout
