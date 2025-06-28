@@ -1,14 +1,15 @@
 import { authTables } from '@convex-dev/auth/server';
 import { defineSchema, defineTable } from 'convex/server';
 import { Infer, v } from 'convex/values';
-import { baseStructures, playerBases, playerResources, structureDefinitions, structureRequirements } from './game/bases/bases.schema';
+import {
+  baseStructures,
+  playerBases,
+  structureDefinitions,
+  structureRequirements
+} from './game/bases/bases.schema';
 import { researchDefinitions } from './game/research/research.schema';
 import { playerTechnologies } from './game/research/playerResearch.schema';
-import {
-  fleets,
-  playerShips,
-  shipBlueprints
-} from './game/ships/ships.schema';
+import { fleets, playerShips, shipBlueprints } from './game/ships/ships.schema';
 
 export const CURRENCIES = {
   USD: 'usd',
@@ -74,7 +75,7 @@ const schema = defineSchema({
     researchFinishesAt: v.optional(v.number()),
     nova: v.number(),
     minerals: v.number(),
-    volatiles: v.number(),
+    volatiles: v.number()
   })
     .index('email', ['email'])
     .index('customerId', ['customerId'])
@@ -201,12 +202,11 @@ const schema = defineSchema({
     .index('userId', ['userId'])
     .index('stripeId', ['stripeId']),
 
-      // Include your base schema tables
+  // Include your base schema tables
   structureDefinitions,
   structureRequirements,
   playerBases,
   baseStructures,
-  playerResources,
 
   // Research definitions
   researchDefinitions,
@@ -215,8 +215,7 @@ const schema = defineSchema({
   // Ship definitions
   shipBlueprints,
   playerShips,
-  fleets,
-
+  fleets
 });
 
 export default schema;

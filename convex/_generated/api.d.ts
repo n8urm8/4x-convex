@@ -34,6 +34,7 @@ import type * as game_ships_shipBlueprints from "../game/ships/shipBlueprints.js
 import type * as http from "../http.js";
 import type * as init from "../init.js";
 import type * as lib_migrations from "../lib/migrations.js";
+import type * as migrations from "../migrations.js";
 import type * as otp_ResendOTP from "../otp/ResendOTP.js";
 import type * as otp_VerificationCodeEmail from "../otp/VerificationCodeEmail.js";
 import type * as seed_planetTypesSeed from "../seed/planetTypesSeed.js";
@@ -72,6 +73,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   init: typeof init;
   "lib/migrations": typeof lib_migrations;
+  migrations: typeof migrations;
   "otp/ResendOTP": typeof otp_ResendOTP;
   "otp/VerificationCodeEmail": typeof otp_VerificationCodeEmail;
   "seed/planetTypesSeed": typeof seed_planetTypesSeed;

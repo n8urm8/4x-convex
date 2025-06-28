@@ -34,9 +34,17 @@ export const buildShip = mutation({
     quantity: v.number()
   },
   handler: async (ctx, { shipBlueprintId, baseId, quantity }) => {
-    const user = await ctx.auth.getUserIdentity();
-    if (!user) {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
       throw new Error('You must be logged in to build ships.');
+    }
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_subject', (q) => q.eq('subject', identity.subject))
+      .unique();
+
+    if (!user) {
+      throw new Error('User not found.');
     }
 
     // 1. Get the ship blueprint
@@ -51,14 +59,8 @@ export const buildShip = mutation({
 
     // 2. Check player resources
     const totalCost = blueprint.novaCost * quantity;
-    const playerResources = await ctx.db
-      .query('playerResources')
-      .withIndex('by_userId', (q) =>
-        q.eq('userId', user.subject as Id<'users'>)
-      )
-      .unique();
 
-    if (!playerResources || playerResources.nova < totalCost) {
+    if (user.nova < totalCost) {
       throw new Error('Insufficient nova to build ship(s).');
     }
 
@@ -115,8 +117,8 @@ export const buildShip = mutation({
     }
 
     // 5. All checks passed, proceed with building
-    await ctx.db.patch(playerResources._id, {
-      nova: playerResources.nova - totalCost
+    await ctx.db.patch(user._id, {
+      nova: user.nova - totalCost
     });
 
     for (let i = 0; i < quantity; i++) {

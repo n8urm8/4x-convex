@@ -402,12 +402,7 @@ export const startStructureUpgrade = mutation({
     const upgradeEnergyCost = structureDef.baseEnergyCost * nextLevel;
 
     // Check resources
-    const playerResources = await ctx.db
-      .query('playerResources')
-      .withIndex('by_userId', (q) => q.eq('userId', user._id))
-      .unique();
-
-    if (!playerResources || playerResources.nova < upgradeNovaCost) {
+    if (user.nova < upgradeNovaCost) {
       throw new Error('Insufficient Nova for upgrade.');
     }
 
@@ -416,8 +411,8 @@ export const startStructureUpgrade = mutation({
     }
 
     // Deduct resources
-    await ctx.db.patch(playerResources._id, {
-      nova: playerResources.nova - upgradeNovaCost
+    await ctx.db.patch(user._id, {
+      nova: user.nova - upgradeNovaCost
     });
 
     // Update base energy usage

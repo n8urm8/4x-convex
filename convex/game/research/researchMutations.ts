@@ -3,7 +3,10 @@ import { internalMutation, mutation } from '../../_generated/server';
 import { internal } from '../../_generated/api';
 import { Doc, Id } from '../../_generated/dataModel';
 import { getAdminUser, getAuthedUser } from '../../utils';
-import { researchDefinitions, researchDefinitionSchema } from './research.schema';
+import {
+  researchDefinitions,
+  researchDefinitionSchema
+} from './research.schema';
 
 // --- Public Admin Mutations for Research Definitions ---
 
@@ -11,8 +14,11 @@ export const createResearchDefinition = mutation({
   args: researchDefinitionSchema,
   handler: async (ctx, args): Promise<Id<'researchDefinitions'>> => {
     await getAdminUser(ctx);
-    return await ctx.runMutation(internal.game.research.researchMutations.adminCreateResearchDefinition, args);
-  },
+    return await ctx.runMutation(
+      internal.game.research.researchMutations.adminCreateResearchDefinition,
+      args
+    );
+  }
 });
 
 export const updateResearchDefinition = mutation({
@@ -22,23 +28,32 @@ export const updateResearchDefinition = mutation({
       Object.fromEntries(
         Object.entries(researchDefinitionSchema).map(([key, val]) => [
           key,
-          v.optional(val),
-        ]),
-      ),
-    ),
+          v.optional(val)
+        ])
+      )
+    )
   },
   handler: async (ctx, args): Promise<Doc<'researchDefinitions'> | null> => {
     await getAdminUser(ctx);
-    return await ctx.runMutation(internal.game.research.researchMutations.adminUpdateResearchDefinition, args);
-  },
+    return await ctx.runMutation(
+      internal.game.research.researchMutations.adminUpdateResearchDefinition,
+      args
+    );
+  }
 });
 
 export const deleteResearchDefinition = mutation({
   args: { id: v.id('researchDefinitions') },
-  handler: async (ctx, args): Promise<{ success: boolean; deletedId: Id<'researchDefinitions'> }> => {
+  handler: async (
+    ctx,
+    args
+  ): Promise<{ success: boolean; deletedId: Id<'researchDefinitions'> }> => {
     await getAdminUser(ctx);
-    return await ctx.runMutation(internal.game.research.researchMutations.adminDeleteResearchDefinition, args);
-  },
+    return await ctx.runMutation(
+      internal.game.research.researchMutations.adminDeleteResearchDefinition,
+      args
+    );
+  }
 });
 
 // --- Internal Admin CRUD for Research Definitions ---
@@ -48,17 +63,18 @@ export const adminCreateResearchDefinition = internalMutation({
   handler: async (ctx, args) => {
     // Admin check is done by the public wrapper
 
-
     const existing = await ctx.db
       .query('researchDefinitions')
       .withIndex('by_name', (q) => q.eq('name', args.name))
       .unique();
 
     if (existing) {
-      throw new Error(`Research definition with name '${args.name}' already exists.`);
+      throw new Error(
+        `Research definition with name '${args.name}' already exists.`
+      );
     }
     return await ctx.db.insert('researchDefinitions', args);
-  },
+  }
 });
 
 export const adminUpdateResearchDefinition = internalMutation({
@@ -66,12 +82,11 @@ export const adminUpdateResearchDefinition = internalMutation({
     id: v.id('researchDefinitions'),
     updates: v.object(
       Object.fromEntries(
-        Object.entries(researchDefinitions.validator.fields).map(([key, val]) => [
-          key,
-          v.optional(val),
-        ]),
-      ),
-    ),
+        Object.entries(researchDefinitions.validator.fields).map(
+          ([key, val]) => [key, v.optional(val)]
+        )
+      )
+    )
   },
   handler: async (ctx, { id, updates }) => {
     // Admin check is done by the public wrapper
@@ -82,19 +97,25 @@ export const adminUpdateResearchDefinition = internalMutation({
     }
 
     // Prevent changing the name if it's part of updates and already exists elsewhere
-    if (updates.name && typeof updates.name === 'string' && updates.name !== existing.name) {
+    if (
+      updates.name &&
+      typeof updates.name === 'string' &&
+      updates.name !== existing.name
+    ) {
       const conflicting = await ctx.db
         .query('researchDefinitions')
         .withIndex('by_name', (q) => q.eq('name', updates.name as string))
         .unique();
       if (conflicting && conflicting._id !== id) {
-        throw new Error(`Another research definition with name '${updates.name}' already exists.`);
+        throw new Error(
+          `Another research definition with name '${updates.name}' already exists.`
+        );
       }
     }
 
     await ctx.db.patch(id, updates as Partial<Doc<'researchDefinitions'>>);
     return await ctx.db.get(id);
-  },
+  }
 });
 
 export const adminDeleteResearchDefinition = internalMutation({
@@ -112,7 +133,7 @@ export const adminDeleteResearchDefinition = internalMutation({
 
     await ctx.db.delete(id);
     return { success: true, deletedId: id };
-  },
+  }
 });
 
 export const seedResearchDefinitions = internalMutation({
@@ -124,7 +145,7 @@ export const seedResearchDefinitions = internalMutation({
         tier: 1,
         description: 'Fundamental principles of sublight travel.',
         primaryEffect: 'Unlocks basic ship engines.',
-        unlocks: ['ship_engine_1'],
+        unlocks: ['ship_engine_1']
       },
       {
         name: 'Spacecraft Design',
@@ -132,7 +153,7 @@ export const seedResearchDefinitions = internalMutation({
         tier: 1,
         description: 'Enables construction of basic shipyards.',
         primaryEffect: 'Unlocks Shipyard structure.',
-        unlocks: ['shipyard'],
+        unlocks: ['shipyard']
       },
       {
         name: 'Basic Construction',
@@ -140,8 +161,8 @@ export const seedResearchDefinitions = internalMutation({
         tier: 1,
         description: 'Enables construction of basic structures.',
         primaryEffect: 'Unlocks Construction Yard.',
-        unlocks: ['construction_yard'],
-      },
+        unlocks: ['construction_yard']
+      }
     ];
 
     let seededCount = 0;
@@ -157,12 +178,12 @@ export const seedResearchDefinitions = internalMutation({
       }
     }
     return `Seeded ${seededCount} research definitions.`;
-  },
+  }
 });
 
 export const startResearch = mutation({
   args: {
-    researchId: v.id('researchDefinitions'),
+    researchId: v.id('researchDefinitions')
   },
   handler: async (ctx, args) => {
     const user = await getAuthedUser(ctx);
@@ -193,9 +214,9 @@ export const startResearch = mutation({
     const volatileCost = researchDefinition.volatileCost ?? 0;
 
     if (
-      user.nova < novaCost ||
-      user.minerals < mineralCost ||
-      user.volatiles < volatileCost
+      (user.nova ?? 0) < novaCost ||
+      (user.minerals ?? 0) < mineralCost ||
+      (user.volatiles ?? 0) < volatileCost
     ) {
       throw new Error('Insufficient resources to start research.');
     }
@@ -206,7 +227,7 @@ export const startResearch = mutation({
         .withIndex('by_user', (q) => q.eq('userId', user._id))
         .collect();
       const playerResearchedIds = new Set(
-        playerResearched.map((tech) => tech.researchDefinitionId),
+        playerResearched.map((tech) => tech.researchDefinitionId)
       );
       for (const prereqId of researchDefinition.prerequisites) {
         if (!playerResearchedIds.has(prereqId)) {
@@ -221,13 +242,13 @@ export const startResearch = mutation({
     await ctx.db.patch(user._id, {
       researchingId: args.researchId,
       researchFinishesAt: finishesAt,
-      nova: user.nova - novaCost,
-      minerals: user.minerals - mineralCost,
-      volatiles: user.volatiles - volatileCost,
+      nova: user.nova ?? 0 - novaCost,
+      minerals: user.minerals ?? 0 - mineralCost,
+      volatiles: user.volatiles ?? 0 - volatileCost
     });
 
     return { success: true, finishesAt };
-  },
+  }
 });
 
 export const completeResearch = mutation({
@@ -246,14 +267,14 @@ export const completeResearch = mutation({
     await ctx.db.insert('playerTechnologies', {
       userId: user._id,
       researchDefinitionId: user.researchingId,
-      researchedAt: Date.now(),
+      researchedAt: Date.now()
     });
 
     await ctx.db.patch(user._id, {
       researchingId: undefined,
-      researchFinishesAt: undefined,
+      researchFinishesAt: undefined
     });
 
     return { success: true };
-  },
+  }
 });
