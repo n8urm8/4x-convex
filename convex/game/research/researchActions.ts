@@ -1,17 +1,14 @@
+import { getAuthedUser } from '@cvx/utils';
 import { mutation } from '../../_generated/server';
 import { v } from 'convex/values';
-import { Id } from '../../_generated/dataModel';
 
 export const researchTechnology = mutation({
   args: {
     researchDefinitionId: v.id('researchDefinitions'),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error('User must be authenticated to research technology.');
-    }
-    const userId = identity.subject as Id<'users'>;
+    const user = await getAuthedUser(ctx);
+    const userId = user._id;
 
     // 1. Verify the research definition exists
     const researchDef = await ctx.db.get(args.researchDefinitionId);

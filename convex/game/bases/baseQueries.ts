@@ -2,6 +2,7 @@
 import { v } from 'convex/values';
 import { internalQuery, query } from '../../_generated/server';
 import { structureCategoryValidator } from './bases.schema';
+import { getAuthedUser } from '@cvx/utils';
 
 // Get all structure definitions
 export const getAllStructureDefinitions = internalQuery({
@@ -67,13 +68,12 @@ export const getDetailedBaseStructures = query({
   },
   handler: async (ctx, args) => {
     // Check user authentication
-    const identity = await ctx.auth.getUserIdentity();
-    const user = identity
-      ? await ctx.db
-          .query('users')
-          .withIndex('by_subject', (q) => q.eq('subject', identity.subject))
-          .first()
-      : null;
+    let user = null;
+    try {
+      user = await getAuthedUser(ctx);
+    } catch (e) {
+      // User not authenticated, continue as anonymous
+    }
 
     // Get the base to check for ownership
     const base = await ctx.db.get(args.baseId);
@@ -127,13 +127,12 @@ export const getUpgradingStructures = query({
     baseId: v.id('playerBases')
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    const user = identity
-      ? await ctx.db
-          .query('users')
-          .withIndex('by_subject', (q) => q.eq('subject', identity.subject))
-          .first()
-      : null;
+    let user;
+    try {
+      user = await getAuthedUser(ctx);
+    } catch (e) {
+      return []; // Not authenticated, no upgrading structures to see.
+    }
 
     const base = await ctx.db.get(args.baseId);
     if (!base) {
@@ -381,15 +380,7 @@ export const getStructureEffectsAtLevel = query({
 export const getPlayerBasesOverview = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return [];
-    }
-
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_subject', (q) => q.eq('subject', identity.subject))
-      .first();
+    const user = await getAuthedUser(ctx);
 
     if (!user) {
       return [];
@@ -410,13 +401,13 @@ export const getPlayerBasesOverview = query({
           .collect();
         return {
           ...base,
-          upgradingStructures,
+          upgradingStructures
         };
       })
     );
 
     return basesWithUpgradingStructures;
-  },
+  }
 });
 
 // Get all player bases
@@ -448,19 +439,11 @@ export const getBaseDetails = query({
     baseId: v.id('playerBases')
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      // Not authenticated, so can't be the owner.
-      return null;
-    }
-
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_subject', (q) => q.eq('subject', identity.subject))
-      .first();
-
-    if (!user) {
-      // User not found in DB
+    let user;
+    try {
+      user = await getAuthedUser(ctx);
+    } catch (e) {
+      // Not authenticated or user not found.
       return null;
     }
 
@@ -524,7 +507,7 @@ export const adminGetStructureDefinitionById = internalQuery({
     //   throw new Error('User is not authorized to access structure definitions.');
     // }
     return await ctx.db.get(args.id);
-  },
+  }
 });
 
 export const adminGetAllStructureDefinitions = internalQuery({
@@ -532,7 +515,7 @@ export const adminGetAllStructureDefinitions = internalQuery({
   handler: async (ctx) => {
     // TODO: Add admin authentication check here
     return await ctx.db.query('structureDefinitions').collect();
-  },
+  }
 });
 
 export const adminGetStructureDefinitionByName = internalQuery({
@@ -544,5 +527,5 @@ export const adminGetStructureDefinitionByName = internalQuery({
       .withIndex('by_name', (q) => q.eq('name', args.name))
       .unique();
     return structureDef;
-  },
+  }
 });

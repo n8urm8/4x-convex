@@ -1,6 +1,6 @@
 // convex/game/map/systemMutations.ts
 import { v } from 'convex/values';
-import { auth } from '../../auth';
+import { getAuthedUser } from '@cvx/utils';
 import { mutation } from '../../_generated/server';
 import { api } from '../../_generated/api';
 
@@ -9,24 +9,15 @@ export const discoverSystem = mutation({
     systemId: v.id('sectorSystems')
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error('User must be authenticated to discover a system.');
-    }
-
-    const userId = await auth.getUserId(ctx);
-    if (!userId) {
-      throw new Error('Could not get user ID from auth.');
-    }
-
-    const user = await ctx.db.get(userId);
-
-    if (!user) {
-      throw new Error(`User record not found for id: ${userId}.`);
-    }
+    const user = await getAuthedUser(ctx);
 
     // Patch the user with the subject if it's missing
     if (!user.subject) {
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) {
+        // This should be unreachable if getAuthedUser succeeded.
+        throw new Error('Unauthenticated user');
+      }
       await ctx.db.patch(user._id, { subject: identity.subject });
     }
 

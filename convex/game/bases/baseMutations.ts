@@ -4,22 +4,12 @@ import { QueryCtx, MutationCtx } from '../../_generated/server';
 import { v } from 'convex/values';
 import { Doc, Id } from '../../_generated/dataModel';
 import { api } from '../../_generated/api';
-import { getAdminUser } from '../../utils';
+import { getAdminUser, getAuthedUser } from '../../utils';
 import { structureDefinitions } from './bases.schema';
 
 // Helper to get user and check base ownership
 const checkBaseOwnership = async (ctx: MutationCtx | QueryCtx, baseId: Id<'playerBases'>) => {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
-    throw new Error('User must be authenticated.');
-  }
-  const user = await ctx.db
-    .query('users')
-    .withIndex('by_subject', (q) => q.eq('subject', identity.subject))
-    .first();
-  if (!user) {
-    throw new Error('User not found.');
-  }
+  const user = await getAuthedUser(ctx);
 
   const base = await ctx.db.get(baseId);
   if (!base) {
@@ -47,15 +37,7 @@ export const createBase = mutation({
     planetY: v.number()
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error('User must be authenticated to create a base.');
-    }
-
-    const user = await ctx.db.query('users').withIndex('by_subject', (q) => q.eq('subject', identity.subject)).first();
-    if (!user) {
-        throw new Error('User not found.');
-    }
+    const user = await getAuthedUser(ctx);
     const userId = user._id;
 
     // Get the planet to check if it's habitable
@@ -154,11 +136,7 @@ export const buildStructure = mutation({
     structureDefId: v.id('structureDefinitions')
   },
   handler: async (ctx, args) => {
-    // Get the base
-    const base = await ctx.db.get(args.baseId);
-    if (!base) {
-      throw new Error("Base not found");
-    }
+    const { user, base } = await checkBaseOwnership(ctx, args.baseId);
     
     // Get the structure definition
     const structureDef = await ctx.db.get(args.structureDefId);
@@ -187,8 +165,29 @@ export const buildStructure = mutation({
       throw new Error("Not enough energy available in the base");
     }
     
-    // TODO: Implement logic to check requirements against player's tech and resources
-    // This would depend on your research system implementation
+    // Check research requirements
+    if (structureDef.researchRequirementName) {
+      const requirementName = structureDef.researchRequirementName;
+      const requiredResearch = await ctx.db
+        .query('researchDefinitions')
+        .withIndex('by_name', (q) => q.eq('name', requirementName))
+        .unique();
+
+      if (requiredResearch) {
+        const playerResearch = await ctx.db
+          .query('playerTechnologies')
+          .withIndex('by_user_research', (q) =>
+            q
+              .eq('userId', user._id)
+              .eq('researchDefinitionId', requiredResearch._id)
+          )
+          .first();
+
+        if (!playerResearch) {
+          throw new Error(`Research '${requirementName}' is required.`);
+        }
+      }
+    }
     
     // Calculate build time based on nova cost and base bonuses
     const buildTimeReduction = base.buildTimeReduction; // % reduction
@@ -370,13 +369,18 @@ export const startStructureUpgrade = mutation({
       throw new Error('Structure definition not found.');
     }
 
+    const nextLevel = structure.level + 1;
+
+    if (structureDef.maxLevel && nextLevel > structureDef.maxLevel) {
+      throw new Error('This structure is already at its maximum level.');
+    }
+
     // Check research requirements
     if (structureDef.researchRequirementName) {
+      const requirementName = structureDef.researchRequirementName;
       const requiredResearch = await ctx.db
         .query('researchDefinitions')
-        .withIndex('by_name', (q) =>
-          q.eq('name', structureDef.researchRequirementName)
-        )
+        .withIndex('by_name', (q) => q.eq('name', requirementName))
         .unique();
 
       if (requiredResearch) {
@@ -390,14 +394,12 @@ export const startStructureUpgrade = mutation({
           .first();
 
         if (!playerResearch) {
-          throw new Error(
-            `Research '${structureDef.researchRequirementName}' is required.`
-          );
+          throw new Error(`Research '${requirementName}' is required.`);
         }
       }
     }
 
-    const nextLevel = structure.level + 1;
+    // ... (rest of the code remains the same)
     const upgradeNovaCost = structureDef.baseNovaCost * nextLevel; // Simplified cost
     const upgradeEnergyCost = structureDef.baseEnergyCost * nextLevel;
 

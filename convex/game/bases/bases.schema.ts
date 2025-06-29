@@ -36,7 +36,7 @@ export const structureDefinitions = defineTable({
   maxLevel: v.optional(v.number()), // Maximum level (if any)
   effects: v.string(), // Effects of the structure
   upgradeBenefits: v.string(), // Benefits of upgrading the structure
-  researchRequirementName: v.string(), // Name of the research required
+  researchRequirementName: v.optional(v.string()), // Name of the research required
   damage: v.optional(v.number()), // Damage output
   defense: v.optional(v.number()), // Defensive value
   shielding: v.optional(v.number()), // Shielding value
@@ -57,7 +57,7 @@ export type StructureDefinitionSeed = {
   maxLevel?: number;
   effects: string;
   upgradeBenefits: string;
-  researchRequirementName: string;
+  researchRequirementName?: string;
   damage?: number;
   defense?: number;
   shielding?: number;

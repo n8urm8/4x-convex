@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
+import { getAuthedUser } from '@cvx/utils';
 import { internalMutation, mutation, query } from '../../_generated/server';
-import { Id } from '../../_generated/dataModel';
 import { shipBlueprintsData } from './shipBlueprints';
 
 // ======================================================
@@ -34,18 +34,7 @@ export const buildShip = mutation({
     quantity: v.number()
   },
   handler: async (ctx, { shipBlueprintId, baseId, quantity }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error('You must be logged in to build ships.');
-    }
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_subject', (q) => q.eq('subject', identity.subject))
-      .unique();
-
-    if (!user) {
-      throw new Error('User not found.');
-    }
+    const user = await getAuthedUser(ctx);
 
     // 1. Get the ship blueprint
     const blueprint = await ctx.db
@@ -105,7 +94,7 @@ export const buildShip = mutation({
       .query('playerTechnologies')
       .withIndex('by_user_research', (q) =>
         q
-          .eq('userId', user.subject as Id<'users'>)
+          .eq('userId', user._id)
           .eq('researchDefinitionId', requiredTechDef._id)
       )
       .first();
@@ -123,7 +112,7 @@ export const buildShip = mutation({
 
     for (let i = 0; i < quantity; i++) {
       await ctx.db.insert('playerShips', {
-        userId: user.subject as Id<'users'>,
+        userId: user._id,
         blueprintId: blueprint.id,
         baseId: baseId,
         damage: blueprint.damage,
