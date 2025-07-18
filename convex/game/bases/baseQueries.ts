@@ -391,22 +391,34 @@ export const getPlayerBasesOverview = query({
       .withIndex('by_user', (q) => q.eq('userId', user._id))
       .collect();
 
-    const basesWithUpgradingStructures = await Promise.all(
+    const basesWithDetails = await Promise.all(
       playerBases.map(async (base) => {
+        // Get upgrading structures
         const upgradingStructures = await ctx.db
           .query('baseStructures')
           .withIndex('by_upgrading', (q) =>
             q.eq('baseId', base._id).eq('upgrading', true)
           )
           .collect();
+
+        // Get planet information
+        const planet = await ctx.db.get(base.planetId);
+        let planetType = null;
+        
+        if (planet) {
+          planetType = await ctx.db.get(planet.planetTypeId);
+        }
+
         return {
           ...base,
-          upgradingStructures
+          upgradingStructures,
+          planet,
+          planetType
         };
       })
     );
 
-    return basesWithUpgradingStructures;
+    return basesWithDetails;
   }
 });
 
