@@ -138,7 +138,7 @@ export default internalAction({
      * Structures.
      */
     const existingStructures = await ctx.runQuery(
-      internal.game.bases.baseQueries.getAllStructureDefinitions, // Path to be created/moved
+      internal.game.bases.baseQueries.getAllStructureDefinitionsInternal, // Path to be created/moved
       {}
     );
 

@@ -4,8 +4,16 @@ import { internalQuery, query } from '../../_generated/server';
 import { structureCategoryValidator } from './bases.schema';
 import { getAuthedUser } from '@cvx/utils';
 
-// Get all structure definitions
-export const getAllStructureDefinitions = internalQuery({
+// Get all structure definitions (public query)
+export const getAllStructureDefinitions = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query('structureDefinitions').collect();
+  }
+});
+
+// Get all structure definitions (internal)
+export const getAllStructureDefinitionsInternal = internalQuery({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query('structureDefinitions').collect();
