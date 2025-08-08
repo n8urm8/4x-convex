@@ -33,6 +33,7 @@ export function Navigation({
   const isBillingPath = matchRoute({ to: BillingSettingsRoute.fullPath });
   const isMapPath = matchRoute({ to: '/game/map' });
   const isBasesPath = matchRoute({ to: '/game/bases' });
+  const isFleetsPath = matchRoute({ to: '/game/fleets' });
 
   if (!user) {
     return null;
@@ -68,6 +69,16 @@ export function Navigation({
             )}
           >
             Bases
+          </Link>
+          <Link
+            to="/game/fleets"
+            className={cn(
+              buttonVariants({ variant: 'ghost', size: 'sm' }),
+              'text-primary/80',
+              isFleetsPath && 'font-semibold text-primary'
+            )}
+          >
+            Fleets
           </Link>
         </div>
 

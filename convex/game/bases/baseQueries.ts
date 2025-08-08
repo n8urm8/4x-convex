@@ -516,6 +516,112 @@ export const getBaseOnPlanet = query({
   }
 });
 
+// Get the system for a planet (helper for fleet creation)
+export const getSystemForPlanet = query({
+  args: {
+    planetId: v.id('systemPlanets')
+  },
+  handler: async (ctx, args) => {
+    const planet = await ctx.db.get(args.planetId);
+    if (!planet) {
+      return null;
+    }
+
+    // Find the system that contains this planet
+    const system = await ctx.db
+      .query('sectorSystems')
+      .withIndex('by_absolute_coordinates', (q) =>
+        q
+          .eq('galaxyNumber', planet.galaxyNumber)
+          .eq('sectorX', planet.sectorX)
+          .eq('sectorY', planet.sectorY)
+          .eq('systemX', planet.systemX)
+          .eq('systemY', planet.systemY)
+      )
+      .first();
+
+    return system;
+  }
+});
+
+// Get comprehensive base overview data including planet, structures, ships, and research
+export const getBaseOverview = query({
+  args: {
+    baseId: v.id('playerBases')
+  },
+  handler: async (ctx, args) => {
+    let user;
+    try {
+      user = await getAuthedUser(ctx);
+    } catch (e) {
+      return null;
+    }
+
+    const base = await ctx.db.get(args.baseId);
+    if (!base) {
+      return null;
+    }
+
+    // Check for ownership
+    if (base.userId !== user._id) {
+      return null;
+    }
+
+    // Get planet information
+    const planet = await ctx.db.get(base.planetId);
+    let planetType = null;
+    if (planet) {
+      planetType = await ctx.db.get(planet.planetTypeId);
+    }
+
+    // Get upgrading structures with definitions
+    const upgradingStructures = await ctx.db
+      .query('baseStructures')
+      .withIndex('by_upgrading', (q) =>
+        q.eq('baseId', args.baseId).eq('upgrading', true)
+      )
+      .collect();
+
+    const upgradingStructuresWithDefinitions = await Promise.all(
+      upgradingStructures.map(async (structure) => {
+        const definition = await ctx.db.get(structure.structureDefId);
+        return {
+          ...structure,
+          definition
+        };
+      })
+    );
+
+    // Get currently building ships (for this implementation, we'll get recent ships)
+    // Note: This assumes ships are built instantly, but we could track building ships in the future
+    const recentShips = await ctx.db
+      .query('playerShips')
+      .withIndex('byUserId', (q) => q.eq('userId', user._id))
+      .filter((q) => q.eq(q.field('baseId'), args.baseId))
+      .order('desc')
+      .take(5); // Get the 5 most recent ships built at this base
+
+    // Get research information
+    let currentResearch = null;
+    if (user.researchingId && user.researchFinishesAt) {
+      const researchDefinition = await ctx.db.get(user.researchingId);
+      currentResearch = {
+        definition: researchDefinition,
+        finishesAt: user.researchFinishesAt
+      };
+    }
+
+    return {
+      base,
+      planet,
+      planetType,
+      upgradingStructures: upgradingStructuresWithDefinitions,
+      recentShips,
+      currentResearch
+    };
+  }
+});
+
 // --- Admin CRUD Queries for Structure Definitions ---
 
 export const adminGetStructureDefinitionById = internalQuery({

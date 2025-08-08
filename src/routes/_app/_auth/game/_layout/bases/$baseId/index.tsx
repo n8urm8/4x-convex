@@ -2,6 +2,7 @@ import { BaseOverviewTab } from '@/components/bases/BaseOverviewTab';
 import { BaseResearchTab } from '@/components/bases/BaseResearchTab';
 import { BaseShipyardsTab } from '@/components/bases/BaseShipyardsTab';
 import { BaseStructuresTab } from '@/components/bases/BaseStructuresTab';
+import { ResourcesDisplay } from '@/components/ui/resources-display';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { convexQuery } from '@convex-dev/react-query';
 import { useQuery } from '@tanstack/react-query';
@@ -32,6 +33,7 @@ function BasePage() {
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">{base.name}</h1>
+      <ResourcesDisplay />
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>

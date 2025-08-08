@@ -57,6 +57,25 @@ export const getUserById = query({
   },
 });
 
+export const getCurrentUserResources = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) {
+      return null;
+    }
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      return null;
+    }
+    return {
+      nova: user.nova || 0,
+      minerals: user.minerals || 0,
+      volatiles: user.volatiles || 0,
+    };
+  },
+});
+
 export const updateUsername = mutation({
   args: {
     username: v.string(),

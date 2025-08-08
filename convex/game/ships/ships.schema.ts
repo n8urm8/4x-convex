@@ -37,10 +37,51 @@ export const playerShips = defineTable({
 
 export const fleets = defineTable({
   userId: v.id('users'),
-  name: v.string(),
-  systemId: v.id('sectorSystems'), // Current location of the fleet
-  status: v.string(), // e.g., 'idle', 'moving', 'in-combat'
+  name: v.string(), // Auto-generated as "Fleet XXX"
+  fleetNumber: v.number(), // Sequential number for naming
+  
+  // Fleet type and location
+  isBaseFleet: v.boolean(), // Base fleets don't count against max fleet limit
+  baseId: v.optional(v.id('playerBases')), // If this is a base fleet, which base
+  
+  // Location information
+  currentSystemId: v.id('sectorSystems'), // Current location of the fleet
+  currentGalaxyNumber: v.number(), // Denormalized for easier querying
+  currentSectorX: v.number(),
+  currentSectorY: v.number(),
+  currentSystemX: v.number(),
+  currentSystemY: v.number(),
+  
+  // Movement information
+  status: v.string(), // 'idle', 'moving', 'in-combat', 'destroyed'
   destinationSystemId: v.optional(v.id('sectorSystems')),
+  destinationGalaxyNumber: v.optional(v.number()),
+  destinationSectorX: v.optional(v.number()),
+  destinationSectorY: v.optional(v.number()),
+  destinationSystemX: v.optional(v.number()),
+  destinationSystemY: v.optional(v.number()),
+  arrivalTime: v.optional(v.number()), // When the fleet will arrive at destination
+  
+  // Fleet stats (calculated from ships)
+  totalDamage: v.number(),
+  totalDefense: v.number(),
+  totalShielding: v.number(),
+  totalHealth: v.number(),
+  maxHealth: v.number(),
+  fleetSpeed: v.number(), // Determined by slowest ship
+  
+  // Fleet capacity
+  currentCapacity: v.number(), // Sum of all ship fleet capacity costs
+  maxCapacity: v.number(), // Base capacity + bonuses from research/structures
+  
+  // Meta information
+  createdAt: v.number(),
+  lastUpdated: v.number()
 })
   .index('byUserId', ['userId'])
-  .index('bySystemId', ['systemId']);
+  .index('byCurrentSystem', ['currentSystemId'])
+  .index('byCurrentLocation', ['currentGalaxyNumber', 'currentSectorX', 'currentSectorY'])
+  .index('byStatus', ['status'])
+  .index('byUserAndStatus', ['userId', 'status'])
+  .index('byBase', ['baseId'])
+  .index('byUserAndFleetType', ['userId', 'isBaseFleet']);

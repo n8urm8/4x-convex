@@ -25,6 +25,7 @@ import { Route as AppAuthGameLayoutIndexImport } from './routes/_app/_auth/game/
 import { Route as AppAuthDashboardLayoutIndexImport } from './routes/_app/_auth/dashboard/_layout.index'
 import { Route as AppAuthOnboardingLayoutUsernameImport } from './routes/_app/_auth/onboarding/_layout.username'
 import { Route as AppAuthGameLayoutOverviewImport } from './routes/_app/_auth/game/_layout/overview'
+import { Route as AppAuthGameLayoutFleetsImport } from './routes/_app/_auth/game/_layout/fleets'
 import { Route as AppAuthDashboardLayoutSettingsImport } from './routes/_app/_auth/dashboard/_layout.settings'
 import { Route as AppAuthDashboardLayoutCheckoutImport } from './routes/_app/_auth/dashboard/_layout.checkout'
 import { Route as AppAuthGameLayoutBasesIndexImport } from './routes/_app/_auth/game/_layout/bases/index'
@@ -122,6 +123,11 @@ const AppAuthOnboardingLayoutUsernameRoute =
 
 const AppAuthGameLayoutOverviewRoute = AppAuthGameLayoutOverviewImport.update({
   path: '/overview',
+  getParentRoute: () => AppAuthGameLayoutRouteRoute,
+} as any)
+
+const AppAuthGameLayoutFleetsRoute = AppAuthGameLayoutFleetsImport.update({
+  path: '/fleets',
   getParentRoute: () => AppAuthGameLayoutRouteRoute,
 } as any)
 
@@ -275,6 +281,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthDashboardLayoutSettingsImport
       parentRoute: typeof AppAuthDashboardLayoutImport
     }
+    '/_app/_auth/game/_layout/fleets': {
+      id: '/_app/_auth/game/_layout/fleets'
+      path: '/fleets'
+      fullPath: '/game/fleets'
+      preLoaderRoute: typeof AppAuthGameLayoutFleetsImport
+      parentRoute: typeof AppAuthGameLayoutRouteImport
+    }
     '/_app/_auth/game/_layout/overview': {
       id: '/_app/_auth/game/_layout/overview'
       path: '/overview'
@@ -356,6 +369,7 @@ export const routeTree = rootRoute.addChildren({
     AppAuthRoute: AppAuthRoute.addChildren({
       AppAuthGameRoute: AppAuthGameRoute.addChildren({
         AppAuthGameLayoutRouteRoute: AppAuthGameLayoutRouteRoute.addChildren({
+          AppAuthGameLayoutFleetsRoute,
           AppAuthGameLayoutOverviewRoute,
           AppAuthGameLayoutIndexRoute,
           AppAuthGameLayoutBasesIndexRoute,
@@ -445,6 +459,7 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "_app/_auth/game/_layout/route.tsx",
       "parent": "/_app/_auth/game",
       "children": [
+        "/_app/_auth/game/_layout/fleets",
         "/_app/_auth/game/_layout/overview",
         "/_app/_auth/game/_layout/",
         "/_app/_auth/game/_layout/bases/",
@@ -498,6 +513,10 @@ export const routeTree = rootRoute.addChildren({
         "/_app/_auth/dashboard/_layout/settings/billing",
         "/_app/_auth/dashboard/_layout/settings/"
       ]
+    },
+    "/_app/_auth/game/_layout/fleets": {
+      "filePath": "_app/_auth/game/_layout/fleets.tsx",
+      "parent": "/_app/_auth/game/_layout"
     },
     "/_app/_auth/game/_layout/overview": {
       "filePath": "_app/_auth/game/_layout/overview.tsx",
