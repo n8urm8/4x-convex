@@ -4,7 +4,6 @@ import { useConvexAuth } from '@convex-dev/react-query';
 import { Loader2, Menu, X } from 'lucide-react';
 import { cn } from '@/utils/misc';
 import { buttonVariants } from '@/components/ui/button';
-import { ThemeSwitcherHome } from '@/components/ui/theme-switcher';
 import siteConfig from '~/site.config';
 import { Route as DashboardRoute } from '@/routes/_app/_auth/dashboard/_layout.index';
 import { Route as AuthLoginRoute } from '@/routes/_app/login/_layout.index';
@@ -16,15 +15,12 @@ export interface NavBarProps {
   className?: string;
   sticky?: boolean;
   maxWidth?: string; // container width utility
-  hideThemeToggle?: boolean;
 }
 
 const NAV_LINKS: Array<{ label: string; href: string; external?: boolean }>= [
   { label: 'Overview', href: '#overview' },
   { label: 'Features', href: '#features' },
   { label: 'Galactic Map', href: '#galactic-map' },
-  { label: 'Roadmap', href: 'https://github.com/n8urm8/4x-convex', external: true },
-  { label: 'Docs', href: 'https://github.com/get-convex/convex-saas/tree/main/docs', external: true },
 ];
 
 export function NavBar({
@@ -33,7 +29,6 @@ export function NavBar({
   className,
   sticky = true,
   maxWidth = 'max-w-screen-xl',
-  hideThemeToggle,
 }: NavBarProps) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const [open, setOpen] = useState(false);
@@ -55,7 +50,7 @@ export function NavBar({
   return (
     <header className={baseStyles}>
       <nav aria-label="Main" className={containerStyles}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 h-12">
           <Link to="/" className="flex h-10 items-center gap-2 font-semibold tracking-tight">
             <Logo />
             <span className="hidden sm:inline text-sm font-medium text-primary/70">{siteConfig.siteTitle}</span>
@@ -87,7 +82,6 @@ export function NavBar({
         </div>
 
         <div className="hidden lg:flex items-center gap-3">
-          {!hideThemeToggle && <ThemeSwitcherHome />}
           {showAuthCta && (
             <Link
               to={isAuthenticated ? DashboardRoute.fullPath : AuthLoginRoute.fullPath}
@@ -103,7 +97,6 @@ export function NavBar({
 
         {/* Mobile */}
         <div className="flex lg:hidden items-center gap-2">
-          {!hideThemeToggle && <ThemeSwitcherHome />}
           <button
             aria-label="Toggle menu"
             aria-expanded={open}
