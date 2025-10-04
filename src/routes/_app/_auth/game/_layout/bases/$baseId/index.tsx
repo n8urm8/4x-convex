@@ -1,4 +1,5 @@
 import { BaseOverviewTab } from '@/components/bases/BaseOverviewTab';
+import { BaseDefensesTab } from '@/components/bases/BaseDefensesTab';
 import { BaseResearchTab } from '@/components/bases/BaseResearchTab';
 import { BaseShipyardsTab } from '@/components/bases/BaseShipyardsTab';
 import { BaseStructuresTab } from '@/components/bases/BaseStructuresTab';
@@ -38,6 +39,7 @@ function BasePage() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="structures">Structures</TabsTrigger>
+          <TabsTrigger value="defenses">Defenses</TabsTrigger>
           <TabsTrigger value="shipyards">Shipyards</TabsTrigger>
           <TabsTrigger value="research">Research</TabsTrigger>
         </TabsList>
@@ -46,6 +48,9 @@ function BasePage() {
         </TabsContent>
         <TabsContent value="structures">
           <BaseStructuresTab base={base} />
+        </TabsContent>
+        <TabsContent value="defenses">
+          <BaseDefensesTab base={base} />
         </TabsContent>
         <TabsContent value="shipyards">
           <BaseShipyardsTab base={base} />

@@ -2,12 +2,12 @@ import { useMutation, useQuery } from 'convex/react';
 import { api } from '@cvx/_generated/api';
 import { BaseDetails } from '@/features/bases/types';
 import { Button } from '@/components/ui/button';
-
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { Id } from '@cvx/_generated/dataModel';
+import { STRUCTURE_CATEGORIES } from '@cvx/game/bases/bases.schema';
 
-export function BaseStructuresTab({ base }: { base: BaseDetails }) {
+export function BaseDefensesTab({ base }: { base: BaseDetails }) {
   const [isUpgrading, setIsUpgrading] = useState<string | null>(null);
   const [isBuilding, setIsBuilding] = useState<string | null>(null);
   
@@ -49,21 +49,21 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
   };
 
   if (!allStructureDefinitions) {
-    return <div>Loading structures...</div>;
+    return <div>Loading defensive structures...</div>;
   }
+
+  // Filter only defensive structures
+  const defensiveStructureDefinitions = allStructureDefinitions.filter(
+    definition => definition.category === STRUCTURE_CATEGORIES.DEFENSE
+  );
 
   // Create a map of built structures by their definition ID for quick lookup
   const builtStructuresMap = new Map(
     base.structures.map(structure => [structure.structureDefId, structure])
   );
 
-  // Filter out defensive structures (they have their own tab now)
-  const nonDefensiveStructureDefinitions = allStructureDefinitions.filter(
-    definition => definition.category !== 'defense'
-  );
-
-  // Combine non-defensive structure definitions with their current state in the base
-  const allStructuresWithState = nonDefensiveStructureDefinitions.map(definition => {
+  // Combine defensive structure definitions with their current state in the base
+  const defensiveStructuresWithState = defensiveStructureDefinitions.map(definition => {
     const builtStructure = builtStructuresMap.get(definition._id);
     return {
       definition,
@@ -73,20 +73,29 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
     };
   });
 
+  if (defensiveStructuresWithState.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        No defensive structures available yet. Research new defensive technologies to unlock them.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Desktop table view */}
       <div className="hidden md:block">
         <div className="space-y-3">
-          <div className="grid grid-cols-6 gap-4 px-4 py-2 text-sm font-medium text-muted-foreground">
-            <div>Structure</div>
+          <div className="grid grid-cols-7 gap-4 px-4 py-2 text-sm font-medium text-muted-foreground">
+            <div>Defensive Structure</div>
             <div>Level</div>
+            <div>Defense/Damage</div>
             <div>Effects</div>
             <div>Costs</div>
             <div>Requirements</div>
             <div className="text-right">Action</div>
           </div>
-          {allStructuresWithState.map(({ definition, builtStructure, level, isBuilt }) => {
+          {defensiveStructuresWithState.map(({ definition, builtStructure, level, isBuilt }) => {
             const isUpgradingThis = builtStructure && isUpgrading === builtStructure._id;
             const isBuildingThis = isBuilding === definition._id;
             const isAnyActionInProgress = isUpgrading !== null || isBuilding !== null;
@@ -98,7 +107,7 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
             return (
               <div 
                 key={definition._id}
-                className="grid grid-cols-6 gap-4 p-4 bg-card border rounded-lg items-center"
+                className="grid grid-cols-7 gap-4 p-4 bg-card border rounded-lg items-center"
               >
                 <div>
                   <div className="font-medium">{definition.name}</div>
@@ -110,6 +119,19 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
                   ) : (
                     <Badge variant="outline">Not Built</Badge>
                   )}
+                </div>
+                <div>
+                  <div className="text-sm space-y-1">
+                    {definition.defense && (
+                      <div className="text-green-600">Defense: {definition.defense}</div>
+                    )}
+                    {definition.damage && (
+                      <div className="text-red-600">Damage: {definition.damage}</div>
+                    )}
+                    {definition.shielding && (
+                      <div className="text-blue-600">Shielding: {definition.shielding}</div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <div className="text-sm">
@@ -163,7 +185,7 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
 
       {/* Mobile list view */}
       <div className="block md:hidden space-y-3">
-        {allStructuresWithState.map(({ definition, builtStructure, level, isBuilt }) => {
+        {defensiveStructuresWithState.map(({ definition, builtStructure, level, isBuilt }) => {
           const isUpgradingThis = builtStructure && isUpgrading === builtStructure._id;
           const isBuildingThis = isBuilding === definition._id;
           const isAnyActionInProgress = isUpgrading !== null || isBuilding !== null;
@@ -192,6 +214,17 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
               </div>
               
               <div className="space-y-2 text-sm">
+                <div className="flex gap-4">
+                  {definition.defense && (
+                    <span className="text-green-600">Defense: {definition.defense}</span>
+                  )}
+                  {definition.damage && (
+                    <span className="text-red-600">Damage: {definition.damage}</span>
+                  )}
+                  {definition.shielding && (
+                    <span className="text-blue-600">Shielding: {definition.shielding}</span>
+                  )}
+                </div>
                 <div>
                   <span className="font-medium">Effects:</span> {definition.effects}
                 </div>

@@ -7,7 +7,7 @@ const planetImageMap: Record<string, string> = {
   'Arid World': '/src/assets/planets/Planets_Desert_01_560x560.png',
   'Gas Giant': '/src/assets/planets/Planets_Jovian_01_560x560.png',
   'Ice Giant': '/src/assets/planets/Planets_Ice_01_560x560.png',
-  Asteroid: '/src/assets/asteroids/a100000.png',
+  Asteroid: '/src/assets/asteroids/a10000.png',
   'Ocean World': '/src/assets/planets/Planets_Ocean_01_560x560.png',
   'Volcanic World': '/src/assets/planets/Planet_Furnace_02_560x560.png',
   'Frozen World': '/src/assets/planets/Planets_Ice_02_560x560.png',

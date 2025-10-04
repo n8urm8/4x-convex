@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Route as DashboardRoute } from '@/routes/_app/_auth/dashboard/_layout.index';
 import { Route as OnboardingUsernameRoute } from '@/routes/_app/_auth/onboarding/_layout.username';
+import { Route as BaseOverviewRoute } from '@/routes/_app/_auth/game/_layout/bases/index';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { convexQuery, useConvexAuth } from '@convex-dev/react-query';
 import { api } from '@cvx/_generated/api';
@@ -31,7 +31,7 @@ function Login() {
       return;
     }
     if (!isLoading && isAuthenticated) {
-      navigate({ to: DashboardRoute.fullPath });
+      navigate({ to: BaseOverviewRoute.fullPath });
       return;
     }
   }, [user]);
@@ -106,13 +106,13 @@ function LoginForm({ onSubmit }: { onSubmit: (email: string) => void }) {
               {form.state.fieldMeta.email?.errors.join(' ')}
             </span>
           )}
-          {/*
-          {!authEmail && authError && (
+          
+          {/* {!authEmail && authError && (
             <span className="mb-2 text-sm text-destructive dark:text-destructive-foreground">
               {authError.message}
             </span>
-          )}
-          */}
+          )} */}
+         
         </div>
 
         <Button type="submit" className="w-full">

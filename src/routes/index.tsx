@@ -42,7 +42,7 @@ function Index() {
           A real-time 4X strategy experience: explore procedurally generated galaxies, expand your empire, exploit rich planetary systems, and outmaneuver rival factions.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link to="/_app/login" className={cn(buttonVariants({ size: 'lg' }))}>
+          <Link to="/login" className={cn(buttonVariants({ size: 'lg' }))}>
             Play Free
           </Link>
         </div>
