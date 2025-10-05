@@ -208,6 +208,45 @@ export const startResearch = mutation({
       throw new Error('You have already researched this technology.');
     }
 
+    // Check tier requirements: For tier > 1, all previous tier techs in the same category must be researched
+    if (researchDefinition.tier > 1) {
+      const previousTier = researchDefinition.tier - 1;
+      
+      // Get all technologies from the previous tier in the same category
+      const previousTierTechs = await ctx.db
+        .query('researchDefinitions')
+        .withIndex('by_tier', (q) => q.eq('tier', previousTier))
+        .collect();
+      
+      const previousTierTechsInCategory = previousTierTechs.filter(
+        (tech) => tech.category === researchDefinition.category
+      );
+
+      if (previousTierTechsInCategory.length > 0) {
+        // Get all technologies researched by the player
+        const playerResearched = await ctx.db
+          .query('playerTechnologies')
+          .withIndex('by_user', (q) => q.eq('userId', user._id))
+          .collect();
+        
+        const playerResearchedIds = new Set(
+          playerResearched.map((tech) => tech.researchDefinitionId)
+        );
+
+        // Check if all previous tier techs in the same category are researched
+        const unresearchedPreviousTierTechs = previousTierTechsInCategory.filter(
+          (tech) => !playerResearchedIds.has(tech._id)
+        );
+
+        if (unresearchedPreviousTierTechs.length > 0) {
+          const techNames = unresearchedPreviousTierTechs.map((tech) => tech.name).join(', ');
+          throw new Error(
+            `You must complete all Tier ${previousTier} ${researchDefinition.category} technologies first. Missing: ${techNames}`
+          );
+        }
+      }
+    }
+
     // Check for costs and prerequisites
     const novaCost = researchDefinition.novaCost ?? 0;
     const mineralCost = researchDefinition.mineralCost ?? 0;
@@ -276,5 +315,40 @@ export const completeResearch = mutation({
     });
 
     return { success: true };
+  }
+});
+
+// Check if user's current research is complete and auto-complete it
+export const checkCompletedResearch = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthedUser(ctx);
+
+    if (!user.researchingId || !user.researchFinishesAt) {
+      return { completed: false, message: 'No research in progress' };
+    }
+
+    if (Date.now() < user.researchFinishesAt) {
+      const timeRemaining = user.researchFinishesAt - Date.now();
+      return { completed: false, message: `Research completes in ${Math.ceil(timeRemaining / 1000)} seconds` };
+    }
+
+    // Research is complete, auto-complete it
+    await ctx.db.insert('playerTechnologies', {
+      userId: user._id,
+      researchDefinitionId: user.researchingId,
+      researchedAt: Date.now()
+    });
+
+    const researchDef = await ctx.db.get(user.researchingId);
+    const researchName = researchDef?.name || 'Unknown Research';
+
+    await ctx.db.patch(user._id, {
+      researchingId: undefined,
+      researchFinishesAt: undefined
+    });
+
+    console.log(`Auto-completed research: ${researchName} for user ${user._id}`);
+    return { completed: true, message: `Research '${researchName}' completed!`, researchName };
   }
 });

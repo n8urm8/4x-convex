@@ -13,8 +13,8 @@
     "lint": "eslint . --ignore-pattern convex/_generated --report-unused-disable-directives --max-warnings 0",
     "typecheck": "tsc -p tsconfig.app.json && tsc -p tsconfig.node.json && tsc -p convex/tsconfig.json",
     "preview": "vite preview",
-    "test": "vitest",
-    "test:once": "vitest run",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:coverage": "vitest run --coverage --coverage.reporter=text"
   },

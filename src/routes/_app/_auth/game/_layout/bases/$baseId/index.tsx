@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { api } from '@cvx/_generated/api';
 import { Id } from '@cvx/_generated/dataModel';
+import { useCompletionChecker } from '@/hooks/useCompletionChecker';
 
 export const Route = createFileRoute('/_app/_auth/game/_layout/bases/$baseId/')({
   component: BasePage,
@@ -21,6 +22,12 @@ function BasePage() {
     ...convexQuery(api.game.bases.baseQueries.getBaseDetails, {
       baseId: baseId as Id<'playerBases'>,
     }),
+  });
+
+  // Automatically check for completed upgrades and research
+  // Check every 60 seconds (1 minute) instead of every 30 seconds for less frequent calls
+  useCompletionChecker(baseId as Id<'playerBases'>, { 
+    intervalMs: 60000 // 1 minute 
   });
 
   if (isLoading) {

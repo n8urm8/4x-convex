@@ -18,6 +18,7 @@ export const researchCategoryValidator = v.union(
 export type ResearchCategory = Infer<typeof researchCategoryValidator>;
 
 export const researchDefinitionSchema = {
+  code: v.string(), // Unique code for easy reference
   name: v.string(), // Unique identifier for the research technology
   tier: v.number(),
   category: researchCategoryValidator,
@@ -31,6 +32,7 @@ export const researchDefinitionSchema = {
 };
 
 export const researchDefinitions = defineTable(researchDefinitionSchema)
+  .index('by_code', ['code']) // For unique lookups and linking
   .index('by_name', ['name']) // For unique lookups and linking
   .index('by_tier', ['tier'])
   .index('by_category', ['category']);
@@ -38,6 +40,7 @@ export const researchDefinitions = defineTable(researchDefinitionSchema)
 // Type helper for seeding data, ensuring it matches the schema structure.
 // Partial<Omit<...>> allows for optional _id and _creationTime during seeding.
 export type ResearchDefinitionSeed = Partial<Omit<Infer<typeof researchDefinitions.validator>, '_id' | '_creationTime'>> & {
+  code: string;
   name: string;
   tier: number;
   category: ResearchCategory;

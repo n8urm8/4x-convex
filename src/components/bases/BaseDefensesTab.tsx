@@ -3,6 +3,7 @@ import { api } from '@cvx/_generated/api';
 import { BaseDetails } from '@/features/bases/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { UpgradeTimer } from '@/components/ui/upgrade-timer';
 import { useState } from 'react';
 import { Id } from '@cvx/_generated/dataModel';
 import { STRUCTURE_CATEGORIES } from '@cvx/game/bases/bases.schema';
@@ -82,10 +83,13 @@ export function BaseDefensesTab({ base }: { base: BaseDetails }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Desktop table view */}
       <div className="hidden md:block">
         <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-primary border-b border-border pb-2">
+            Defensive Structures
+          </h3>
           <div className="grid grid-cols-7 gap-4 px-4 py-2 text-sm font-medium text-muted-foreground">
             <div>Defensive Structure</div>
             <div>Level</div>
@@ -115,7 +119,15 @@ export function BaseDefensesTab({ base }: { base: BaseDetails }) {
                 </div>
                 <div>
                   {isBuilt ? (
-                    <Badge variant="secondary">Level {level}</Badge>
+                    <div className="space-y-1">
+                      <Badge variant="secondary">Level {level}</Badge>
+                      {builtStructure?.upgrading && builtStructure.upgradeCompleteTime && builtStructure.upgradeLevel && (
+                        <UpgradeTimer 
+                          upgradeCompleteTime={builtStructure.upgradeCompleteTime}
+                          upgradeLevel={builtStructure.upgradeLevel}
+                        />
+                      )}
+                    </div>
                   ) : (
                     <Badge variant="outline">Not Built</Badge>
                   )}
@@ -184,7 +196,11 @@ export function BaseDefensesTab({ base }: { base: BaseDetails }) {
       </div>
 
       {/* Mobile list view */}
-      <div className="block md:hidden space-y-3">
+      <div className="block md:hidden space-y-6">
+        <h3 className="text-lg font-semibold text-primary border-b border-border pb-2">
+          Defensive Structures
+        </h3>
+        <div className="space-y-3">
         {defensiveStructuresWithState.map(({ definition, builtStructure, level, isBuilt }) => {
           const isUpgradingThis = builtStructure && isUpgrading === builtStructure._id;
           const isBuildingThis = isBuilding === definition._id;
@@ -206,7 +222,15 @@ export function BaseDefensesTab({ base }: { base: BaseDetails }) {
                 </div>
                 <div className="ml-2">
                   {isBuilt ? (
-                    <Badge variant="secondary">Level {level}</Badge>
+                    <div className="space-y-1 text-right">
+                      <Badge variant="secondary">Level {level}</Badge>
+                      {builtStructure?.upgrading && builtStructure.upgradeCompleteTime && builtStructure.upgradeLevel && (
+                        <UpgradeTimer 
+                          upgradeCompleteTime={builtStructure.upgradeCompleteTime}
+                          upgradeLevel={builtStructure.upgradeLevel}
+                        />
+                      )}
+                    </div>
                   ) : (
                     <Badge variant="outline">Not Built</Badge>
                   )}
@@ -269,6 +293,7 @@ export function BaseDefensesTab({ base }: { base: BaseDetails }) {
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );

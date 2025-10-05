@@ -668,20 +668,28 @@ export const checkCompletedUpgrades = mutation({
       .collect();
     
     const now = Date.now();
-        const completedStructures: { structureId: Id<'baseStructures'>; newLevel: number }[] = [];
+    const completedStructures: { structureId: Id<'baseStructures'>; newLevel: number }[] = [];
+    
+    console.log(`Checking ${upgradingStructures.length} upgrading structures at ${new Date(now).toISOString()}`);
     
     // Check each structure if it's complete
     for (const structure of upgradingStructures) {
+      const timeRemaining = structure.upgradeCompleteTime ? structure.upgradeCompleteTime - now : 0;
+      console.log(`Structure ${structure._id}: upgradeCompleteTime=${structure.upgradeCompleteTime}, now=${now}, timeRemaining=${timeRemaining}ms`);
+      
       if (structure.upgradeCompleteTime && structure.upgradeCompleteTime <= now) {
+        console.log(`Completing upgrade for structure ${structure._id}`);
         // Complete the upgrade
         const result = await ctx.runMutation(api.game.bases.baseMutations.completeStructureUpgrade, { structureId: structure._id });
         completedStructures.push({
           structureId: structure._id,
           newLevel: result.newLevel
         });
+        console.log(`Completed upgrade for structure ${structure._id} to level ${result.newLevel}`);
       }
     }
     
+    console.log(`Completed ${completedStructures.length} structure upgrades`);
     return { completedStructures };
   }
 });
