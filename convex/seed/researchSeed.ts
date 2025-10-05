@@ -10,7 +10,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: '+5% defense HP per level for all defensive structures and ships',
     description: 'Improved armor plating technology increases the durability of defensive systems',
     unlocks: ['Defense Platform', 'Armored variants of basic ships'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'defense2',
@@ -20,7 +20,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: '+4% shield capacity per level for all structures and ships with shields',
     description: 'Basic energy shield generators provide additional protection',
     unlocks: ['Shield Generator', 'Shielded variants of structures'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'defense3',
@@ -30,7 +30,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: '+6% defense HP per level for all defensive structures and ships',
     description: 'Composite armor materials provide superior protection',
     unlocks: ['Heavy Defense Platform', 'Heavily armored ship variants'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'defense4',
@@ -40,7 +40,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: '+5% shield capacity and +3% shield regeneration per level',
     description: 'Enhanced shield technology with improved power efficiency',
     unlocks: ['Advanced Shield Generator', 'Capital ship shield systems'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
 
   // === WEAPONS TECHNOLOGIES ===
@@ -52,7 +52,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: '+5% damage per level for all kinetic weapons',
     description: 'Improved projectile weapons with enhanced velocity and impact',
     unlocks: ['Kinetic Defense Battery', 'Ranger Scout', 'Dart Fighter'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'weapons2',
@@ -62,7 +62,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: '+5% damage per level for all energy weapons',
     description: 'Basic laser and beam weapon technology',
     unlocks: ['Energy Defense Array', 'Beam-armed ships'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'weapons3',
@@ -72,7 +72,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: '+6% damage per level for all kinetic weapons',
     description: 'Railgun and mass driver technology for devastating kinetic strikes',
     unlocks: ['Heavy Kinetic Battery', 'Sentinel Frigate', 'Guardian Destroyer'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'weapons4',
@@ -82,7 +82,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: '+6% damage per level for all energy weapons',
     description: 'Superheated plasma projection systems',
     unlocks: ['Plasma Defense Grid', 'Tempest Strike Ship', 'Energy-focused cruisers'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'weapons5',
@@ -92,7 +92,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: '+8% damage per level for all weapons',
     description: 'Reality-altering quantum field manipulation weapons',
     unlocks: ['Quantum Defense Array', 'Nova Leviathan', 'Apocalypse Dreadnought'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
 
   // === SHIPS TECHNOLOGIES ===
@@ -104,7 +104,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: '+5% ship speed and maneuverability per level',
     description: 'Basic chemical rocket engines for space travel',
     unlocks: ['Genesis Colonizer', 'Basic civilian ships'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'ships2',
@@ -114,7 +114,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: 'Enables construction of small military vessels (level increases ship stats)',
     description: 'Fundamental spacecraft engineering for small combat vessels',
     unlocks: ['Requires weapon tech for specific ship variants'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'ships3',
@@ -124,7 +124,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: '+6% ship speed and maneuverability per level',
     description: 'Efficient ion drive technology for extended space operations',
     unlocks: ['Void Harvester', 'Long-range exploration ships'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'ships4',
@@ -134,7 +134,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: 'Enables construction of cruiser-class vessels (level increases ship stats)',
     description: 'Advanced hull design and systems integration for larger warships',
     unlocks: ['Dauntless Cruiser', 'Intrepid Carrier Cruiser'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'ships5',
@@ -144,7 +144,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: '+8% ship speed and enables faster-than-light travel per level',
     description: 'Quantum field manipulation for near-instantaneous travel',
     unlocks: ['Capital ship mobility', 'Strategic redeployment capabilities'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'ships6',
@@ -154,7 +154,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: 'Enables construction of battleship and dreadnought-class vessels (level increases ship stats)',
     description: 'Massive warship architecture and life support systems',
     unlocks: ['Juggernaut Battleship', 'Sovereign Dreadnought', 'Colossus Carrier'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
 
   // === STRUCTURES TECHNOLOGIES ===
@@ -166,7 +166,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: 'Enables basic colony buildings (level increases building stats)',
     description: 'Fundamental construction and life support technologies',
     unlocks: ['Hab Dome', 'Power Plant', 'Construction Yard'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'structures2',
@@ -176,7 +176,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: 'Enables research facilities and +5% research speed per level',
     description: 'Systematic approach to knowledge acquisition and experimentation',
     unlocks: ['Research Lab', 'Observatory'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'structures3',
@@ -186,7 +186,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: 'Enables advanced production and +6% construction speed per level',
     description: 'Automated manufacturing and resource processing systems',
     unlocks: ['Automated Fabricator', 'Mineral Refinery', 'Energy Nexus'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'structures4',
@@ -196,7 +196,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: 'Enables advanced research facilities and +6% research speed per level',
     description: 'Cutting-edge laboratory equipment and research methodologies',
     unlocks: ['Advanced Laboratory', 'Scientific Complex'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'structures5',
@@ -206,7 +206,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: 'Enables planetary-scale construction projects (level increases building stats)',
     description: 'Massive construction capabilities for world-spanning projects',
     unlocks: ['Orbital Habitat', 'Planetary Shield', 'Megastructure Hub'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
   {
     code: 'structures6',
@@ -216,6 +216,6 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     primaryEffect: 'Enables ultimate research facilities and +8% research speed per level',
     description: 'Quantum-scale computation for breakthrough discoveries',
     unlocks: ['Quantum Research Center', 'Theoretical Physics Institute'],
-    maxLevel: 5,
+    maxLevel: 20,
   },
 ];
