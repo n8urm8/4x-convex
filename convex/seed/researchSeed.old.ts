@@ -1,6 +1,6 @@
-import { RESEARCH_CATEGORIES, ResearchDefinitionSeed } from '../game/research/research.schema';
+import { RESEARCH_CATEGORIES } from '../game/research/research.schema';
 
-export const researchSeedData: ResearchDefinitionSeed[] = [
+export const researchSeedData = [
   // === DEFENSE TECHNOLOGIES ===
   // Tier 1: Basic defensive capabilities
   {

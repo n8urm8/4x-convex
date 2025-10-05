@@ -14,6 +14,7 @@ import { asyncMap } from 'convex-helpers';
 import { ERRORS } from '~/errors'; // v is now imported above with Doc
 import { planetTypesSeedData } from './seed/planetTypesSeed';
 import { researchSeedData } from './seed/researchSeed';
+import { resourceCostSeedData } from './seed/resourceCostSeed';
 import { structuresSeedData } from './seed/structuresSeed';
 // ResearchCategory import removed as ResearchDefinitionDoc is removed
 
@@ -107,6 +108,32 @@ export const insertResearchDefinition = internalMutation({
   }
 });
 
+// Seed resource costs for technologies (idempotent)
+export const seedResourceCosts = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    if (!resourceCostSeedData.length) return;
+    const firstCode = researchSeedData[0]?.code;
+    if (firstCode) {
+      const existing = await ctx.db
+        .query('resourceCosts')
+        .withIndex('by_owner', (q) =>
+          q.eq('ownerType', 'technology').eq('ownerCode', firstCode)
+        )
+        .first();
+      if (existing) {
+        console.log('💰 Skipping Resource Cost seeding - already present.');
+        return;
+      }
+    }
+    console.log('💰 Seeding Resource Costs for technologies...');
+    for (const cost of resourceCostSeedData) {
+      await ctx.db.insert('resourceCosts', cost);
+    }
+    console.info(`💰 ${resourceCostSeedData.length} Resource Cost rows seeded.`);
+  }
+});
+
 export default internalAction({
   args: {},
   returns: v.null(),
@@ -133,6 +160,8 @@ export default internalAction({
         `🪐 ${planetTypesSeedData.length} Planet Types have been successfully seeded.`
       );
     }
+
+    // (Resource costs now seeded after research definitions to ensure codes exist.)
 
     /**
      * Structures.
@@ -177,6 +206,9 @@ export default internalAction({
       );
       // existingResearchDefinitions is already initialized to [] so no change needed here on error
     }
+
+  // Seed resource costs after research definitions to ensure referenced codes exist.
+  await ctx.runMutation(internal.init.seedResourceCosts, {});
 
     if (existingResearchDefinitions && existingResearchDefinitions.length > 0) {
       console.log(

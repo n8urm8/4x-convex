@@ -8,6 +8,7 @@ import {
   structureRequirements
 } from './game/bases/bases.schema';
 import { researchDefinitions } from './game/research/research.schema';
+import { resourceCosts } from './game/resources/resourceCosts.schema';
 import { playerTechnologies } from './game/research/playerResearch.schema';
 import { fleets, playerShips, shipBlueprints } from './game/ships/ships.schema';
 
@@ -211,6 +212,7 @@ const schema = defineSchema({
   // Research definitions
   researchDefinitions,
   playerTechnologies,
+  resourceCosts,
 
   // Ship definitions
   shipBlueprints,

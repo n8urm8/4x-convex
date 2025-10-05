@@ -41,6 +41,7 @@ import type * as otp_ResendOTP from "../otp/ResendOTP.js";
 import type * as otp_VerificationCodeEmail from "../otp/VerificationCodeEmail.js";
 import type * as seed_planetTypesSeed from "../seed/planetTypesSeed.js";
 import type * as seed_researchSeed from "../seed/researchSeed.js";
+import type * as seed_resourceCostSeed from "../seed/resourceCostSeed.js";
 import type * as seed_structuresSeed from "../seed/structuresSeed.js";
 import type * as stripe from "../stripe.js";
 import type * as utils from "../utils.js";
@@ -82,6 +83,7 @@ declare const fullApi: ApiFromModules<{
   "otp/VerificationCodeEmail": typeof otp_VerificationCodeEmail;
   "seed/planetTypesSeed": typeof seed_planetTypesSeed;
   "seed/researchSeed": typeof seed_researchSeed;
+  "seed/resourceCostSeed": typeof seed_resourceCostSeed;
   "seed/structuresSeed": typeof seed_structuresSeed;
   stripe: typeof stripe;
   utils: typeof utils;

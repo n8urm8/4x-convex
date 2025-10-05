@@ -25,9 +25,7 @@ export const researchDefinitionSchema = {
   primaryEffect: v.string(),
   unlocks: v.optional(v.array(v.string())), // Names of structures, ships, or other technologies unlocked
   description: v.optional(v.string()), // Optional detailed description
-  novaCost: v.optional(v.number()),
-  mineralCost: v.optional(v.number()),
-  volatileCost: v.optional(v.number()),
+  maxLevel: v.optional(v.number()), // Maximum upgrade level
   prerequisites: v.optional(v.array(v.id('researchDefinitions'))), // For tech tree dependencies
 };
 
@@ -47,4 +45,5 @@ export type ResearchDefinitionSeed = Partial<Omit<Infer<typeof researchDefinitio
   primaryEffect: string;
   unlocks?: string[];
   description?: string;
+  maxLevel?: number;
 };

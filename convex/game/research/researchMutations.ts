@@ -3,10 +3,7 @@ import { internalMutation, mutation } from '../../_generated/server';
 import { internal } from '../../_generated/api';
 import { Doc, Id } from '../../_generated/dataModel';
 import { getAdminUser, getAuthedUser } from '../../utils';
-import {
-  researchDefinitions,
-  researchDefinitionSchema
-} from './research.schema';
+import { researchDefinitions, researchDefinitionSchema } from './research.schema';
 
 // --- Public Admin Mutations for Research Definitions ---
 
@@ -165,6 +162,9 @@ export const seedResearchDefinitions = internalMutation({
       }
     ];
 
+    const slug = (name: string) =>
+      name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+
     let seededCount = 0;
     for (const def of researchDefinitionsToSeed) {
       const existing = await ctx.db
@@ -173,7 +173,10 @@ export const seedResearchDefinitions = internalMutation({
         .unique();
 
       if (!existing) {
-        await ctx.db.insert('researchDefinitions', def);
+        await ctx.db.insert('researchDefinitions', {
+          code: slug(def.name),
+            ...def
+        });
         seededCount++;
       }
     }
@@ -211,33 +214,24 @@ export const startResearch = mutation({
     // Check tier requirements: For tier > 1, all previous tier techs in the same category must be researched
     if (researchDefinition.tier > 1) {
       const previousTier = researchDefinition.tier - 1;
-      
-      // Get all technologies from the previous tier in the same category
       const previousTierTechs = await ctx.db
         .query('researchDefinitions')
         .withIndex('by_tier', (q) => q.eq('tier', previousTier))
         .collect();
-      
       const previousTierTechsInCategory = previousTierTechs.filter(
         (tech) => tech.category === researchDefinition.category
       );
-
       if (previousTierTechsInCategory.length > 0) {
-        // Get all technologies researched by the player
         const playerResearched = await ctx.db
           .query('playerTechnologies')
           .withIndex('by_user', (q) => q.eq('userId', user._id))
           .collect();
-        
         const playerResearchedIds = new Set(
           playerResearched.map((tech) => tech.researchDefinitionId)
         );
-
-        // Check if all previous tier techs in the same category are researched
         const unresearchedPreviousTierTechs = previousTierTechsInCategory.filter(
           (tech) => !playerResearchedIds.has(tech._id)
         );
-
         if (unresearchedPreviousTierTechs.length > 0) {
           const techNames = unresearchedPreviousTierTechs.map((tech) => tech.name).join(', ');
           throw new Error(
@@ -247,17 +241,39 @@ export const startResearch = mutation({
       }
     }
 
-    // Check for costs and prerequisites
-    const novaCost = researchDefinition.novaCost ?? 0;
-    const mineralCost = researchDefinition.mineralCost ?? 0;
-    const volatileCost = researchDefinition.volatileCost ?? 0;
+    // --- Resource Cost Resolution ---
+    // Costs are stored per (ownerType, ownerCode, resource) row in resourceCosts.
+    // NOTE: User document resource field names use plural for minerals/volatiles but singular for nova.
+    // We map cost.resource -> user doc key explicitly to avoid silent mismatches.
+    const costRows = await ctx.db
+      .query('resourceCosts')
+      .withIndex('by_owner', (q) =>
+        q.eq('ownerType', 'technology').eq('ownerCode', researchDefinition.code)
+      )
+      .collect();
 
-    if (
-      (user.nova ?? 0) < novaCost ||
-      (user.minerals ?? 0) < mineralCost ||
-      (user.volatiles ?? 0) < volatileCost
-    ) {
-      throw new Error('Insufficient resources to start research.');
+    type UserResourceKey = 'nova' | 'minerals' | 'volatiles';
+    const resourceToUserKey = (r: string): UserResourceKey | null => {
+      switch (r) {
+        case 'nova':
+          return 'nova';
+        case 'mineral':
+          return 'minerals';
+        case 'volatile':
+          return 'volatiles';
+        default:
+          return null; // Unknown resource type; could be for another ownerType in future.
+      }
+    };
+
+    const getUserResource = (k: UserResourceKey) => user[k] ?? 0;
+    for (const cost of costRows) {
+      const userKey = resourceToUserKey(cost.resource);
+      if (!userKey) continue; // Skip unknown resource types
+      const current = getUserResource(userKey);
+      if (current < cost.amount) {
+        throw new Error(`Insufficient ${cost.resource} to start research.`);
+      }
     }
 
     if (researchDefinition.prerequisites) {
@@ -278,12 +294,17 @@ export const startResearch = mutation({
     const researchTime = 60 * 5; // 5 minutes for now
     const finishesAt = Date.now() + researchTime * 1000;
 
+    // Deduct resources using the explicit mapping.
+    const resourcePatch: Partial<Pick<Doc<'users'>, 'nova' | 'minerals' | 'volatiles'>> = {};
+    for (const cost of costRows) {
+      const userKey = resourceToUserKey(cost.resource);
+      if (!userKey) continue;
+      resourcePatch[userKey] = (user[userKey] ?? 0) - cost.amount;
+    }
     await ctx.db.patch(user._id, {
+      ...resourcePatch,
       researchingId: args.researchId,
-      researchFinishesAt: finishesAt,
-      nova: user.nova ?? 0 - novaCost,
-      minerals: user.minerals ?? 0 - mineralCost,
-      volatiles: user.volatiles ?? 0 - volatileCost
+      researchFinishesAt: finishesAt
     });
 
     return { success: true, finishesAt };
