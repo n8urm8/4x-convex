@@ -15,6 +15,9 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
   // Get all available structure definitions
   const allStructureDefinitions = useQuery(api.game.bases.baseQueries.getAllStructureDefinitions);
   
+  // Get user's completed research for requirement checking
+  const playerTechnologiesData = useQuery(api.game.research.researchQueries.getPlayerTechnologies, {});
+  
   const startUpgrade = useMutation(
     api.game.bases.baseMutations.startStructureUpgrade
   );
@@ -49,9 +52,25 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
     }
   };
 
-  if (!allStructureDefinitions) {
+  if (!allStructureDefinitions || !playerTechnologiesData) {
     return <div>Loading structures...</div>;
   }
+  
+  // Helper function to check if requirements are met
+  const checkRequirements = (structureDef: typeof allStructureDefinitions[number]) => {
+    if (!structureDef.researchRequirementName) {
+      return { canBuild: true, missingRequirement: undefined };
+    }
+    
+    const hasResearch = playerTechnologiesData.technologies.some(
+      tech => tech.name === structureDef.researchRequirementName && tech.isResearched
+    );
+    
+    return {
+      canBuild: hasResearch,
+      missingRequirement: hasResearch ? undefined : structureDef.researchRequirementName
+    };
+  };
 
   // Create a map of built structures by their definition ID for quick lookup
   const builtStructuresMap = new Map(
@@ -146,6 +165,9 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
               const isBuildingThis = isBuilding === definition._id;
               const isAnyActionInProgress = isUpgrading !== null || isBuilding !== null;
               
+              // Check if requirements are met for building
+              const requirementCheck = checkRequirements(definition);
+              
               // Calculate if this structure can be upgraded (if built and not at max level)
               const canUpgrade = isBuilt && builtStructure && !builtStructure.upgrading && 
                 (!definition.maxLevel || level < definition.maxLevel);
@@ -189,7 +211,14 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
                   </div>
                   <div>
                     <div className="text-sm">
-                      {definition.researchRequirementName || 'None'}
+                      {definition.researchRequirementName ? (
+                        <span className={!requirementCheck.canBuild ? 'text-destructive' : ''}>
+                          {definition.researchRequirementName}
+                          {!requirementCheck.canBuild && ' (Not researched)'}
+                        </span>
+                      ) : (
+                        'None'
+                      )}
                     </div>
                   </div>
                   <div className="text-right">
@@ -197,7 +226,8 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
                       <Button
                         size="sm"
                         onClick={() => handleBuild(definition._id)}
-                        disabled={isAnyActionInProgress}
+                        disabled={!requirementCheck.canBuild || isAnyActionInProgress}
+                        title={!requirementCheck.canBuild ? `Requires: ${requirementCheck.missingRequirement}` : undefined}
                       >
                         {isBuildingThis ? 'Building...' : 'Build'}
                       </Button>
@@ -236,6 +266,9 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
               const isUpgradingThis = builtStructure && isUpgrading === builtStructure._id;
               const isBuildingThis = isBuilding === definition._id;
               const isAnyActionInProgress = isUpgrading !== null || isBuilding !== null;
+              
+              // Check if requirements are met for building
+              const requirementCheck = checkRequirements(definition);
               
               // Calculate if this structure can be upgraded (if built and not at max level)
               const canUpgrade = isBuilt && builtStructure && !builtStructure.upgrading && 
@@ -280,7 +313,15 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
                       Energy: {definition.baseEnergyCost}, Nova: {definition.baseNovaCost}
                     </div>
                     <div>
-                      <span className="font-medium">Requirements:</span> {definition.researchRequirementName || 'None'}
+                      <span className="font-medium">Requirements:</span>{' '}
+                      {definition.researchRequirementName ? (
+                        <span className={!requirementCheck.canBuild ? 'text-destructive' : ''}>
+                          {definition.researchRequirementName}
+                          {!requirementCheck.canBuild && ' (Not researched)'}
+                        </span>
+                      ) : (
+                        'None'
+                      )}
                     </div>
                   </div>
                   
@@ -289,7 +330,8 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
                       <Button
                         className="w-full"
                         onClick={() => handleBuild(definition._id)}
-                        disabled={isAnyActionInProgress}
+                        disabled={!requirementCheck.canBuild || isAnyActionInProgress}
+                        title={!requirementCheck.canBuild ? `Requires: ${requirementCheck.missingRequirement}` : undefined}
                       >
                         {isBuildingThis ? 'Building...' : 'Build'}
                       </Button>

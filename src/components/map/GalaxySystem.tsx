@@ -81,7 +81,7 @@ export const GalaxySystem = () => {
                 // Star in the center
                 return (
                   <div
-                    key={`${x}-${y}`}
+                    key={`${x}-${y}-star`}
                     className="group relative h-16 w-16 cursor-pointer transition-transform hover:scale-110"
                     onClick={() => handlePlanetClick(x, y)}
                   >
@@ -96,6 +96,7 @@ export const GalaxySystem = () => {
                 // Planet
                 return (
                   <SystemPlanet
+                    key={`${x}-${y}-planet`}
                     planetId={planet._id}
                     planetType={planet.type}
                     onClick={() => handlePlanetClick(x, y)}
@@ -103,7 +104,7 @@ export const GalaxySystem = () => {
                 );
               } else {
                 // Empty space
-                return <div key={`${x}-${y}`} className="h-12 w-12" />;
+                return <div key={`${x}-${y}-empty`} className="h-12 w-12" />;
               }
             })
           )}

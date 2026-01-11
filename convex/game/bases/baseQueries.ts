@@ -56,6 +56,54 @@ export const getStructureRequirements = query({
   }
 });
 
+// Check if user can build a structure (has required research)
+export const canBuildStructure = query({
+  args: {
+    structureDefId: v.id('structureDefinitions')
+  },
+  returns: v.object({
+    canBuild: v.boolean(),
+    missingRequirement: v.optional(v.string())
+  }),
+  handler: async (ctx, args) => {
+    const user = await getAuthedUser(ctx);
+    const structureDef = await ctx.db.get(args.structureDefId);
+    
+    if (!structureDef) {
+      return { canBuild: false, missingRequirement: 'Structure not found' };
+    }
+    
+    // Check research requirements
+    if (structureDef.researchRequirementName) {
+      const requirementName = structureDef.researchRequirementName;
+      const requiredResearch = await ctx.db
+        .query('researchDefinitions')
+        .withIndex('by_name', (q) => q.eq('name', requirementName))
+        .unique();
+
+      if (requiredResearch) {
+        const playerResearch = await ctx.db
+          .query('playerTechnologies')
+          .withIndex('by_user_research', (q) =>
+            q
+              .eq('userId', user._id)
+              .eq('researchDefinitionId', requiredResearch._id)
+          )
+          .first();
+
+        if (!playerResearch) {
+          return { 
+            canBuild: false, 
+            missingRequirement: `Research required: ${requirementName}` 
+          };
+        }
+      }
+    }
+    
+    return { canBuild: true };
+  }
+});
+
 // Get all structures for a base
 export const getBaseStructures = query({
   args: {

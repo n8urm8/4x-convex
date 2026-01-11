@@ -8,7 +8,6 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Logo } from '@/components/ui/logo';
-import { ThemeSwitcher } from '@/components/ui/theme-switcher';
 import { Route as DashboardRoute } from '@/routes/_app/_auth/dashboard/_layout.index';
 import { Route as BillingSettingsRoute } from '@/routes/_app/_auth/dashboard/_layout.settings.billing';
 import { Route as SettingsRoute } from '@/routes/_app/_auth/dashboard/_layout.settings.index';
@@ -116,17 +115,6 @@ export function Navigation({
                   Settings
                 </span>
                 <Settings className="h-[18px] w-[18px] stroke-[1.5px] text-primary/60 group-hover:text-primary group-focus:text-primary" />
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                className={cn(
-                  'group flex h-9 justify-between rounded-md px-2 hover:bg-transparent'
-                )}
-              >
-                <span className="w-full text-sm text-primary/60 group-hover:text-primary group-focus:text-primary">
-                  Theme
-                </span>
-                <ThemeSwitcher />
               </DropdownMenuItem>
 
               <DropdownMenuItem

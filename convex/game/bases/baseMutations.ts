@@ -165,7 +165,7 @@ export const buildStructure = mutation({
       throw new Error("Not enough energy available in the base");
     }
     
-    // Check research requirements
+    // Check research requirements - ENFORCED
     if (structureDef.researchRequirementName) {
       const requirementName = structureDef.researchRequirementName;
       const requiredResearch = await ctx.db
@@ -184,8 +184,10 @@ export const buildStructure = mutation({
           .first();
 
         if (!playerResearch) {
-          throw new Error(`Research '${requirementName}' is required.`);
+          throw new Error(`Cannot build: Research '${requirementName}' is required. Complete this research first.`);
         }
+      } else {
+        throw new Error(`Cannot build: Required research '${requirementName}' not found in database.`);
       }
     }
     
