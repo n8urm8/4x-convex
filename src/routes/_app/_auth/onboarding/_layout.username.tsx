@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Route as DashboardRoute } from '@/routes/_app/_auth/dashboard/_layout.index';
+import { Route as BaseOverviewRoute } from '@/routes/_app/_auth/game/_layout/bases/index';
 import { getLocaleCurrency } from '@/utils/misc';
 import * as validators from '@/utils/validators';
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
@@ -46,7 +46,7 @@ export default function OnboardingUsername() {
 
   useEffect(() => {
     if (user?.username) {
-      navigate({ to: DashboardRoute.fullPath });
+      navigate({ to: BaseOverviewRoute.fullPath });
     }
   }, [user?.username]);
 

@@ -8,8 +8,6 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { createFileRoute } from '@tanstack/react-router'
-
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
@@ -33,11 +31,6 @@ import { Route as AppAuthGameLayoutBasesBaseIdIndexRouteImport } from './routes/
 import { Route as AppAuthGameLayoutmapMapIndexRouteImport } from './routes/_app/_auth/game/_layout/(map)/map.index'
 import { Route as AppAuthGameLayoutmapMapGalaxyNumberRouteImport } from './routes/_app/_auth/game/_layout/(map)/map.$galaxyNumber'
 
-const AppLoginRouteImport = createFileRoute('/_app/login')()
-const AppAuthOnboardingRouteImport = createFileRoute('/_app/_auth/onboarding')()
-const AppAuthDashboardRouteImport = createFileRoute('/_app/_auth/dashboard')()
-const AppAuthGameRouteImport = createFileRoute('/_app/_auth/game')()
-
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -47,33 +40,14 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppLoginRoute = AppLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppAuthRoute = AppAuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAuthOnboardingRoute = AppAuthOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => AppAuthRoute,
-} as any)
-const AppAuthDashboardRoute = AppAuthDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AppAuthRoute,
-} as any)
-const AppAuthGameRoute = AppAuthGameRouteImport.update({
-  id: '/game',
-  path: '/game',
-  getParentRoute: () => AppAuthRoute,
-} as any)
 const AppLoginLayoutRoute = AppLoginLayoutRouteImport.update({
-  id: '/_layout',
-  getParentRoute: () => AppLoginRoute,
+  id: '/login/_layout',
+  path: '/login',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppLoginLayoutIndexRoute = AppLoginLayoutIndexRouteImport.update({
   id: '/',
@@ -81,16 +55,19 @@ const AppLoginLayoutIndexRoute = AppLoginLayoutIndexRouteImport.update({
   getParentRoute: () => AppLoginLayoutRoute,
 } as any)
 const AppAuthOnboardingLayoutRoute = AppAuthOnboardingLayoutRouteImport.update({
-  id: '/_layout',
-  getParentRoute: () => AppAuthOnboardingRoute,
+  id: '/onboarding/_layout',
+  path: '/onboarding',
+  getParentRoute: () => AppAuthRoute,
 } as any)
 const AppAuthDashboardLayoutRoute = AppAuthDashboardLayoutRouteImport.update({
-  id: '/_layout',
-  getParentRoute: () => AppAuthDashboardRoute,
+  id: '/dashboard/_layout',
+  path: '/dashboard',
+  getParentRoute: () => AppAuthRoute,
 } as any)
 const AppAuthGameLayoutRouteRoute = AppAuthGameLayoutRouteRouteImport.update({
-  id: '/_layout',
-  getParentRoute: () => AppAuthGameRoute,
+  id: '/game/_layout',
+  path: '/game',
+  getParentRoute: () => AppAuthRoute,
 } as any)
 const AppAuthGameLayoutIndexRoute = AppAuthGameLayoutIndexRouteImport.update({
   id: '/',
@@ -192,14 +169,14 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/login': typeof AppLoginLayoutIndexRoute
-  '/game': typeof AppAuthGameLayoutIndexRoute
-  '/dashboard': typeof AppAuthDashboardLayoutIndexRoute
   '/onboarding': typeof AppAuthOnboardingLayoutRouteWithChildren
+  '/login': typeof AppLoginLayoutIndexRoute
   '/dashboard/checkout': typeof AppAuthDashboardLayoutCheckoutRoute
   '/game/fleets': typeof AppAuthGameLayoutFleetsRoute
   '/game/overview': typeof AppAuthGameLayoutOverviewRoute
   '/onboarding/username': typeof AppAuthOnboardingLayoutUsernameRoute
+  '/dashboard': typeof AppAuthDashboardLayoutIndexRoute
+  '/game': typeof AppAuthGameLayoutIndexRoute
   '/dashboard/settings/billing': typeof AppAuthDashboardLayoutSettingsBillingRoute
   '/dashboard/settings': typeof AppAuthDashboardLayoutSettingsIndexRoute
   '/game/bases': typeof AppAuthGameLayoutBasesIndexRoute
@@ -212,13 +189,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/_app/_auth': typeof AppAuthRouteWithChildren
-  '/_app/login': typeof AppLoginRouteWithChildren
   '/_app/login/_layout': typeof AppLoginLayoutRouteWithChildren
-  '/_app/_auth/game': typeof AppAuthGameRouteWithChildren
   '/_app/_auth/game/_layout': typeof AppAuthGameLayoutRouteRouteWithChildren
-  '/_app/_auth/dashboard': typeof AppAuthDashboardRouteWithChildren
   '/_app/_auth/dashboard/_layout': typeof AppAuthDashboardLayoutRouteWithChildren
-  '/_app/_auth/onboarding': typeof AppAuthOnboardingRouteWithChildren
   '/_app/_auth/onboarding/_layout': typeof AppAuthOnboardingLayoutRouteWithChildren
   '/_app/login/_layout/': typeof AppLoginLayoutIndexRoute
   '/_app/_auth/dashboard/_layout/checkout': typeof AppAuthDashboardLayoutCheckoutRoute
@@ -260,14 +233,14 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/login'
-    | '/game'
-    | '/dashboard'
     | '/onboarding'
+    | '/login'
     | '/dashboard/checkout'
     | '/game/fleets'
     | '/game/overview'
     | '/onboarding/username'
+    | '/dashboard'
+    | '/game'
     | '/dashboard/settings/billing'
     | '/dashboard/settings'
     | '/game/bases'
@@ -279,13 +252,9 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/_app/_auth'
-    | '/_app/login'
     | '/_app/login/_layout'
-    | '/_app/_auth/game'
     | '/_app/_auth/game/_layout'
-    | '/_app/_auth/dashboard'
     | '/_app/_auth/dashboard/_layout'
-    | '/_app/_auth/onboarding'
     | '/_app/_auth/onboarding/_layout'
     | '/_app/login/_layout/'
     | '/_app/_auth/dashboard/_layout/checkout'
@@ -324,13 +293,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/login': {
-      id: '/_app/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof AppLoginRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/_auth': {
       id: '/_app/_auth'
       path: ''
@@ -338,33 +300,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/_auth/onboarding': {
-      id: '/_app/_auth/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof AppAuthOnboardingRouteImport
-      parentRoute: typeof AppAuthRoute
-    }
-    '/_app/_auth/dashboard': {
-      id: '/_app/_auth/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AppAuthDashboardRouteImport
-      parentRoute: typeof AppAuthRoute
-    }
-    '/_app/_auth/game': {
-      id: '/_app/_auth/game'
-      path: '/game'
-      fullPath: '/game'
-      preLoaderRoute: typeof AppAuthGameRouteImport
-      parentRoute: typeof AppAuthRoute
-    }
     '/_app/login/_layout': {
       id: '/_app/login/_layout'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof AppLoginLayoutRouteImport
-      parentRoute: typeof AppLoginRoute
+      parentRoute: typeof AppRoute
     }
     '/_app/login/_layout/': {
       id: '/_app/login/_layout/'
@@ -378,21 +319,21 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof AppAuthOnboardingLayoutRouteImport
-      parentRoute: typeof AppAuthOnboardingRoute
+      parentRoute: typeof AppAuthRoute
     }
     '/_app/_auth/dashboard/_layout': {
       id: '/_app/_auth/dashboard/_layout'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppAuthDashboardLayoutRouteImport
-      parentRoute: typeof AppAuthDashboardRoute
+      parentRoute: typeof AppAuthRoute
     }
     '/_app/_auth/game/_layout': {
       id: '/_app/_auth/game/_layout'
       path: '/game'
       fullPath: '/game'
       preLoaderRoute: typeof AppAuthGameLayoutRouteRouteImport
-      parentRoute: typeof AppAuthGameRoute
+      parentRoute: typeof AppAuthRoute
     }
     '/_app/_auth/game/_layout/': {
       id: '/_app/_auth/game/_layout/'
@@ -516,18 +457,6 @@ const AppAuthGameLayoutRouteRouteWithChildren =
     AppAuthGameLayoutRouteRouteChildren,
   )
 
-interface AppAuthGameRouteChildren {
-  AppAuthGameLayoutRouteRoute: typeof AppAuthGameLayoutRouteRouteWithChildren
-}
-
-const AppAuthGameRouteChildren: AppAuthGameRouteChildren = {
-  AppAuthGameLayoutRouteRoute: AppAuthGameLayoutRouteRouteWithChildren,
-}
-
-const AppAuthGameRouteWithChildren = AppAuthGameRoute._addFileChildren(
-  AppAuthGameRouteChildren,
-)
-
 interface AppAuthDashboardLayoutSettingsRouteChildren {
   AppAuthDashboardLayoutSettingsBillingRoute: typeof AppAuthDashboardLayoutSettingsBillingRoute
   AppAuthDashboardLayoutSettingsIndexRoute: typeof AppAuthDashboardLayoutSettingsIndexRoute
@@ -565,17 +494,6 @@ const AppAuthDashboardLayoutRouteWithChildren =
     AppAuthDashboardLayoutRouteChildren,
   )
 
-interface AppAuthDashboardRouteChildren {
-  AppAuthDashboardLayoutRoute: typeof AppAuthDashboardLayoutRouteWithChildren
-}
-
-const AppAuthDashboardRouteChildren: AppAuthDashboardRouteChildren = {
-  AppAuthDashboardLayoutRoute: AppAuthDashboardLayoutRouteWithChildren,
-}
-
-const AppAuthDashboardRouteWithChildren =
-  AppAuthDashboardRoute._addFileChildren(AppAuthDashboardRouteChildren)
-
 interface AppAuthOnboardingLayoutRouteChildren {
   AppAuthOnboardingLayoutUsernameRoute: typeof AppAuthOnboardingLayoutUsernameRoute
 }
@@ -590,27 +508,16 @@ const AppAuthOnboardingLayoutRouteWithChildren =
     AppAuthOnboardingLayoutRouteChildren,
   )
 
-interface AppAuthOnboardingRouteChildren {
+interface AppAuthRouteChildren {
+  AppAuthGameLayoutRouteRoute: typeof AppAuthGameLayoutRouteRouteWithChildren
+  AppAuthDashboardLayoutRoute: typeof AppAuthDashboardLayoutRouteWithChildren
   AppAuthOnboardingLayoutRoute: typeof AppAuthOnboardingLayoutRouteWithChildren
 }
 
-const AppAuthOnboardingRouteChildren: AppAuthOnboardingRouteChildren = {
-  AppAuthOnboardingLayoutRoute: AppAuthOnboardingLayoutRouteWithChildren,
-}
-
-const AppAuthOnboardingRouteWithChildren =
-  AppAuthOnboardingRoute._addFileChildren(AppAuthOnboardingRouteChildren)
-
-interface AppAuthRouteChildren {
-  AppAuthGameRoute: typeof AppAuthGameRouteWithChildren
-  AppAuthDashboardRoute: typeof AppAuthDashboardRouteWithChildren
-  AppAuthOnboardingRoute: typeof AppAuthOnboardingRouteWithChildren
-}
-
 const AppAuthRouteChildren: AppAuthRouteChildren = {
-  AppAuthGameRoute: AppAuthGameRouteWithChildren,
-  AppAuthDashboardRoute: AppAuthDashboardRouteWithChildren,
-  AppAuthOnboardingRoute: AppAuthOnboardingRouteWithChildren,
+  AppAuthGameLayoutRouteRoute: AppAuthGameLayoutRouteRouteWithChildren,
+  AppAuthDashboardLayoutRoute: AppAuthDashboardLayoutRouteWithChildren,
+  AppAuthOnboardingLayoutRoute: AppAuthOnboardingLayoutRouteWithChildren,
 }
 
 const AppAuthRouteWithChildren =
@@ -628,26 +535,14 @@ const AppLoginLayoutRouteWithChildren = AppLoginLayoutRoute._addFileChildren(
   AppLoginLayoutRouteChildren,
 )
 
-interface AppLoginRouteChildren {
-  AppLoginLayoutRoute: typeof AppLoginLayoutRouteWithChildren
-}
-
-const AppLoginRouteChildren: AppLoginRouteChildren = {
-  AppLoginLayoutRoute: AppLoginLayoutRouteWithChildren,
-}
-
-const AppLoginRouteWithChildren = AppLoginRoute._addFileChildren(
-  AppLoginRouteChildren,
-)
-
 interface AppRouteChildren {
   AppAuthRoute: typeof AppAuthRouteWithChildren
-  AppLoginRoute: typeof AppLoginRouteWithChildren
+  AppLoginLayoutRoute: typeof AppLoginLayoutRouteWithChildren
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAuthRoute: AppAuthRouteWithChildren,
-  AppLoginRoute: AppLoginRouteWithChildren,
+  AppLoginLayoutRoute: AppLoginLayoutRouteWithChildren,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

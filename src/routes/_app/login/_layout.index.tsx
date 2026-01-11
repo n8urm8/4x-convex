@@ -18,7 +18,6 @@ export const Route = createFileRoute('/_app/login/_layout/')({
 });
 
 function Login() {
-  const [step, setStep] = useState<'signIn' | { email: string }>('signIn');
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { data: user } = useQuery(convexQuery(api.app.getCurrentUser, {}));
   const navigate = useNavigate();
@@ -36,13 +35,11 @@ function Login() {
     }
   }, [user]);
 
-  if (step === 'signIn') {
-    return <LoginForm onSubmit={(email) => setStep({ email })} />;
-  }
-  return <VerifyForm email={step.email} />;
+  // Development mode: Skip verification step
+  return <LoginForm />;
 }
 
-function LoginForm({ onSubmit }: { onSubmit: (email: string) => void }) {
+function LoginForm() {
   const { signIn } = useAuthActions();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -53,8 +50,8 @@ function LoginForm({ onSubmit }: { onSubmit: (email: string) => void }) {
     },
     onSubmit: async ({ value }) => {
       setIsSubmitting(true);
-      await signIn('resend-otp', value);
-      onSubmit(value.email);
+      // Development mode: Sign in directly without verification
+      await signIn('dev-email', value);
       setIsSubmitting(false);
     }
   });
@@ -65,7 +62,7 @@ function LoginForm({ onSubmit }: { onSubmit: (email: string) => void }) {
           Continue to Astral Ascendency
         </h3>
         <p className="text-center text-base font-normal text-primary/60">
-          Welcome back! Please log in to continue.
+          Enter your email to continue (Development Mode - No verification needed)
         </p>
       </div>
       <form
@@ -119,7 +116,7 @@ function LoginForm({ onSubmit }: { onSubmit: (email: string) => void }) {
           {isSubmitting ? (
             <Loader2 className="animate-spin" />
           ) : (
-            'Continue with Email'
+            'Sign In'
           )}
         </Button>
       </form>
