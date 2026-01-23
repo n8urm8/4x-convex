@@ -56,26 +56,48 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
     return <div>Loading structures...</div>;
   }
   
-  // Helper function to check if requirements are met
-  const checkRequirements = (structureDef: typeof allStructureDefinitions[number]) => {
-    if (!structureDef.researchRequirementName) {
-      return { canBuild: true, missingRequirement: undefined };
-    }
-    
-    const hasResearch = playerTechnologiesData.technologies.some(
-      tech => tech.name === structureDef.researchRequirementName && tech.isResearched
-    );
-    
-    return {
-      canBuild: hasResearch,
-      missingRequirement: hasResearch ? undefined : structureDef.researchRequirementName
-    };
-  };
-
   // Create a map of built structures by their definition ID for quick lookup
   const builtStructuresMap = new Map(
     base.structures.map(structure => [structure.structureDefId, structure])
   );
+  
+  // Create a map of structure names to their built structures for prerequisite checking
+  const builtStructuresByName = new Map(
+    base.structures.map(structure => {
+      const def = allStructureDefinitions.find(d => d._id === structure.structureDefId);
+      return def ? [def.name, structure] : null;
+    }).filter(Boolean) as Array<[string, typeof base.structures[0]]>
+  );
+  
+  // Helper function to check if all requirements are met
+  const checkRequirements = (structureDef: typeof allStructureDefinitions[number]) => {
+    const issues: string[] = [];
+    
+    // Check research requirement
+    if (structureDef.researchRequirementName) {
+      const hasResearch = playerTechnologiesData.technologies.some(
+        tech => tech.name === structureDef.researchRequirementName && tech.isResearched
+      );
+      if (!hasResearch) {
+        issues.push(`Research: ${structureDef.researchRequirementName}`);
+      }
+    }
+    
+    // Check structure level requirement
+    if (structureDef.requiredStructureName && structureDef.requiredStructureLevel) {
+      const prerequisite = builtStructuresByName.get(structureDef.requiredStructureName);
+      if (!prerequisite) {
+        issues.push(`Build: ${structureDef.requiredStructureName}`);
+      } else if (prerequisite.level < structureDef.requiredStructureLevel) {
+        issues.push(`${structureDef.requiredStructureName} Level ${structureDef.requiredStructureLevel}`);
+      }
+    }
+    
+    return {
+      canBuild: issues.length === 0,
+      missingRequirements: issues
+    };
+  };
 
   // Filter out defensive structures (they have their own tab now)
   const nonDefensiveStructureDefinitions = allStructureDefinitions.filter(
@@ -211,13 +233,16 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
                   </div>
                   <div>
                     <div className="text-sm">
-                      {definition.researchRequirementName ? (
-                        <span className={!requirementCheck.canBuild ? 'text-destructive' : ''}>
-                          {definition.researchRequirementName}
-                          {!requirementCheck.canBuild && ' (Not researched)'}
-                        </span>
+                      {requirementCheck.missingRequirements.length === 0 ? (
+                        <span className="text-muted-foreground">None</span>
                       ) : (
-                        'None'
+                        <div className="space-y-1">
+                          {requirementCheck.missingRequirements.map((req, idx) => (
+                            <div key={idx} className="text-destructive">
+                              {req}
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -227,7 +252,7 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
                         size="sm"
                         onClick={() => handleBuild(definition._id)}
                         disabled={!requirementCheck.canBuild || isAnyActionInProgress}
-                        title={!requirementCheck.canBuild ? `Requires: ${requirementCheck.missingRequirement}` : undefined}
+                        title={!requirementCheck.canBuild ? `Missing: ${requirementCheck.missingRequirements.join(', ')}` : undefined}
                       >
                         {isBuildingThis ? 'Building...' : 'Build'}
                       </Button>
@@ -314,13 +339,16 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
                     </div>
                     <div>
                       <span className="font-medium">Requirements:</span>{' '}
-                      {definition.researchRequirementName ? (
-                        <span className={!requirementCheck.canBuild ? 'text-destructive' : ''}>
-                          {definition.researchRequirementName}
-                          {!requirementCheck.canBuild && ' (Not researched)'}
-                        </span>
+                      {requirementCheck.missingRequirements.length === 0 ? (
+                        <span className="text-muted-foreground">None</span>
                       ) : (
-                        'None'
+                        <div className="mt-1 space-y-1">
+                          {requirementCheck.missingRequirements.map((req, idx) => (
+                            <div key={idx} className="text-destructive">
+                              • {req}
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -331,7 +359,7 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
                         className="w-full"
                         onClick={() => handleBuild(definition._id)}
                         disabled={!requirementCheck.canBuild || isAnyActionInProgress}
-                        title={!requirementCheck.canBuild ? `Requires: ${requirementCheck.missingRequirement}` : undefined}
+                        title={!requirementCheck.canBuild ? `Missing: ${requirementCheck.missingRequirements.join(', ')}` : undefined}
                       >
                         {isBuildingThis ? 'Building...' : 'Build'}
                       </Button>

@@ -191,6 +191,36 @@ export const buildStructure = mutation({
       }
     }
     
+    // Check structure level requirements - ENFORCED
+    if (structureDef.requiredStructureName && structureDef.requiredStructureLevel) {
+      const requiredStructureName = structureDef.requiredStructureName;
+      const requiredStructureLevel = structureDef.requiredStructureLevel;
+      
+      const requiredStructureDef = await ctx.db
+        .query('structureDefinitions')
+        .withIndex('by_name', (q) => q.eq('name', requiredStructureName))
+        .unique();
+        
+      if (!requiredStructureDef) {
+        throw new Error(`Cannot build: Required structure '${requiredStructureName}' not found.`);
+      }
+      
+      const prerequisiteStructure = await ctx.db
+        .query('baseStructures')
+        .withIndex('by_structure_type', (q) => 
+          q.eq('baseId', args.baseId).eq('structureDefId', requiredStructureDef._id)
+        )
+        .first();
+        
+      if (!prerequisiteStructure) {
+        throw new Error(`Cannot build: Requires '${requiredStructureName}' to be built first.`);
+      }
+      
+      if (prerequisiteStructure.level < requiredStructureLevel) {
+        throw new Error(`Cannot build: Requires '${requiredStructureName}' to be at least level ${requiredStructureLevel} (currently level ${prerequisiteStructure.level}).`);
+      }
+    }
+    
     // Calculate build time based on nova cost and base bonuses
     const buildTimeReduction = base.buildTimeReduction; // % reduction
     const novaCost = structureDef.baseNovaCost;

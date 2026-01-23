@@ -15,7 +15,7 @@ import { ERRORS } from '~/errors'; // v is now imported above with Doc
 import { planetTypesSeedData } from './seed/planetTypesSeed';
 import { researchSeedData } from './seed/researchSeed';
 import { resourceCostSeedData } from './seed/resourceCostSeed';
-import { structuresSeedData } from './seed/structuresSeed';
+import { structuresSeedData } from './seed/structuresSeed.reorganized';
 // ResearchCategory import removed as ResearchDefinitionDoc is removed
 
 const seedProducts = [

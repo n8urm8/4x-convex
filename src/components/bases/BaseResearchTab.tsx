@@ -203,7 +203,7 @@ export function BaseResearchTab() {
               </Label>
             </div>
           <div className="flex items-center justify-between px-4 py-2">
-            <div className="grid grid-cols-6 gap-4 flex-1 text-sm font-medium text-muted-foreground">
+            <div className="grid grid-cols-7 gap-4 flex-1 text-sm font-medium text-muted-foreground">
               <button 
                 className={`text-left hover:text-foreground transition-colors ${sortBy === 'name' ? 'text-foreground' : ''}`}
                 onClick={() => setSortBy('name')}
@@ -223,6 +223,7 @@ export function BaseResearchTab() {
               >
                 Category {sortBy === 'category' && '↓'}
               </button>
+              <div>Costs</div>
               <div>Status</div>
               <div className="text-right">Action</div>
             </div>
@@ -230,7 +231,7 @@ export function BaseResearchTab() {
           {sortedTechnologies.map((tech) => (
             <div 
               key={tech._id}
-              className="grid grid-cols-6 gap-4 p-4 bg-card border rounded-lg items-center"
+              className="grid grid-cols-7 gap-4 p-4 bg-card border rounded-lg items-center"
             >
               <div>
                 <div className="font-medium">{tech.name}</div>
@@ -248,6 +249,19 @@ export function BaseResearchTab() {
               </div>
               <div>
                 <div className="text-sm">{tech.category}</div>
+              </div>
+              <div>
+                <div className="text-sm">
+                  {tech.costs && Object.keys(tech.costs).length > 0 ? (
+                    Object.entries(tech.costs).map(([resource, amount]) => (
+                      <div key={resource}>
+                        {resource.charAt(0).toUpperCase() + resource.slice(1)}: {amount as number}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-muted-foreground">None</div>
+                  )}
+                </div>
               </div>
               <div>
                 {getStatusBadge(tech)}
@@ -339,6 +353,19 @@ export function BaseResearchTab() {
               </div>
               <div>
                 <span className="font-medium">Category:</span> {tech.category}
+              </div>
+              <div>
+                <span className="font-medium">Costs:</span>{' '}
+                {tech.costs && Object.keys(tech.costs).length > 0 ? (
+                  Object.entries(tech.costs).map(([resource, amount], index) => (
+                    <span key={resource}>
+                      {index > 0 && ', '}
+                      {resource.charAt(0).toUpperCase() + resource.slice(1)}: {amount as number}
+                    </span>
+                  ))
+                ) : (
+                  'None'
+                )}
               </div>
             </div>
             
