@@ -4,6 +4,7 @@ import { BaseDetails } from '@/features/bases/types';
 import { Button } from '@/components/ui/button';
 
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { UpgradeTimer } from '@/components/ui/upgrade-timer';
 import { useState } from 'react';
 import { Id } from '@cvx/_generated/dataModel';
@@ -165,8 +166,35 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
   // Remove empty groups
   const nonEmptyGroups = Object.entries(structureGroups).filter(([_, structures]) => structures.length > 0);
 
+  // Calculate usage percentages
+  const energyPercentage = (base.usedEnergy / base.totalEnergy) * 100;
+  const spacePercentage = (base.usedSpace / base.totalSpace) * 100;
+
   return (
     <div className="space-y-6">
+      {/* Resource Usage Display */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-card border border-border rounded-lg">
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm font-medium">
+            <span>Energy Usage</span>
+            <span>{base.usedEnergy} / {base.totalEnergy}</span>
+          </div>
+          <Progress value={energyPercentage} className="h-2" />
+          <p className="text-xs text-muted-foreground">
+            {energyPercentage.toFixed(1)}% used
+          </p>
+        </div>
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm font-medium">
+            <span>Space Usage</span>
+            <span>{base.usedSpace} / {base.totalSpace}</span>
+          </div>
+          <Progress value={spacePercentage} className="h-2" />
+          <p className="text-xs text-muted-foreground">
+            {spacePercentage.toFixed(1)}% used
+          </p>
+        </div>
+      </div>
       {/* Desktop table view */}
       <div className="hidden md:block">
         {nonEmptyGroups.map(([groupName, structures]) => (
