@@ -14,7 +14,15 @@ function GameLayout() {
     return null;
   }
   return (
-    <div className="flex min-h-[100vh] w-full flex-col bg-secondary dark:bg-black">
+    <div 
+      className="flex min-h-[100vh] w-full flex-col"
+      style={{
+        backgroundImage: 'url(/src/assets/backgrounds/space_blue.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       <Navigation user={user} />
       {/* <Header /> */}
       <Outlet />

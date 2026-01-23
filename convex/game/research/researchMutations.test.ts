@@ -24,10 +24,7 @@ describe('Research Mutations', () => {
       subject: `test-admin|${Math.random().toString(36).substring(2)}`,
       name: 'Test Admin',
       username: 'testadmin',
-      role: 'admin',
-      nova: 1000,
-      minerals: 1000,
-      volatiles: 1000
+      role: 'admin'
     };
     t = convexTest(schema).withIdentity(adminUser);
     // Seed the admin user for the tests
@@ -173,10 +170,7 @@ describe('Research Mutations', () => {
         subject: `test-user|${Math.random().toString(36).substring(2)}`,
         name: 'Test User',
         username: 'testuser',
-        role: 'user',
-        nova: 1000,
-        minerals: 1000,
-        volatiles: 1000
+        role: 'user'
       };
       regularUserT = convexTest(schema).withIdentity(regularUser);
       // @ts-expect-error figure this out later

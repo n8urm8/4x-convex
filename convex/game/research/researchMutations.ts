@@ -4,6 +4,11 @@ import { internal } from '../../_generated/api';
 import { Doc, Id } from '../../_generated/dataModel';
 import { getAdminUser, getAuthedUser } from '../../utils';
 import { researchDefinitions, researchDefinitionSchema } from './research.schema';
+import { 
+  hasEnoughResources, 
+  deductResources, 
+  loadResourceCosts 
+} from '../resources/resourceHelpers';
 
 // --- Public Admin Mutations for Research Definitions ---
 
@@ -242,38 +247,16 @@ export const startResearch = mutation({
     }
 
     // --- Resource Cost Resolution ---
-    // Costs are stored per (ownerType, ownerCode, resource) row in resourceCosts.
-    // NOTE: User document resource field names use plural for minerals/volatiles but singular for nova.
-    // We map cost.resource -> user doc key explicitly to avoid silent mismatches.
-    const costRows = await ctx.db
-      .query('resourceCosts')
-      .withIndex('by_owner', (q) =>
-        q.eq('ownerType', 'technology').eq('ownerCode', researchDefinition.code)
-      )
-      .collect();
-
-    type UserResourceKey = 'nova' | 'minerals' | 'volatiles';
-    const resourceToUserKey = (r: string): UserResourceKey | null => {
-      switch (r) {
-        case 'nova':
-          return 'nova';
-        case 'mineral':
-          return 'minerals';
-        case 'volatile':
-          return 'volatiles';
-        default:
-          return null; // Unknown resource type; could be for another ownerType in future.
-      }
-    };
-
-    const getUserResource = (k: UserResourceKey) => user[k] ?? 0;
-    for (const cost of costRows) {
-      const userKey = resourceToUserKey(cost.resource);
-      if (!userKey) continue; // Skip unknown resource types
-      const current = getUserResource(userKey);
-      if (current < cost.amount) {
-        throw new Error(`Insufficient ${cost.resource} to start research.`);
-      }
+    // Load costs from resourceCosts table
+    const costs = await loadResourceCosts(ctx, 'technology', researchDefinition.code);
+    
+    // Check if player has enough resources
+    const check = await hasEnoughResources(ctx, user._id, costs);
+    if (!check.hasEnough) {
+      const missingList = Object.entries(check.missing)
+        .map(([code, amount]) => `${code}: ${amount}`)
+        .join(', ');
+      throw new Error(`Insufficient resources. Missing: ${missingList}`);
     }
 
     if (researchDefinition.prerequisites) {
@@ -294,15 +277,10 @@ export const startResearch = mutation({
     const researchTime = 60 * 5; // 5 minutes for now
     const finishesAt = Date.now() + researchTime * 1000;
 
-    // Deduct resources using the explicit mapping.
-    const resourcePatch: Partial<Pick<Doc<'users'>, 'nova' | 'minerals' | 'volatiles'>> = {};
-    for (const cost of costRows) {
-      const userKey = resourceToUserKey(cost.resource);
-      if (!userKey) continue;
-      resourcePatch[userKey] = (user[userKey] ?? 0) - cost.amount;
-    }
+    // Deduct resources atomically
+    await deductResources(ctx, user._id, costs);
+    
     await ctx.db.patch(user._id, {
-      ...resourcePatch,
       researchingId: args.researchId,
       researchFinishesAt: finishesAt
     });

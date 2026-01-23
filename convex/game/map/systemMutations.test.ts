@@ -16,10 +16,7 @@ describe('System Mutations', () => {
         const userId = await ctx.db.insert('users', {
           name: 'Test User',
           email: mockUserEmail1,
-          subject: mockUserEmail1,
-          nova: 0,
-          minerals: 0,
-          volatiles: 0
+          subject: mockUserEmail1
         });
         const galaxyId = await ctx.db.insert('galaxies', {
           number: 1,
@@ -76,18 +73,12 @@ describe('System Mutations', () => {
         const firstExplorerActualId = await ctx.db.insert('users', {
           name: 'Explorer One',
           email: mockUserEmail1,
-          subject: mockUserEmail1,
-          nova: 0,
-          minerals: 0,
-          volatiles: 0
+          subject: mockUserEmail1
         });
         await ctx.db.insert('users', {
           name: 'Explorer Two',
           email: mockUserEmail2,
-          subject: mockUserEmail2,
-          nova: 0,
-          minerals: 0,
-          volatiles: 0
+          subject: mockUserEmail2
         }); // Second user
 
         const galaxyId = await ctx.db.insert('galaxies', {
@@ -144,10 +135,7 @@ describe('System Mutations', () => {
         const explorerId = await ctx.db.insert('users', {
           name: 'Self Explorer',
           email: mockUserEmail1,
-          subject: mockUserEmail1,
-          nova: 0,
-          minerals: 0,
-          volatiles: 0
+          subject: mockUserEmail1
         });
         const galaxyId = await ctx.db.insert('galaxies', {
           number: 3,
@@ -275,10 +263,7 @@ describe('System Mutations', () => {
         await ctx.db.insert('users', {
           name: 'Finder User',
           email: mockUserEmail1,
-          subject: mockUserEmail1,
-          nova: 0,
-          minerals: 0,
-          volatiles: 0
+          subject: mockUserEmail1
         });
       });
 

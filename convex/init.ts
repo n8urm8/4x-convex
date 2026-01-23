@@ -16,6 +16,7 @@ import { planetTypesSeedData } from './seed/planetTypesSeed';
 import { researchSeedData } from './seed/researchSeed';
 import { resourceCostSeedData } from './seed/resourceCostSeed';
 import { structuresSeedData } from './seed/structuresSeed.reorganized';
+import { resourceDefinitionsSeedData } from './seed/resourceDefinitionsSeed';
 // ResearchCategory import removed as ResearchDefinitionDoc is removed
 
 const seedProducts = [
@@ -134,6 +135,30 @@ export const seedResourceCosts = internalMutation({
   }
 });
 
+export const seedResourceDefinitions = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const existingResourceDefinitions = await ctx.db
+      .query('resourceDefinitions')
+      .collect();
+
+    if (existingResourceDefinitions.length > 0) {
+      console.log(
+        '🔋 Skipping Resource Definitions seeding - definitions already exist.'
+      );
+      return;
+    }
+
+    console.log('🔋 Seeding Resource Definitions...');
+    for (const resource of resourceDefinitionsSeedData) {
+      await ctx.db.insert('resourceDefinitions', resource);
+    }
+    console.info(
+      `🔋 ${resourceDefinitionsSeedData.length} Resource Definitions have been successfully seeded.`
+    );
+  }
+});
+
 export default internalAction({
   args: {},
   returns: v.null(),
@@ -160,6 +185,11 @@ export default internalAction({
         `🪐 ${planetTypesSeedData.length} Planet Types have been successfully seeded.`
       );
     }
+
+    /**
+     * Resource Definitions
+     */
+    await ctx.runMutation(internal.init.seedResourceDefinitions, {});
 
     // (Resource costs now seeded after research definitions to ensure codes exist.)
 

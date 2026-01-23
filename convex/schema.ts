@@ -9,6 +9,11 @@ import {
 } from './game/bases/bases.schema';
 import { researchDefinitions } from './game/research/research.schema';
 import { resourceCosts } from './game/resources/resourceCosts.schema';
+import { 
+  resourceDefinitions, 
+  playerResources, 
+  baseResources 
+} from './game/resources/resources.schema';
 import { playerTechnologies } from './game/research/playerResearch.schema';
 import { fleets, playerShips, shipBlueprints } from './game/ships/ships.schema';
 
@@ -73,10 +78,7 @@ const schema = defineSchema({
     role: v.optional(roleValidator),
     subject: v.optional(v.string()),
     researchingId: v.optional(v.id('researchDefinitions')),
-    researchFinishesAt: v.optional(v.number()),
-    nova: v.number(),
-    minerals: v.number(),
-    volatiles: v.number()
+    researchFinishesAt: v.optional(v.number())
   })
     .index('email', ['email'])
     .index('customerId', ['customerId'])
@@ -212,6 +214,11 @@ const schema = defineSchema({
   // Research definitions
   researchDefinitions,
   playerTechnologies,
+  
+  // Resource definitions and tracking
+  resourceDefinitions,
+  playerResources,
+  baseResources,
   resourceCosts,
 
   // Ship definitions

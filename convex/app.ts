@@ -5,6 +5,7 @@ import { currencyValidator, PLANS } from "@cvx/schema";
 import { asyncMap } from "convex-helpers";
 import { v } from "convex/values";
 import { User } from "~/types";
+import { getPlayerResourcesMap } from "./game/resources/resourceHelpers";
 
 export const getCurrentUser = query({
   args: {},
@@ -68,10 +69,14 @@ export const getCurrentUserResources = query({
     if (!user) {
       return null;
     }
+    
+    // Get resources from playerResources table
+    const resources = await getPlayerResourcesMap(ctx, userId);
+    
     return {
-      nova: user.nova || 0,
-      minerals: user.minerals || 0,
-      volatiles: user.volatiles || 0,
+      nova: resources.nova || 0,
+      minerals: resources.mineral || 0,
+      volatiles: resources.volatile || 0,
     };
   },
 });

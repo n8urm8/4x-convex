@@ -22,10 +22,28 @@ export const getOrCreateUser = internalMutation({
     const userId = await ctx.db.insert("users", {
       email: args.email,
       emailVerificationTime: Date.now(),
-      nova: 0,
-      minerals: 1000,
-      volatiles: 500,
     });
+
+    // Initialize player resources
+    const resourceDefinitions = await ctx.db
+      .query("resourceDefinitions")
+      .collect();
+
+    for (const resourceDef of resourceDefinitions) {
+      let initialAmount = 0;
+      
+      // Set starting amounts
+      if (resourceDef.code === 'nova') initialAmount = 0;
+      else if (resourceDef.code === 'mineral') initialAmount = 1000;
+      else if (resourceDef.code === 'volatile') initialAmount = 500;
+      
+      await ctx.db.insert("playerResources", {
+        userId,
+        resourceDefinitionId: resourceDef._id,
+        amount: initialAmount,
+        lastUpdated: Date.now(),
+      });
+    }
 
     return userId;
   },

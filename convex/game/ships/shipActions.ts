@@ -2,6 +2,10 @@ import { v } from 'convex/values';
 import { getAuthedUser } from '@cvx/utils';
 import { internalMutation, mutation, query } from '../../_generated/server';
 import { shipBlueprintsData } from './shipBlueprints';
+import { 
+  getPlayerResourceAmount,
+  modifyPlayerResource 
+} from '../resources/resourceHelpers';
 
 // Helper function to calculate fleet stats from ships
 async function calculateFleetStats(ctx: any, fleetId: any) {
@@ -123,7 +127,8 @@ export const buildShip = mutation({
     // 2. Check player resources
     const totalCost = blueprint.novaCost * quantity;
 
-    if (user.nova < totalCost) {
+    const currentNova = await getPlayerResourceAmount(ctx, user._id, 'nova');
+    if (currentNova < totalCost) {
       throw new Error('Insufficient nova to build ship(s).');
     }
 
@@ -180,9 +185,7 @@ export const buildShip = mutation({
     }
 
     // 5. All checks passed, proceed with building
-    await ctx.db.patch(user._id, {
-      nova: user.nova - totalCost
-    });
+    await modifyPlayerResource(ctx, user._id, 'nova', -totalCost);
 
     // 6. Find or create base fleet for this base
     let baseFleet = await ctx.db
@@ -337,7 +340,7 @@ export const getShipBlueprintsForBase = query({
     const playerResearchedIds = new Set(playerTechnologies.map(pt => pt.researchDefinitionId));
     
     // Combine blueprints with requirement checks
-    const blueprintsWithRequirements = blueprints.map(blueprint => {
+    const blueprintsWithRequirements = blueprints.map(async blueprint => {
       // Check structure requirement
       const requiredStructureDef = structureDefsMap.get(blueprint.requiredStructure);
       const hasRequiredStructure = requiredStructureDef ? 
@@ -349,7 +352,8 @@ export const getShipBlueprintsForBase = query({
         playerResearchedIds.has(requiredTechDef._id) : false;
       
       // Check resource requirements
-      const hasEnoughNova = user.nova >= blueprint.novaCost;
+      const currentNova = await getPlayerResourceAmount(ctx, user._id, 'nova');
+      const hasEnoughNova = currentNova >= blueprint.novaCost;
       
       const canBuild = hasRequiredStructure && hasRequiredTechnology && hasEnoughNova;
       
@@ -373,12 +377,17 @@ export const getShipBlueprintsForBase = query({
       };
     });
     
+    // Get all player resources
+    const nova = await getPlayerResourceAmount(ctx, user._id, 'nova');
+    const minerals = await getPlayerResourceAmount(ctx, user._id, 'mineral');
+    const volatiles = await getPlayerResourceAmount(ctx, user._id, 'volatile');
+    
     return {
       blueprints: blueprintsWithRequirements,
       playerResources: {
-        nova: user.nova,
-        minerals: user.minerals,
-        volatiles: user.volatiles
+        nova,
+        minerals,
+        volatiles
       }
     };
   }

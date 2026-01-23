@@ -6,6 +6,10 @@ import { Doc, Id } from '../../_generated/dataModel';
 import { api } from '../../_generated/api';
 import { getAdminUser, getAuthedUser } from '../../utils';
 import { structureDefinitions } from './bases.schema';
+import { 
+  getPlayerResourceAmount,
+  modifyPlayerResource 
+} from '../resources/resourceHelpers';
 
 // Helper to get user and check base ownership
 const checkBaseOwnership = async (ctx: MutationCtx | QueryCtx, baseId: Id<'playerBases'>) => {
@@ -436,7 +440,8 @@ export const startStructureUpgrade = mutation({
     const upgradeEnergyCost = structureDef.baseEnergyCost * nextLevel;
 
     // Check resources
-    if (user.nova < upgradeNovaCost) {
+    const currentNova = await getPlayerResourceAmount(ctx, user._id, 'nova');
+    if (currentNova < upgradeNovaCost) {
       throw new Error('Insufficient Nova for upgrade.');
     }
 
@@ -445,9 +450,7 @@ export const startStructureUpgrade = mutation({
     }
 
     // Deduct resources
-    await ctx.db.patch(user._id, {
-      nova: user.nova - upgradeNovaCost
-    });
+    await modifyPlayerResource(ctx, user._id, 'nova', -upgradeNovaCost);
 
     // Update base energy usage
     await ctx.db.patch(base._id, {
