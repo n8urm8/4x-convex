@@ -2,7 +2,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { useState, useEffect } from 'react';
 import { api } from '@cvx/_generated/api';
 import { Id } from '@cvx/_generated/dataModel';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -229,10 +229,8 @@ export function BaseResearchTab() {
             </div>
           </div>
           {sortedTechnologies.map((tech) => (
-            <div 
-              key={tech._id}
-              className="grid grid-cols-7 gap-4 p-4 bg-card border rounded-lg items-center"
-            >
+            <Card key={tech._id}>
+              <CardContent className="grid grid-cols-7 gap-4 pt-6 items-center">
               <div>
                 <div className="font-medium">{tech.name}</div>
               </div>
@@ -285,7 +283,8 @@ export function BaseResearchTab() {
                       : 'Research'}
                 </Button>
               </div>
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>
@@ -328,10 +327,8 @@ export function BaseResearchTab() {
         </div>
         
         {sortedTechnologies.map((tech) => (
-          <div 
-            key={tech._id} 
-            className="border rounded-lg p-4 bg-card"
-          >
+          <Card key={tech._id}>
+            <CardContent className="pt-6">
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
                 <h3 className="font-medium">{tech.name}</h3>
@@ -388,7 +385,8 @@ export function BaseResearchTab() {
                     : 'Research'}
               </Button>
             </div>
-          </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>

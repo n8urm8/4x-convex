@@ -2,7 +2,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { api } from '@cvx/_generated/api';
 import { BaseDetails } from '@/features/bases/types';
 import { Button } from '@/components/ui/button';
-
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { UpgradeTimer } from '@/components/ui/upgrade-timer';
@@ -173,7 +173,8 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
   return (
     <div className="space-y-6">
       {/* Resource Usage Display */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-card border border-border rounded-lg">
+      <Card>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
         <div className="space-y-2">
           <div className="flex justify-between text-sm font-medium">
             <span>Energy Usage</span>
@@ -194,7 +195,8 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
             {spacePercentage.toFixed(1)}% used
           </p>
         </div>
-      </div>
+        </CardContent>
+      </Card>
       {/* Desktop table view */}
       <div className="hidden md:block">
         {nonEmptyGroups.map(([groupName, structures]) => (
@@ -223,10 +225,8 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
                 (!definition.maxLevel || level < definition.maxLevel);
               
               return (
-                <div 
-                  key={definition._id}
-                  className="grid grid-cols-6 gap-4 p-4 bg-card border rounded-lg items-center"
-                >
+                <Card key={definition._id}>
+                  <CardContent className="grid grid-cols-6 gap-4 pt-6 items-center">
                   <div>
                     <div className="font-medium">{definition.name}</div>
                     <div className="text-sm text-muted-foreground">{definition.description}</div>
@@ -301,7 +301,8 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
                       </Button>
                     )}
                   </div>
-                </div>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
@@ -328,10 +329,8 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
                 (!definition.maxLevel || level < definition.maxLevel);
               
               return (
-                <div 
-                  key={definition._id} 
-                  className="border rounded-lg p-4 bg-card"
-                >
+                <Card key={definition._id}>
+                  <CardContent className="pt-6">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <h3 className="font-medium">{definition.name}</h3>
@@ -408,7 +407,8 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
                       </Button>
                     )}
                   </div>
-                </div>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>

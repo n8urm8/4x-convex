@@ -2,6 +2,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { api } from '@cvx/_generated/api';
 import { BaseDetails } from '@/features/bases/types';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -77,10 +78,8 @@ export function BaseShipyardsTab({ base }: { base: BaseDetails }) {
             const isAnyActionInProgress = isBuilding !== null;
             
             return (
-              <div 
-                key={blueprint.id}
-                className="grid grid-cols-7 gap-4 p-4 bg-card border rounded-lg items-center"
-              >
+              <Card key={blueprint.id}>
+                <CardContent className="grid grid-cols-7 gap-4 pt-6 items-center">
                 <div>
                   <div className="font-medium">{blueprint.name}</div>
                   <div className="text-sm text-muted-foreground">{blueprint.weaponType} Weapon</div>
@@ -132,7 +131,8 @@ export function BaseShipyardsTab({ base }: { base: BaseDetails }) {
                     {isBuildingThis ? 'Building...' : blueprint.canBuild ? 'Build' : 'Cannot Build'}
                   </Button>
                 </div>
-              </div>
+                </CardContent>
+              </Card>
             );
           })}
         </div>
@@ -145,10 +145,8 @@ export function BaseShipyardsTab({ base }: { base: BaseDetails }) {
           const isAnyActionInProgress = isBuilding !== null;
           
           return (
-            <div 
-              key={blueprint.id} 
-              className="border rounded-lg p-4 bg-card"
-            >
+            <Card key={blueprint.id}>
+              <CardContent className="pt-6">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <h3 className="font-medium">{blueprint.name}</h3>
@@ -203,7 +201,8 @@ export function BaseShipyardsTab({ base }: { base: BaseDetails }) {
                   {isBuildingThis ? 'Building...' : blueprint.canBuild ? 'Build' : 'Cannot Build'}
                 </Button>
               </div>
-            </div>
+              </CardContent>
+            </Card>
           );
         })}
       </div>

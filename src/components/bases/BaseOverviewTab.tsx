@@ -1,13 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { BaseDetails } from '@/features/bases/types';
+import { getPlanetImage } from '@/lib/planet-images';
 import { convexQuery } from '@convex-dev/react-query';
 import { api } from '@cvx/_generated/api';
-import { BaseDetails } from '@/features/bases/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { getPlanetImage } from '@/lib/planet-images';
-import { Clock, MapPin, Zap, Box, Wrench, Rocket, FlaskConical, TrendingUp } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Box, FlaskConical, MapPin, Rocket, TrendingUp, Wrench, Zap } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link } from '@tanstack/react-router';
 
 function CountdownTimer({ finishesAt, onComplete }: { finishesAt: number; onComplete?: () => void }) {
   const [timeLeft, setTimeLeft] = useState(0);
@@ -95,7 +96,24 @@ export function BaseOverviewTab({ base }: { base: BaseDetails }) {
                 <p className="text-sm text-muted-foreground">{planetType?.description}</p>
               </div>
               <div className="text-sm">
-                <div><strong>Location:</strong> G{base.galaxyNumber}-S{base.sectorX}.{base.sectorY}-S{base.systemX}.{base.systemY}-P{base.planetX}.{base.planetY}</div>
+                <div>
+                  <strong>Location:</strong>{' '}
+                  <Link
+                    to="/game/map/$galaxyNumber"
+                    params={{ galaxyNumber: base.galaxyNumber.toString() }}
+                    search={{
+                      sectorX: base.sectorX,
+                      sectorY: base.sectorY,
+                      systemX: base.systemX,
+                      systemY: base.systemY,
+                      planetX: base.planetX,
+                      planetY: base.planetY
+                    }}
+                    className="text-primary hover:underline"
+                  >
+                    G{base.galaxyNumber}-S{base.sectorX}.{base.sectorY}-S{base.systemX}.{base.systemY}-P{base.planetX}.{base.planetY}
+                  </Link>
+                </div>
                 {planetType && (
                   <div className="mt-1">
                     <strong>Planet Bonuses:</strong> Space +{planetType.space}, Energy +{planetType.energy}, 
