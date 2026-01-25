@@ -25,7 +25,7 @@ describe('Galaxy Generation', () => {
     // Verify the galaxy was created
     const galaxy = await t.run(async (ctx) => {
       return await ctx.db.get(result.galaxyId);
-    });
+    }) as Doc<'galaxies'> | null;
 
     expect(galaxy).toBeTruthy();
     expect(galaxy?.number).toBe(0); // First galaxy should be number 0
@@ -76,11 +76,11 @@ describe('Galaxy Generation', () => {
     // Verify galaxy numbers increment
     const galaxy1 = await t.run(async (ctx) => {
       return await ctx.db.get(result1.galaxyId);
-    });
+    }) as Doc<'galaxies'> | null;
 
     const galaxy2 = await t.run(async (ctx) => {
       return await ctx.db.get(result2.galaxyId);
-    });
+    }) as Doc<'galaxies'> | null;
 
     expect(galaxy1?.number).toBe(0);
     expect(galaxy2?.number).toBe(1);
@@ -415,7 +415,7 @@ describe('Galaxy Generation', () => {
     // Verify galaxy was created
     const galaxy = await t.run(async (ctx) => {
       return await ctx.db.get(galaxyResult.galaxyId);
-    });
+    }) as Doc<'galaxies'> | null;
 
     expect(galaxy).toBeTruthy();
     expect(galaxy?.groupId).toBe('complete-test');

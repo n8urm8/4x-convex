@@ -1,5 +1,6 @@
 import { internalMutation } from "../_generated/server";
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
 
 /**
  * Internal helper to get or create a user by email for dev authentication.
@@ -44,6 +45,13 @@ export const getOrCreateUser = internalMutation({
         lastUpdated: Date.now(),
       });
     }
+
+    // Create starting base for the new user
+    await ctx.scheduler.runAfter(
+      0,
+      internal.game.bases.baseInitialization.createStartingBase,
+      { userId }
+    );
 
     return userId;
   },
