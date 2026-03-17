@@ -91,6 +91,37 @@ export const insertStructure = internalMutation({
   }
 });
 
+/**
+ * One-off migration: update existing structure definitions' baseSpaceCost and baseEnergyCost
+ * from the current seed data (by name). Use this after changing the seed so existing DB
+ * rows get the new values without clearing tables.
+ * Run with: npx convex run init:syncStructureCostsFromSeed
+ */
+export const syncStructureCostsFromSeed = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const seedByName = new Map(structuresSeedData.map((s) => [s.name, s]));
+    const existing = await ctx.db.query('structureDefinitions').collect();
+    if (!existing.length) {
+      console.log('No structure definitions to update.');
+      return;
+    }
+    let updated = 0;
+    for (const def of existing) {
+      const seed = seedByName.get(def.name);
+      if (!seed) continue;
+      if (def.baseSpaceCost !== seed.baseSpaceCost || def.baseEnergyCost !== seed.baseEnergyCost) {
+        await ctx.db.patch(def._id, {
+          baseSpaceCost: seed.baseSpaceCost,
+          baseEnergyCost: seed.baseEnergyCost
+        });
+        updated += 1;
+      }
+    }
+    console.log(`Updated ${updated} structure definition(s) with seed costs.`);
+  }
+});
+
 // Seed Research Definitions
 export const insertResearchDefinition = internalMutation({
   args: schema.tables.researchDefinitions.validator,

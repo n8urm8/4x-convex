@@ -340,7 +340,7 @@ export const getShipBlueprintsForBase = query({
     const playerResearchedIds = new Set(playerTechnologies.map(pt => pt.researchDefinitionId));
     
     // Combine blueprints with requirement checks
-    const blueprintsWithRequirements = blueprints.map(async blueprint => {
+    const blueprintsWithRequirements = await Promise.all(blueprints.map(async blueprint => {
       // Check structure requirement
       const requiredStructureDef = structureDefsMap.get(blueprint.requiredStructure);
       const hasRequiredStructure = requiredStructureDef ? 
@@ -375,7 +375,7 @@ export const getShipBlueprintsForBase = query({
         },
         canBuild
       };
-    });
+    }));
     
     // Get all player resources
     const nova = await getPlayerResourceAmount(ctx, user._id, 'nova');
