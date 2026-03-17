@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 import { internalMutation, MutationCtx, mutation } from '../../_generated/server';
 import { Id } from '../../_generated/dataModel';
 import { getAuthedUser } from '../../utils';
+import { BASE_ENERGY, BASE_SPACE } from './constants';
 
 const SYSTEM_SIZE = 9;
 
@@ -175,6 +176,10 @@ async function createBaseOnPlanet(
 ) {
   const planetType = planet.type;
   
+  // Base capacity all bases start with; planet type adds on top
+  const totalSpace = BASE_SPACE + (planetType.space ?? 0);
+  const totalEnergy = BASE_ENERGY + (planetType.energy ?? 0);
+
   // Create the base
   const baseId = await ctx.db.insert('playerBases', {
     userId,
@@ -187,9 +192,9 @@ async function createBaseOnPlanet(
     systemY: planet.systemY,
     planetX: planet.planetX,
     planetY: planet.planetY,
-    totalSpace: planetType.space,
+    totalSpace,
     usedSpace: 0,
-    totalEnergy: planetType.energy,
+    totalEnergy,
     usedEnergy: 0,
     researchPerCycle: 0,
     novaPerCycle: 0,

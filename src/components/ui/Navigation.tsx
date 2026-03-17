@@ -1,3 +1,6 @@
+import { useQuery } from '@tanstack/react-query';
+import { convexQuery } from '@convex-dev/react-query';
+import { api } from '@cvx/_generated/api';
 import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button-util';
 import {
@@ -33,6 +36,10 @@ export function Navigation({
   const isMapPath = matchRoute({ to: '/game/map' });
   const isBasesPath = matchRoute({ to: '/game/bases' });
   const isFleetsPath = matchRoute({ to: '/game/fleets' });
+
+  const { data: resources } = useQuery({
+    ...convexQuery(api.app.getCurrentUserResources, {}),
+  });
 
   if (!user) {
     return null;
@@ -81,7 +88,20 @@ export function Navigation({
           </Link>
         </div>
 
-        <div className="flex h-10 items-center gap-3">
+        <div className="flex h-10 items-center gap-4">
+          {resources != null && (
+            <div className="flex gap-4 text-sm text-primary/80">
+              <span>
+                Nova: <span className="font-medium text-yellow-600">{resources.nova.toLocaleString()}</span>
+              </span>
+              <span>
+                Minerals: <span className="font-medium text-blue-600">{resources.minerals.toLocaleString()}</span>
+              </span>
+              <span>
+                Volatiles: <span className="font-medium text-purple-600">{resources.volatiles.toLocaleString()}</span>
+              </span>
+            </div>
+          )}
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 rounded-full">

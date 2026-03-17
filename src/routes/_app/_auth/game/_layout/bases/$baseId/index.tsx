@@ -3,7 +3,6 @@ import { BaseDefensesTab } from '@/components/bases/BaseDefensesTab';
 import { BaseResearchTab } from '@/components/bases/BaseResearchTab';
 import { BaseShipyardsTab } from '@/components/bases/BaseShipyardsTab';
 import { BaseStructuresTab } from '@/components/bases/BaseStructuresTab';
-import { ResourcesDisplay } from '@/components/ui/resources-display';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { convexQuery } from '@convex-dev/react-query';
 import { useQuery } from '@tanstack/react-query';
@@ -40,9 +39,9 @@ function BasePage() {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">{base.name}</h1>
-      <ResourcesDisplay />
       <Tabs defaultValue="overview">
+    <div className="flex items-center justify-between mb-4">
+      <h1 className="text-2xl font-bold mb-4">{base.name}</h1>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="structures">Structures</TabsTrigger>
@@ -50,6 +49,7 @@ function BasePage() {
           <TabsTrigger value="shipyards">Shipyards</TabsTrigger>
           <TabsTrigger value="research">Research</TabsTrigger>
         </TabsList>
+        </div>
         <TabsContent value="overview">
           <BaseOverviewTab base={base} />
         </TabsContent>

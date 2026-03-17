@@ -6,7 +6,7 @@ export const structuresSeedData: StructureDefinitionSeed[] = [
     name: 'Hab Dome',
     category: STRUCTURE_CATEGORIES.HABITAT,
     description: 'Hab Dome',
-    baseSpaceCost: 5,
+    baseSpaceCost: 0, // Space providers don't consume space
     baseEnergyCost: 2,
     baseNovaCost: 300,
     effects: '=+10 Space',
@@ -16,7 +16,7 @@ export const structuresSeedData: StructureDefinitionSeed[] = [
     name: 'Terraforming Station',
     category: STRUCTURE_CATEGORIES.HABITAT,
     description: 'Terraforming Station',
-    baseSpaceCost: 8,
+    baseSpaceCost: 0, // Space providers don't consume space
     baseEnergyCost: 3,
     baseNovaCost: 500,
     researchRequirementName: 'Planetary Adaptation',
@@ -27,7 +27,7 @@ export const structuresSeedData: StructureDefinitionSeed[] = [
     name: 'Orbital Habitat',
     category: STRUCTURE_CATEGORIES.HABITAT,
     description: 'Orbital Habitat',
-    baseSpaceCost: 12,
+    baseSpaceCost: 0, // Space providers don't consume space
     baseEnergyCost: 4,
     baseNovaCost: 800,
     researchRequirementName: 'Zero-G Construction',
@@ -38,7 +38,7 @@ export const structuresSeedData: StructureDefinitionSeed[] = [
     name: 'Subterranean Complex',
     category: STRUCTURE_CATEGORIES.HABITAT,
     description: 'Subterranean Complex',
-    baseSpaceCost: 15,
+    baseSpaceCost: 0, // Space providers don't consume space
     baseEnergyCost: 5,
     baseNovaCost: 1200,
     researchRequirementName: 'Advanced Excavation',
@@ -49,8 +49,8 @@ export const structuresSeedData: StructureDefinitionSeed[] = [
     name: 'Megastructure Hub',
     category: STRUCTURE_CATEGORIES.HABITAT,
     description: 'Megastructure Hub',
-    baseSpaceCost: 25,
-    baseEnergyCost: 8,
+    baseSpaceCost: 0, // Space providers don't consume space
+    baseEnergyCost: 0, // Also provides energy; energy providers don't consume energy
     baseNovaCost: 2000,
     researchRequirementName: 'Megaengineering',
     effects: '=+40 Space, +2 Energy',
@@ -287,7 +287,7 @@ export const structuresSeedData: StructureDefinitionSeed[] = [
     category: STRUCTURE_CATEGORIES.UTILITY,
     description: 'Power Plant',
     baseSpaceCost: 10,
-    baseEnergyCost: -5, // Note: Negative energy cost means it produces energy
+    baseEnergyCost: 0, // Energy providers don't consume energy
     baseNovaCost: 400,
     effects: '=+10 Energy',
     upgradeBenefits: '=+5 Energy per level',
@@ -297,7 +297,7 @@ export const structuresSeedData: StructureDefinitionSeed[] = [
     category: STRUCTURE_CATEGORIES.UTILITY,
     description: 'Energy Nexus',
     baseSpaceCost: 15,
-    baseEnergyCost: -10,
+    baseEnergyCost: 0, // Energy providers don't consume energy
     baseNovaCost: 800,
     researchRequirementName: 'Advanced Energy',
     effects: '=+15 Energy',

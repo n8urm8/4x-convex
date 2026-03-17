@@ -82,6 +82,7 @@ export default function OnboardingUsername() {
               <Input
                 placeholder="Username"
                 autoComplete="off"
+                autoFocus
                 required
                 value={field.state.value}
                 onBlur={field.handleBlur}

@@ -109,10 +109,14 @@ export function NavBar({
           </button>
         </div>
       </nav>
-      {/* Mobile panel */}
+      {/* Mobile panel - fixed overlay so it doesn't shift page content */}
       <div
         className={cn(
-          'lg:hidden px-6 pb-6 pt-2 space-y-4 origin-top animate-in fade-in-50 slide-in-from-top-4',
+          'fixed inset-x-0 top-12 z-40 lg:hidden px-6 pb-6 pt-2 space-y-4 origin-top animate-in fade-in-50 slide-in-from-top-4',
+          'shadow-lg',
+          variant === 'transparent'
+            ? 'bg-background/40 backdrop-blur supports-[backdrop-filter]:bg-background/30 border-b border-white/5'
+            : 'bg-background/80 backdrop-blur border-b border-border',
           !open && 'hidden'
         )}
       >

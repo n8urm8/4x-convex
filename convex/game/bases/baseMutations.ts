@@ -10,6 +10,7 @@ import {
   getPlayerResourceAmount,
   modifyPlayerResource 
 } from '../resources/resourceHelpers';
+import { BASE_ENERGY, BASE_SPACE } from './constants';
 
 // Helper to get user and check base ownership
 const checkBaseOwnership = async (ctx: MutationCtx | QueryCtx, baseId: Id<'playerBases'>) => {
@@ -86,9 +87,9 @@ export const createBase = mutation({
       throw new Error('A base already exists on this planet.');
     }
     
-    // Calculate initial base stats based on planet type
-    const initialSpace = 20 + (planetType.space || 0);
-    const initialEnergy = 10 + (planetType.energy || 0);
+    // All bases start with shared base capacity; planet type adds on top
+    const initialSpace = BASE_SPACE + (planetType.space || 0);
+    const initialEnergy = BASE_ENERGY + (planetType.energy || 0);
     const initialMinerals = 2 + (planetType.minerals || 0);
     const initialVolatiles = 1 + (planetType.volatiles || 0);
     
