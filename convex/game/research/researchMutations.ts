@@ -3,6 +3,7 @@ import { internalMutation, mutation } from '../../_generated/server';
 import { internal } from '../../_generated/api';
 import { Doc, Id } from '../../_generated/dataModel';
 import { getAdminUser, getAuthedUser } from '../../utils';
+import { assertDevGameTools } from '../../devTools';
 import { researchDefinitions, researchDefinitionSchema } from './research.schema';
 import { 
   hasEnoughResources, 
@@ -315,6 +316,32 @@ export const completeResearch = mutation({
 
     return { success: true };
   }
+});
+
+/** Finishes the active research immediately, ignoring the scheduled finish time. */
+export const instantCompleteResearch = mutation({
+  args: {},
+  handler: async (ctx) => {
+    assertDevGameTools();
+    const user = await getAuthedUser(ctx);
+
+    if (!user.researchingId) {
+      throw new Error('You are not currently researching anything.');
+    }
+
+    await ctx.db.insert('playerTechnologies', {
+      userId: user._id,
+      researchDefinitionId: user.researchingId,
+      researchedAt: Date.now(),
+    });
+
+    await ctx.db.patch(user._id, {
+      researchingId: undefined,
+      researchFinishesAt: undefined,
+    });
+
+    return { success: true };
+  },
 });
 
 // Check if user's current research is complete and auto-complete it

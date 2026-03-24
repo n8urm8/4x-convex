@@ -3,6 +3,11 @@ import { v } from 'convex/values';
 import { internalQuery, query } from '../../_generated/server';
 import { structureCategoryValidator } from './bases.schema';
 import { getAuthedUser } from '@cvx/utils';
+import {
+  parseStructureEffectsField,
+  scaleParsedEffectsForLevel,
+} from './structureEffects';
+import { countPlayerBases } from './baseEconomy';
 
 // Get all structure definitions (public query)
 export const getAllStructureDefinitions = query({
@@ -404,31 +409,12 @@ export const getStructureEffectsAtLevel = query({
       throw new Error('Structure definition not found');
     }
 
-    // Get the base effects
-    const effects = structure.effects || {};
-    const level = args.level;
-
-    // Calculate effects at the specified level
-    // For level 1, it's just the base effects
-    // For levels > 1, each effect scales based on the effect value
-    const effectsAtLevel: Record<string, number> = {};
-
-    Object.entries(effects).forEach(([key, value]) => {
-      if (typeof value === 'number') {
-        // For level 1, use the base value
-        if (level === 1) {
-          effectsAtLevel[key] = value;
-        } else {
-          // For higher levels, calculate based on level
-          // Each level after 1 adds the effect value again
-          effectsAtLevel[key] = value * level;
-        }
-      }
-    });
+    const baseEffects = parseStructureEffectsField(structure.effects ?? '');
+    const effectsAtLevel = scaleParsedEffectsForLevel(baseEffects, args.level);
 
     return {
-      level,
-      effects: effectsAtLevel
+      level: args.level,
+      effects: effectsAtLevel,
     };
   }
 });
@@ -544,9 +530,49 @@ export const getBaseDetails = query({
       })
     );
 
+    const queueRows = await ctx.db
+      .query('baseStructureBuildQueue')
+      .withIndex('by_base_queued', (q) => q.eq('baseId', args.baseId))
+      .order('asc')
+      .collect();
+
+    const empireBaseCount = await countPlayerBases(ctx, base.userId);
+
+    const structureBuildQueue = await Promise.all(
+      queueRows.map(async (row) => {
+        if (row.kind === 'build' && row.structureDefId) {
+          const def = await ctx.db.get(row.structureDefId);
+          return {
+            _id: row._id,
+            kind: 'build' as const,
+            queuedAt: row.queuedAt,
+            label: def?.name ?? 'Structure',
+          };
+        }
+        if (row.kind === 'upgrade' && row.structureId) {
+          const st = await ctx.db.get(row.structureId);
+          const def = st ? await ctx.db.get(st.structureDefId) : null;
+          return {
+            _id: row._id,
+            kind: 'upgrade' as const,
+            queuedAt: row.queuedAt,
+            label: def?.name ?? 'Structure',
+          };
+        }
+        return {
+          _id: row._id,
+          kind: row.kind,
+          queuedAt: row.queuedAt,
+          label: 'Unknown',
+        };
+      })
+    );
+
     return {
       ...base,
-      structures: structuresWithDetails
+      structures: structuresWithDetails,
+      structureBuildQueue,
+      empireBaseCount,
     };
   }
 });

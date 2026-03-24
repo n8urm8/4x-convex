@@ -1,7 +1,9 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { BaseDevGameToolbar } from '@/components/bases/BaseDevGameToolbar';
 import { BaseDetails } from '@/features/bases/types';
+import { effectiveNovaPerHourFromBase } from '@cvx/game/bases/constants';
 import { getPlanetImage } from '@/lib/planet-images';
 import { convexQuery } from '@convex-dev/react-query';
 import { api } from '@cvx/_generated/api';
@@ -57,7 +59,10 @@ export function BaseOverviewTab({ base }: { base: BaseDetails }) {
 
   // Calculate resource production per hour
   const productionBonus = 1 + (base.allProductionBonus / 100);
-  const novaPerHour = Math.round(base.novaPerCycle * productionBonus);
+  const empireBaseCount = base.empireBaseCount ?? 1;
+  const novaPerHour = Math.round(
+    effectiveNovaPerHourFromBase(base.novaPerCycle, empireBaseCount) * productionBonus
+  );
   const mineralsPerHour = Math.round(base.mineralsPerCycle * productionBonus);
   const volatilesPerHour = Math.round(base.volatilesPerCycle * productionBonus);
   const researchPerHour = Math.round(base.researchPerCycle * (1 + base.researchSpeed / 100));
@@ -73,6 +78,7 @@ export function BaseOverviewTab({ base }: { base: BaseDetails }) {
 
   return (
     <div className="space-y-6">
+      <BaseDevGameToolbar />
       {/* Planet and Location Info */}
       <Card>
         <CardHeader>

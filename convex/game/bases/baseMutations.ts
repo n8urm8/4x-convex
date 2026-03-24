@@ -5,12 +5,22 @@ import { v } from 'convex/values';
 import { Doc, Id } from '../../_generated/dataModel';
 import { api } from '../../_generated/api';
 import { getAdminUser, getAuthedUser } from '../../utils';
-import { structureDefinitions } from './bases.schema';
+import { structureDefinitions, STRUCTURE_CATEGORIES } from './bases.schema';
 import { 
   getPlayerResourceAmount,
   modifyPlayerResource 
 } from '../resources/resourceHelpers';
-import { BASE_ENERGY, BASE_SPACE } from './constants';
+import { assertDevGameTools } from '../../devTools';
+import {
+  BASE_ENERGY,
+  BASE_SPACE,
+  effectiveNovaPerHourFromBase,
+} from './constants';
+import { countPlayerBases } from './baseEconomy';
+import {
+  parseStructureEffectsField,
+  scaleParsedEffectsForLevel,
+} from './structureEffects';
 
 // Helper to get user and check base ownership
 const checkBaseOwnership = async (ctx: MutationCtx | QueryCtx, baseId: Id<'playerBases'>) => {
@@ -27,6 +37,359 @@ const checkBaseOwnership = async (ctx: MutationCtx | QueryCtx, baseId: Id<'playe
 
   return { user, base };
 };
+
+async function hasActiveStructureWorkOnBase(
+  ctx: MutationCtx,
+  baseId: Id<'playerBases'>
+): Promise<boolean> {
+  const active = await ctx.db
+    .query('baseStructures')
+    .withIndex('by_upgrading', (q) => q.eq('baseId', baseId).eq('upgrading', true))
+    .first();
+  return active !== null;
+}
+
+async function sumQueuedBuildFootprintExcluding(
+  ctx: MutationCtx,
+  baseId: Id<'playerBases'>,
+  excludeQueueEntryId?: Id<'baseStructureBuildQueue'>
+): Promise<{ space: number; energy: number }> {
+  const rows = await ctx.db
+    .query('baseStructureBuildQueue')
+    .withIndex('by_base_queued', (q) => q.eq('baseId', baseId))
+    .collect();
+
+  let space = 0;
+  let energy = 0;
+  for (const row of rows) {
+    if (excludeQueueEntryId && row._id === excludeQueueEntryId) continue;
+    if (row.kind !== 'build' || !row.structureDefId) continue;
+    const def = await ctx.db.get(row.structureDefId);
+    if (def) {
+      space += def.baseSpaceCost;
+      energy += def.baseEnergyCost;
+    }
+  }
+  return { space, energy };
+}
+
+async function queueHasPendingBuildForDef(
+  ctx: MutationCtx,
+  baseId: Id<'playerBases'>,
+  structureDefId: Id<'structureDefinitions'>
+): Promise<boolean> {
+  const rows = await ctx.db
+    .query('baseStructureBuildQueue')
+    .withIndex('by_base_queued', (q) => q.eq('baseId', baseId))
+    .collect();
+  return rows.some(
+    (r) => r.kind === 'build' && r.structureDefId === structureDefId
+  );
+}
+
+async function queueHasPendingUpgradeForStructure(
+  ctx: MutationCtx,
+  baseId: Id<'playerBases'>,
+  structureId: Id<'baseStructures'>
+): Promise<boolean> {
+  const rows = await ctx.db
+    .query('baseStructureBuildQueue')
+    .withIndex('by_base_queued', (q) => q.eq('baseId', baseId))
+    .collect();
+  return rows.some(
+    (r) => r.kind === 'upgrade' && r.structureId === structureId
+  );
+}
+
+/** Validates research / prereq / duplicate build; not space or queue footprint. */
+async function validateNewBuildPrerequisites(
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  base: Doc<'playerBases'>,
+  structureDefId: Id<'structureDefinitions'>
+): Promise<Doc<'structureDefinitions'>> {
+  const structureDef = await ctx.db.get(structureDefId);
+  if (!structureDef) {
+    throw new Error('Structure definition not found');
+  }
+
+  const existingStructure = await ctx.db
+    .query('baseStructures')
+    .withIndex('by_structure_type', (q) =>
+      q.eq('baseId', base._id).eq('structureDefId', structureDefId)
+    )
+    .first();
+
+  if (existingStructure) {
+    throw new Error('This structure is already built in this base');
+  }
+
+  if (structureDef.researchRequirementName) {
+    const requirementName = structureDef.researchRequirementName;
+    const requiredResearch = await ctx.db
+      .query('researchDefinitions')
+      .withIndex('by_name', (q) => q.eq('name', requirementName))
+      .unique();
+
+    if (requiredResearch) {
+      const playerResearch = await ctx.db
+        .query('playerTechnologies')
+        .withIndex('by_user_research', (q) =>
+          q.eq('userId', userId).eq('researchDefinitionId', requiredResearch._id)
+        )
+        .first();
+
+      if (!playerResearch) {
+        throw new Error(
+          `Cannot build: Research '${requirementName}' is required. Complete this research first.`
+        );
+      }
+    } else {
+      throw new Error(
+        `Cannot build: Required research '${requirementName}' not found in database.`
+      );
+    }
+  }
+
+  if (structureDef.requiredStructureName && structureDef.requiredStructureLevel) {
+    const requiredStructureName = structureDef.requiredStructureName;
+    const requiredStructureLevel = structureDef.requiredStructureLevel;
+
+    const requiredStructureDef = await ctx.db
+      .query('structureDefinitions')
+      .withIndex('by_name', (q) => q.eq('name', requiredStructureName))
+      .unique();
+
+    if (!requiredStructureDef) {
+      throw new Error(
+        `Cannot build: Required structure '${requiredStructureName}' not found.`
+      );
+    }
+
+    const prerequisiteStructure = await ctx.db
+      .query('baseStructures')
+      .withIndex('by_structure_type', (q) =>
+        q.eq('baseId', base._id).eq('structureDefId', requiredStructureDef._id)
+      )
+      .first();
+
+    if (!prerequisiteStructure) {
+      throw new Error(
+        `Cannot build: Requires '${requiredStructureName}' to be built first.`
+      );
+    }
+
+    if (prerequisiteStructure.level < requiredStructureLevel) {
+      throw new Error(
+        `Cannot build: Requires '${requiredStructureName}' to be at least level ${requiredStructureLevel} (currently level ${prerequisiteStructure.level}).`
+      );
+    }
+  }
+
+  return structureDef;
+}
+
+function assertSpaceAndEnergyForBuild(
+  base: Doc<'playerBases'>,
+  structureDef: Doc<'structureDefinitions'>,
+  queuedFootprint: { space: number; energy: number }
+) {
+  if (
+    base.usedSpace + queuedFootprint.space + structureDef.baseSpaceCost >
+    base.totalSpace
+  ) {
+    throw new Error('Not enough space available in the base');
+  }
+
+  if (
+    base.usedEnergy + queuedFootprint.energy + structureDef.baseEnergyCost >
+    base.totalEnergy
+  ) {
+    throw new Error('Not enough energy available in the base');
+  }
+}
+
+async function executeStructureBuildStart(
+  ctx: MutationCtx,
+  base: Doc<'playerBases'>,
+  structureDef: Doc<'structureDefinitions'>
+): Promise<{ structureId: Id<'baseStructures'>; buildCompleteTime: number }> {
+  const buildTimeReduction = base.buildTimeReduction;
+  const novaCost = structureDef.baseNovaCost;
+  const buildTime = Math.round(
+    (3600000 * (novaCost / 1000)) * (1 - buildTimeReduction / 100)
+  );
+  const buildCompleteTime = Date.now() + buildTime;
+
+  const structureId = await ctx.db.insert('baseStructures', {
+    baseId: base._id,
+    structureDefId: structureDef._id,
+    level: 0,
+    spaceCost: structureDef.baseSpaceCost,
+    energyCost: structureDef.baseEnergyCost,
+    upgrading: true,
+    upgradeCompleteTime: buildCompleteTime,
+    upgradeLevel: 1,
+    upgradeNovaCost: novaCost,
+    currentEffects: {},
+  });
+
+  await ctx.db.patch(base._id, {
+    usedSpace: base.usedSpace + structureDef.baseSpaceCost,
+    usedEnergy: base.usedEnergy + structureDef.baseEnergyCost,
+    lastUpdated: Date.now(),
+  });
+
+  return { structureId, buildCompleteTime };
+}
+
+async function tryExecuteQueuedBuild(
+  ctx: MutationCtx,
+  baseId: Id<'playerBases'>,
+  userId: Id<'users'>,
+  structureDefId: Id<'structureDefinitions'>,
+  queueEntryId: Id<'baseStructureBuildQueue'>
+): Promise<boolean> {
+  const base = await ctx.db.get(baseId);
+  if (!base) return false;
+
+  let structureDef: Doc<'structureDefinitions'>;
+  try {
+    structureDef = await validateNewBuildPrerequisites(
+      ctx,
+      userId,
+      base,
+      structureDefId
+    );
+  } catch {
+    return false;
+  }
+
+  const fp = await sumQueuedBuildFootprintExcluding(ctx, baseId, queueEntryId);
+  try {
+    assertSpaceAndEnergyForBuild(base, structureDef, fp);
+  } catch {
+    return false;
+  }
+
+  await executeStructureBuildStart(ctx, base, structureDef);
+  return true;
+}
+
+async function tryExecuteQueuedUpgrade(
+  ctx: MutationCtx,
+  baseId: Id<'playerBases'>,
+  userId: Id<'users'>,
+  structureId: Id<'baseStructures'>,
+  queueEntryId: Id<'baseStructureBuildQueue'>
+): Promise<boolean> {
+  void queueEntryId;
+
+  const base = await ctx.db.get(baseId);
+  if (!base) return false;
+
+  const structure = await ctx.db.get(structureId);
+  if (!structure || structure.baseId !== baseId) return false;
+  if (structure.upgrading) return false;
+
+  const structureDef = await ctx.db.get(structure.structureDefId);
+  if (!structureDef) return false;
+
+  const nextLevel = structure.level + 1;
+  if (structureDef.maxLevel && nextLevel > structureDef.maxLevel) return false;
+
+  if (structureDef.researchRequirementName) {
+    const requirementName = structureDef.researchRequirementName;
+    const requiredResearch = await ctx.db
+      .query('researchDefinitions')
+      .withIndex('by_name', (q) => q.eq('name', requirementName))
+      .unique();
+
+    if (requiredResearch) {
+      const playerResearch = await ctx.db
+        .query('playerTechnologies')
+        .withIndex('by_user_research', (q) =>
+          q.eq('userId', userId).eq('researchDefinitionId', requiredResearch._id)
+        )
+        .first();
+
+      if (!playerResearch) return false;
+    }
+  }
+
+  const upgradeNovaCost = structureDef.baseNovaCost * nextLevel;
+  const upgradeEnergyCost = structureDef.baseEnergyCost * nextLevel;
+
+  const currentNova = await getPlayerResourceAmount(ctx, userId, 'nova');
+  if (currentNova < upgradeNovaCost) return false;
+
+  if (base.totalEnergy < base.usedEnergy + upgradeEnergyCost) return false;
+
+  await modifyPlayerResource(ctx, userId, 'nova', -upgradeNovaCost);
+  await ctx.db.patch(base._id, {
+    usedEnergy: base.usedEnergy + upgradeEnergyCost,
+    lastUpdated: Date.now(),
+  });
+
+  const upgradeTime = 1000 * 60 * 5 * nextLevel;
+  const upgradeCompleteTime = Date.now() + upgradeTime;
+
+  await ctx.db.patch(structure._id, {
+    upgrading: true,
+    upgradeLevel: nextLevel,
+    upgradeCompleteTime,
+    upgradeNovaCost: upgradeNovaCost,
+  });
+
+  return true;
+}
+
+/** Starts the next queued build/upgrade when nothing is upgrading on this base. */
+async function processNextStructureQueue(
+  ctx: MutationCtx,
+  baseId: Id<'playerBases'>
+): Promise<void> {
+  if (await hasActiveStructureWorkOnBase(ctx, baseId)) return;
+
+  const base0 = await ctx.db.get(baseId);
+  if (!base0) return;
+  const userId = base0.userId;
+
+  while (true) {
+    if (await hasActiveStructureWorkOnBase(ctx, baseId)) return;
+
+    const next = await ctx.db
+      .query('baseStructureBuildQueue')
+      .withIndex('by_base_queued', (q) => q.eq('baseId', baseId))
+      .order('asc')
+      .first();
+
+    if (!next) return;
+
+    let started = false;
+    if (next.kind === 'build' && next.structureDefId) {
+      started = await tryExecuteQueuedBuild(
+        ctx,
+        baseId,
+        userId,
+        next.structureDefId,
+        next._id
+      );
+    } else if (next.kind === 'upgrade' && next.structureId) {
+      started = await tryExecuteQueuedUpgrade(
+        ctx,
+        baseId,
+        userId,
+        next.structureId,
+        next._id
+      );
+    }
+
+    await ctx.db.delete(next._id);
+
+    if (started) return;
+  }
+}
 
 // Create a new base on a planet
 export const createBase = mutation({
@@ -142,146 +505,42 @@ export const buildStructure = mutation({
   },
   handler: async (ctx, args) => {
     const { user, base } = await checkBaseOwnership(ctx, args.baseId);
-    
-    // Get the structure definition
-    const structureDef = await ctx.db.get(args.structureDefId);
-    if (!structureDef) {
-      throw new Error("Structure definition not found");
-    }
-    
-    // Check if the structure is already built in this base
-    const existingStructure = await ctx.db
-      .query('baseStructures')
-      .withIndex('by_structure_type', (q) => 
-        q.eq('baseId', args.baseId).eq('structureDefId', args.structureDefId)
-      )
-      .first();
-    
-    if (existingStructure) {
-      throw new Error("This structure is already built in this base");
-    }
-    
-    // Check if base has enough space and energy
-    if (base.totalSpace - base.usedSpace < structureDef.baseSpaceCost) {
-      throw new Error("Not enough space available in the base");
-    }
-    
-    if (base.totalEnergy - base.usedEnergy < structureDef.baseEnergyCost) {
-      throw new Error("Not enough energy available in the base");
-    }
-    
-    // Check research requirements - ENFORCED
-    if (structureDef.researchRequirementName) {
-      const requirementName = structureDef.researchRequirementName;
-      const requiredResearch = await ctx.db
-        .query('researchDefinitions')
-        .withIndex('by_name', (q) => q.eq('name', requirementName))
-        .unique();
 
-      if (requiredResearch) {
-        const playerResearch = await ctx.db
-          .query('playerTechnologies')
-          .withIndex('by_user_research', (q) =>
-            q
-              .eq('userId', user._id)
-              .eq('researchDefinitionId', requiredResearch._id)
-          )
-          .first();
+    const structureDef = await validateNewBuildPrerequisites(
+      ctx,
+      user._id,
+      base,
+      args.structureDefId
+    );
 
-        if (!playerResearch) {
-          throw new Error(`Cannot build: Research '${requirementName}' is required. Complete this research first.`);
-        }
-      } else {
-        throw new Error(`Cannot build: Required research '${requirementName}' not found in database.`);
-      }
+    if (
+      await queueHasPendingBuildForDef(ctx, args.baseId, args.structureDefId)
+    ) {
+      throw new Error('This structure is already in the build queue.');
     }
-    
-    // Check structure level requirements - ENFORCED
-    if (structureDef.requiredStructureName && structureDef.requiredStructureLevel) {
-      const requiredStructureName = structureDef.requiredStructureName;
-      const requiredStructureLevel = structureDef.requiredStructureLevel;
-      
-      const requiredStructureDef = await ctx.db
-        .query('structureDefinitions')
-        .withIndex('by_name', (q) => q.eq('name', requiredStructureName))
-        .unique();
-        
-      if (!requiredStructureDef) {
-        throw new Error(`Cannot build: Required structure '${requiredStructureName}' not found.`);
-      }
-      
-      const prerequisiteStructure = await ctx.db
-        .query('baseStructures')
-        .withIndex('by_structure_type', (q) => 
-          q.eq('baseId', args.baseId).eq('structureDefId', requiredStructureDef._id)
-        )
-        .first();
-        
-      if (!prerequisiteStructure) {
-        throw new Error(`Cannot build: Requires '${requiredStructureName}' to be built first.`);
-      }
-      
-      if (prerequisiteStructure.level < requiredStructureLevel) {
-        throw new Error(`Cannot build: Requires '${requiredStructureName}' to be at least level ${requiredStructureLevel} (currently level ${prerequisiteStructure.level}).`);
-      }
+
+    const fp = await sumQueuedBuildFootprintExcluding(ctx, args.baseId);
+    assertSpaceAndEnergyForBuild(base, structureDef, fp);
+
+    if (await hasActiveStructureWorkOnBase(ctx, args.baseId)) {
+      await ctx.db.insert('baseStructureBuildQueue', {
+        baseId: args.baseId,
+        userId: user._id,
+        queuedAt: Date.now(),
+        kind: 'build',
+        structureDefId: args.structureDefId,
+      });
+      return { queued: true as const };
     }
-    
-    // Calculate build time based on nova cost and base bonuses
-    const buildTimeReduction = base.buildTimeReduction; // % reduction
-    const novaCost = structureDef.baseNovaCost;
-    const buildTime = Math.round(
-      (3600000 * (novaCost / 1000)) * (1 - buildTimeReduction / 100)
-    ); // 1 hour per 1000 nova cost, reduced by buildTimeReduction
-    
-    const buildCompleteTime = Date.now() + buildTime;
-    
-    // Start the build
-    const structureId = await ctx.db.insert('baseStructures', {
-      baseId: args.baseId,
-      structureDefId: args.structureDefId,
-      level: 0, // Start at level 0 while building
-      spaceCost: structureDef.baseSpaceCost,
-      energyCost: structureDef.baseEnergyCost,
-      upgrading: true, // Initial build is treated as an upgrade from 0 to 1
-      upgradeCompleteTime: buildCompleteTime,
-      upgradeLevel: 1,
-      upgradeNovaCost: novaCost,
-      // No current effects yet (building)
-      currentEffects: {}
-    });
-    
-    // Update base stats for the space and energy usage
-    await ctx.db.patch(args.baseId, {
-      usedSpace: base.usedSpace + structureDef.baseSpaceCost,
-      usedEnergy: base.usedEnergy + structureDef.baseEnergyCost,
-      lastUpdated: Date.now()
-    });
-    
-    return { 
-      structureId,
-      buildCompleteTime
-    };
+
+    return await executeStructureBuildStart(ctx, base, structureDef);
   }
 });
 
 // Helper function to calculate structure effects at a given level
 function calculateStructureEffects(structureDef: Doc<"structureDefinitions">, level: number) {
-  const effects = structureDef.effects || {};
-  const effectsAtLevel: Record<string, number> = {};
-  
-  Object.entries(effects).forEach(([key, value]) => {
-    if (typeof value === 'number') {
-      // For level 1, use the base value
-      if (level === 1) {
-        effectsAtLevel[key] = value;
-      } else {
-        // For higher levels, calculate based on level
-        effectsAtLevel[key] = value * level;
-      }
-    }
-  });
-  
-  return effectsAtLevel;
+  const baseEffects = parseStructureEffectsField(structureDef.effects ?? '');
+  return scaleParsedEffectsForLevel(baseEffects, level);
 }
 
 // Complete a structure build or upgrade
@@ -379,7 +638,9 @@ export const completeStructureUpgrade = mutation({
         lastUpdated: Date.now()
       });
     }
-    
+
+    await processNextStructureQueue(ctx, structure.baseId);
+
     return { success: true, newLevel };
   }
 });
@@ -390,7 +651,6 @@ export const startStructureUpgrade = mutation({
     structureId: v.id('baseStructures')
   },
   handler: async (ctx, args) => {
-    // Get the structure
     const structure = await ctx.db.get(args.structureId);
     if (!structure) {
       throw new Error('Structure not found');
@@ -412,7 +672,16 @@ export const startStructureUpgrade = mutation({
       throw new Error('This structure is already at its maximum level.');
     }
 
-    // Check research requirements
+    if (
+      await queueHasPendingUpgradeForStructure(
+        ctx,
+        structure.baseId,
+        structure._id
+      )
+    ) {
+      throw new Error('An upgrade for this structure is already queued.');
+    }
+
     if (structureDef.researchRequirementName) {
       const requirementName = structureDef.researchRequirementName;
       const requiredResearch = await ctx.db
@@ -436,11 +705,9 @@ export const startStructureUpgrade = mutation({
       }
     }
 
-    // ... (rest of the code remains the same)
-    const upgradeNovaCost = structureDef.baseNovaCost * nextLevel; // Simplified cost
+    const upgradeNovaCost = structureDef.baseNovaCost * nextLevel;
     const upgradeEnergyCost = structureDef.baseEnergyCost * nextLevel;
 
-    // Check resources
     const currentNova = await getPlayerResourceAmount(ctx, user._id, 'nova');
     if (currentNova < upgradeNovaCost) {
       throw new Error('Insufficient Nova for upgrade.');
@@ -450,27 +717,35 @@ export const startStructureUpgrade = mutation({
       throw new Error('Insufficient energy capacity for this upgrade.');
     }
 
-    // Deduct resources
+    if (await hasActiveStructureWorkOnBase(ctx, structure.baseId)) {
+      await ctx.db.insert('baseStructureBuildQueue', {
+        baseId: structure.baseId,
+        userId: user._id,
+        queuedAt: Date.now(),
+        kind: 'upgrade',
+        structureId: structure._id,
+      });
+      return { queued: true as const };
+    }
+
     await modifyPlayerResource(ctx, user._id, 'nova', -upgradeNovaCost);
 
-    // Update base energy usage
     await ctx.db.patch(base._id, {
-      usedEnergy: base.usedEnergy + upgradeEnergyCost
+      usedEnergy: base.usedEnergy + upgradeEnergyCost,
+      lastUpdated: Date.now(),
     });
 
-    // Calculate upgrade time (e.g., 5 minutes per level)
-    const upgradeTime = 1000 * 60 * 5 * nextLevel; // in milliseconds
+    const upgradeTime = 1000 * 60 * 5 * nextLevel;
     const upgradeCompleteTime = Date.now() + upgradeTime;
 
-    // Mark structure as upgrading
     await ctx.db.patch(structure._id, {
       upgrading: true,
       upgradeLevel: nextLevel,
       upgradeCompleteTime: upgradeCompleteTime,
-      upgradeNovaCost: upgradeNovaCost
+      upgradeNovaCost: upgradeNovaCost,
     });
 
-    return { success: true, upgradeCompleteTime };
+    return { success: true as const, upgradeCompleteTime };
   }
 });
 
@@ -516,7 +791,9 @@ export const cancelStructureUpgrade = mutation({
       // Delete the structure
       await ctx.db.delete(args.structureId);
     }
-    
+
+    await processNextStructureQueue(ctx, structure.baseId);
+
     return { success: true };
   }
 });
@@ -592,6 +869,14 @@ export const abandonBase = mutation({
     handler: async (ctx, args) => {
         await checkBaseOwnership(ctx, args.baseId);
 
+        const queueItems = await ctx.db
+            .query('baseStructureBuildQueue')
+            .withIndex('by_base_queued', (q) => q.eq('baseId', args.baseId))
+            .collect();
+        for (const row of queueItems) {
+            await ctx.db.delete(row._id);
+        }
+
         // Find all structures in the base and delete them
         const baseStructures = await ctx.db
             .query('baseStructures')
@@ -641,6 +926,52 @@ export const rushComplete = mutation({
   }
 });
 
+/** Skips the build timer and applies completion for all in-progress structures at the base in the given scope (non-defense tab vs defenses tab). */
+export const instantCompleteUpgradingStructures = mutation({
+  args: {
+    baseId: v.id('playerBases'),
+    scope: v.union(v.literal('non_defense'), v.literal('defense')),
+  },
+  handler: async (
+    ctx,
+    args
+  ): Promise<{
+    completedCount: number;
+    completed: { structureId: Id<'baseStructures'>; newLevel: number }[];
+  }> => {
+    assertDevGameTools();
+    await checkBaseOwnership(ctx, args.baseId);
+
+    const upgrading = await ctx.db
+      .query('baseStructures')
+      .withIndex('by_upgrading', (q) =>
+        q.eq('baseId', args.baseId).eq('upgrading', true)
+      )
+      .collect();
+
+    const completed: { structureId: Id<'baseStructures'>; newLevel: number }[] = [];
+
+    for (const structure of upgrading) {
+      const def = await ctx.db.get(structure.structureDefId);
+      if (!def) continue;
+      const isDefense = def.category === STRUCTURE_CATEGORIES.DEFENSE;
+      if (args.scope === 'defense' && !isDefense) continue;
+      if (args.scope === 'non_defense' && isDefense) continue;
+
+      await ctx.db.patch(structure._id, {
+        upgradeCompleteTime: Date.now() - 1,
+      });
+      const result = await ctx.runMutation(
+        api.game.bases.baseMutations.completeStructureUpgrade,
+        { structureId: structure._id }
+      );
+      completed.push({ structureId: structure._id, newLevel: result.newLevel });
+    }
+
+    return { completedCount: completed.length, completed };
+  },
+});
+
 // Collect resources from a base
 export const collectBaseResources = mutation({
   args: {
@@ -659,9 +990,15 @@ export const collectBaseResources = mutation({
     
     // Cap at a maximum of 24 hours to prevent excessive accumulation
     const hoursToCollect = Math.min(hoursSinceUpdate, 24);
-    
+
+    const empireBaseCount = await countPlayerBases(ctx, base.userId);
+    const novaRatePerHour = effectiveNovaPerHourFromBase(
+      base.novaPerCycle,
+      empireBaseCount
+    );
+
     // Calculate resources generated
-    const novaGenerated = Math.floor(base.novaPerCycle * hoursToCollect);
+    const novaGenerated = Math.floor(novaRatePerHour * hoursToCollect);
     const researchGenerated = Math.floor(base.researchPerCycle * hoursToCollect);
     const mineralsGenerated = Math.floor(base.mineralsPerCycle * hoursToCollect);
     const volatilesGenerated = Math.floor(base.volatilesPerCycle * hoursToCollect);

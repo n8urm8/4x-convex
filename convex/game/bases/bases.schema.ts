@@ -168,3 +168,14 @@ export const baseStructures = defineTable({
   .index('by_base', ['baseId'])
   .index('by_structure_type', ['baseId', 'structureDefId'])
   .index('by_upgrading', ['baseId', 'upgrading']);
+
+// FIFO queue when a base already has a structure building or upgrading
+export const baseStructureBuildQueue = defineTable({
+  baseId: v.id('playerBases'),
+  userId: v.id('users'),
+  queuedAt: v.number(),
+  kind: v.union(v.literal('build'), v.literal('upgrade')),
+  structureDefId: v.optional(v.id('structureDefinitions')),
+  structureId: v.optional(v.id('baseStructures')),
+})
+  .index('by_base_queued', ['baseId', 'queuedAt']);

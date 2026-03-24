@@ -3,7 +3,11 @@ import { api } from '@cvx/_generated/api';
 import { BaseDetails } from '@/features/bases/types';
 import { useMemo, useState } from 'react';
 import { Id } from '@cvx/_generated/dataModel';
+import { STRUCTURE_CATEGORIES } from '@cvx/game/bases/bases.schema';
+import { toast } from 'sonner';
 import { BaseResourceUsageCard } from '@/components/bases/BaseResourceUsageCard';
+import { BaseDevGameToolbar } from '@/components/bases/BaseDevGameToolbar';
+import { DevInstantCompleteButton } from '@/components/bases/DevInstantCompleteButton';
 import { DataTable } from '@/components/bases/DataTable';
 import { ShowLockedToggle } from '@/components/bases/ShowLockedToggle';
 import {
@@ -17,7 +21,7 @@ import {
 export function BaseStructuresTab({ base }: { base: BaseDetails }) {
   const [isUpgrading, setIsUpgrading] = useState<string | null>(null);
   const [isBuilding, setIsBuilding] = useState<string | null>(null);
-  const [showLocked, setShowLocked] = useState(true);
+  const [showLocked, setShowLocked] = useState(false);
 
   const allStructureDefinitions = useQuery(
     api.game.bases.baseQueries.getAllStructureDefinitions
@@ -29,13 +33,55 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
 
   const startUpgrade = useMutation(api.game.bases.baseMutations.startStructureUpgrade);
   const buildStructure = useMutation(api.game.bases.baseMutations.buildStructure);
+  const instantCompleteStructures = useMutation(
+    api.game.bases.baseMutations.instantCompleteUpgradingStructures
+  );
+  const [instantCompleting, setInstantCompleting] = useState(false);
 
   const columns = useMemo(() => createStructureColumns(), []);
+
+  const hasNonDefenseUpgradeInProgress = useMemo(() => {
+    if (!allStructureDefinitions) return false;
+    const defById = new Map(allStructureDefinitions.map((d) => [d._id, d]));
+    return base.structures.some((s) => {
+      if (!s.upgrading) return false;
+      const def = defById.get(s.structureDefId);
+      return def && def.category !== STRUCTURE_CATEGORIES.DEFENSE;
+    });
+  }, [allStructureDefinitions, base.structures]);
+
+  const handleInstantCompleteStructures = async () => {
+    setInstantCompleting(true);
+    try {
+      const { completedCount } = await instantCompleteStructures({
+        baseId: base._id,
+        scope: 'non_defense',
+      });
+      if (completedCount === 0) {
+        toast.message('No structure build or upgrade in progress on this tab.');
+      } else {
+        toast.success(
+          completedCount === 1
+            ? 'Structure build completed.'
+            : `${completedCount} structure builds completed.`
+        );
+      }
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setInstantCompleting(false);
+    }
+  };
 
   const handleUpgrade = async (structureId: string) => {
     setIsUpgrading(structureId);
     try {
-      await startUpgrade({ structureId: structureId as Id<'baseStructures'> });
+      const result = await startUpgrade({
+        structureId: structureId as Id<'baseStructures'>,
+      });
+      if (result && 'queued' in result && result.queued) {
+        toast.success('Upgrade queued. It will start when the current job finishes.');
+      }
     } catch (error) {
       console.error('Failed to start upgrade:', error);
     } finally {
@@ -46,10 +92,13 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
   const handleBuild = async (structureDefId: string) => {
     setIsBuilding(structureDefId);
     try {
-      await buildStructure({
+      const result = await buildStructure({
         baseId: base._id,
         structureDefId: structureDefId as Id<'structureDefinitions'>,
       });
+      if (result && 'queued' in result && result.queued) {
+        toast.success('Added to build queue. It will start when the current job finishes.');
+      }
     } catch (error) {
       console.error('Failed to build structure:', error);
     } finally {
@@ -157,6 +206,14 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
 
   return (
     <div className="space-y-6">
+      <BaseDevGameToolbar>
+        <DevInstantCompleteButton
+          label="Complete build now"
+          disabled={!hasNonDefenseUpgradeInProgress}
+          pending={instantCompleting}
+          onClick={handleInstantCompleteStructures}
+        />
+      </BaseDevGameToolbar>
       <BaseResourceUsageCard base={base} />
       <DataTable<StructureTableRow>
         columns={columns}

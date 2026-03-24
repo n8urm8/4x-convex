@@ -2,6 +2,7 @@ import { authTables } from '@convex-dev/auth/server';
 import { defineSchema, defineTable } from 'convex/server';
 import { Infer, v } from 'convex/values';
 import {
+  baseStructureBuildQueue,
   baseStructures,
   playerBases,
   structureDefinitions,
@@ -210,6 +211,7 @@ const schema = defineSchema({
   structureRequirements,
   playerBases,
   baseStructures,
+  baseStructureBuildQueue,
 
   // Research definitions
   researchDefinitions,

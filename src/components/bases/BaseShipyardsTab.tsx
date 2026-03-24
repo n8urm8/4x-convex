@@ -3,6 +3,7 @@ import { api } from '@cvx/_generated/api';
 import { BaseDetails } from '@/features/bases/types';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
+import { BaseDevGameToolbar } from '@/components/bases/BaseDevGameToolbar';
 import { DataTable } from '@/components/bases/DataTable';
 import {
   createShipyardsColumns,
@@ -69,6 +70,7 @@ export function BaseShipyardsTab({ base }: { base: BaseDetails }) {
 
   return (
     <div className="space-y-6">
+      <BaseDevGameToolbar />
       <DataTable<ShipBlueprintRow>
         columns={columns}
         data={rows}

@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { DataTable } from '@/components/bases/DataTable';
 import { ShowLockedToggle } from '@/components/bases/ShowLockedToggle';
 import { ResearchTimer } from '@/components/bases/research/ResearchTimer';
+import { BaseDevGameToolbar } from '@/components/bases/BaseDevGameToolbar';
+import { DevInstantCompleteButton } from '@/components/bases/DevInstantCompleteButton';
 import {
   createResearchColumns,
   type ResearchTechRow,
@@ -26,6 +28,10 @@ export function BaseResearchTab() {
   const completeResearch = useMutation(
     api.game.research.researchMutations.completeResearch
   );
+  const instantCompleteResearch = useMutation(
+    api.game.research.researchMutations.instantCompleteResearch
+  );
+  const [instantCompleting, setInstantCompleting] = useState(false);
 
   const columns = useMemo(() => createResearchColumns(), []);
 
@@ -47,6 +53,18 @@ export function BaseResearchTab() {
       toast.success('Research complete!');
     } catch (error) {
       console.error('Failed to complete research:', error);
+    }
+  };
+
+  const handleInstantCompleteResearch = async () => {
+    setInstantCompleting(true);
+    try {
+      await instantCompleteResearch({});
+      toast.success('Research completed.');
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setInstantCompleting(false);
     }
   };
 
@@ -118,6 +136,14 @@ export function BaseResearchTab() {
 
   return (
     <div className="space-y-6">
+      <BaseDevGameToolbar>
+        <DevInstantCompleteButton
+          label="Complete research now"
+          disabled={!isCurrentlyResearching}
+          pending={instantCompleting}
+          onClick={handleInstantCompleteResearch}
+        />
+      </BaseDevGameToolbar>
       {researchingTech && researchFinishesAt && (
         <Card>
           <CardHeader>

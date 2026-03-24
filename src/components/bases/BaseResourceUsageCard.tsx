@@ -33,6 +33,18 @@ export function BaseResourceUsageCard({ base }: { base: BaseDetails }) {
             {spacePercentage.toFixed(1)}% used
           </p>
         </div>
+        {base.structureBuildQueue && base.structureBuildQueue.length > 0 ? (
+          <div className="md:col-span-2 border-t pt-4 space-y-2">
+            <p className="text-sm font-medium">Build queue</p>
+            <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+              {base.structureBuildQueue.map((item) => (
+                <li key={item._id}>
+                  {item.kind === 'build' ? 'Build' : 'Upgrade'}: {item.label}
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );
