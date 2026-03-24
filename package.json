@@ -9,6 +9,7 @@
     "dev:frontend": "vite",
     "dev:backend": "DEV_GAME_TOOLS=true convex dev",
     "predev": "DEV_GAME_TOOLS=true convex dev --run init --until-success",
+    "convex:dev-game-tools": "convex env set DEV_GAME_TOOLS true",
     "build": "tsc -b && vite build",
     "lint": "eslint . --ignore-pattern convex/_generated --report-unused-disable-directives --max-warnings 0",
     "typecheck": "tsc -p tsconfig.app.json && tsc -p tsconfig.node.json && tsc -p convex/tsconfig.json",

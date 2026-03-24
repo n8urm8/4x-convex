@@ -1,5 +1,7 @@
-/** When true, enables dev-only Convex mutations (instant complete, grant resources). */
-export const DEV_GAME_TOOLS_ENABLED = process.env.DEV_GAME_TOOLS === 'true';
+/** When true, enables dev-only Convex mutations (instant complete, grant resources). Set on the deployment: `pnpm exec convex env set DEV_GAME_TOOLS true` (shell env is not passed into Convex functions). */
+export const DEV_GAME_TOOLS_ENABLED =
+  process.env.DEV_GAME_TOOLS === 'true' ||
+  process.env.DEV_GAME_TOOLS === '1';
 
 export const AUTH_RESEND_KEY = process.env.AUTH_RESEND_KEY;
 export const AUTH_EMAIL = process.env.AUTH_EMAIL;
