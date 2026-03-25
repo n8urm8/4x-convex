@@ -6,17 +6,47 @@ import { BaseStructuresTab } from '@/components/bases/BaseStructuresTab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { convexQuery } from '@convex-dev/react-query';
 import { useQuery } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { api } from '@cvx/_generated/api';
 import { Id } from '@cvx/_generated/dataModel';
 import { useCompletionChecker } from '@/hooks/useCompletionChecker';
 
+const BASE_TABS = [
+  'overview',
+  'structures',
+  'defenses',
+  'shipyards',
+  'research',
+] as const;
+
+export type BaseDetailTab = (typeof BASE_TABS)[number];
+
+export type BaseDetailSearch = {
+  tab: BaseDetailTab;
+};
+
+function parseBaseTab(search: Record<string, unknown>): BaseDetailTab {
+  const raw = search.tab;
+  if (
+    typeof raw === 'string' &&
+    (BASE_TABS as readonly string[]).includes(raw)
+  ) {
+    return raw as BaseDetailTab;
+  }
+  return 'overview';
+}
+
 export const Route = createFileRoute('/_app/_auth/game/_layout/bases/$baseId/')({
+  validateSearch: (search: Record<string, unknown>): BaseDetailSearch => ({
+    tab: parseBaseTab(search),
+  }),
   component: BasePage,
 });
 
 function BasePage() {
   const { baseId } = Route.useParams();
+  const { tab } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const { data: base, isLoading } = useQuery({
     ...convexQuery(api.game.bases.baseQueries.getBaseDetails, {
       baseId: baseId as Id<'playerBases'>,
@@ -39,7 +69,14 @@ function BasePage() {
 
   return (
     <div className="p-4">
-      <Tabs defaultValue="overview">
+      <Tabs
+        value={tab}
+        onValueChange={(next) => {
+          navigate({
+            search: (prev: BaseDetailSearch) => ({ ...prev, tab: next as BaseDetailTab }),
+          });
+        }}
+      >
     <div className="flex items-center justify-between mb-4">
       <h1 className="text-2xl font-bold mb-4">{base.name}</h1>
         <TabsList>

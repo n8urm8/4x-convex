@@ -247,8 +247,7 @@ async function tryExecuteQueuedBuild(
   ctx: MutationCtx,
   baseId: Id<'playerBases'>,
   userId: Id<'users'>,
-  structureDefId: Id<'structureDefinitions'>,
-  queueEntryId: Id<'baseStructureBuildQueue'>
+  structureDefId: Id<'structureDefinitions'>
 ): Promise<boolean> {
   const base = await ctx.db.get(baseId);
   if (!base) return false;
@@ -265,9 +264,9 @@ async function tryExecuteQueuedBuild(
     return false;
   }
 
-  const fp = await sumQueuedBuildFootprintExcluding(ctx, baseId, queueEntryId);
+  // Queued items do not reserve space/energy; validate only current base + this build.
   try {
-    assertSpaceAndEnergyForBuild(base, structureDef, fp);
+    assertSpaceAndEnergyForBuild(base, structureDef, { space: 0, energy: 0 });
   } catch {
     return false;
   }
@@ -280,11 +279,8 @@ async function tryExecuteQueuedUpgrade(
   ctx: MutationCtx,
   baseId: Id<'playerBases'>,
   userId: Id<'users'>,
-  structureId: Id<'baseStructures'>,
-  queueEntryId: Id<'baseStructureBuildQueue'>
+  structureId: Id<'baseStructures'>
 ): Promise<boolean> {
-  void queueEntryId;
-
   const base = await ctx.db.get(baseId);
   if (!base) return false;
 
@@ -372,16 +368,14 @@ async function processNextStructureQueue(
         ctx,
         baseId,
         userId,
-        next.structureDefId,
-        next._id
+        next.structureDefId
       );
     } else if (next.kind === 'upgrade' && next.structureId) {
       started = await tryExecuteQueuedUpgrade(
         ctx,
         baseId,
         userId,
-        next.structureId,
-        next._id
+        next.structureId
       );
     }
 
@@ -506,21 +500,26 @@ export const buildStructure = mutation({
   handler: async (ctx, args) => {
     const { user, base } = await checkBaseOwnership(ctx, args.baseId);
 
-    const structureDef = await validateNewBuildPrerequisites(
-      ctx,
-      user._id,
-      base,
-      args.structureDefId
-    );
+    const structureDefBare = await ctx.db.get(args.structureDefId);
+    if (!structureDefBare) {
+      throw new Error('Structure definition not found');
+    }
+
+    const existingStructure = await ctx.db
+      .query('baseStructures')
+      .withIndex('by_structure_type', (q) =>
+        q.eq('baseId', args.baseId).eq('structureDefId', args.structureDefId)
+      )
+      .first();
+    if (existingStructure) {
+      throw new Error('This structure is already built in this base');
+    }
 
     if (
       await queueHasPendingBuildForDef(ctx, args.baseId, args.structureDefId)
     ) {
       throw new Error('This structure is already in the build queue.');
     }
-
-    const fp = await sumQueuedBuildFootprintExcluding(ctx, args.baseId);
-    assertSpaceAndEnergyForBuild(base, structureDef, fp);
 
     if (await hasActiveStructureWorkOnBase(ctx, args.baseId)) {
       await ctx.db.insert('baseStructureBuildQueue', {
@@ -532,6 +531,15 @@ export const buildStructure = mutation({
       });
       return { queued: true as const };
     }
+
+    const structureDef = await validateNewBuildPrerequisites(
+      ctx,
+      user._id,
+      base,
+      args.structureDefId
+    );
+    const fp = await sumQueuedBuildFootprintExcluding(ctx, args.baseId);
+    assertSpaceAndEnergyForBuild(base, structureDef, fp);
 
     return await executeStructureBuildStart(ctx, base, structureDef);
   }
@@ -682,6 +690,19 @@ export const startStructureUpgrade = mutation({
       throw new Error('An upgrade for this structure is already queued.');
     }
 
+    const queueBusy = await hasActiveStructureWorkOnBase(ctx, structure.baseId);
+
+    if (queueBusy) {
+      await ctx.db.insert('baseStructureBuildQueue', {
+        baseId: structure.baseId,
+        userId: user._id,
+        queuedAt: Date.now(),
+        kind: 'upgrade',
+        structureId: structure._id,
+      });
+      return { queued: true as const };
+    }
+
     if (structureDef.researchRequirementName) {
       const requirementName = structureDef.researchRequirementName;
       const requiredResearch = await ctx.db
@@ -715,17 +736,6 @@ export const startStructureUpgrade = mutation({
 
     if (base.totalEnergy < base.usedEnergy + upgradeEnergyCost) {
       throw new Error('Insufficient energy capacity for this upgrade.');
-    }
-
-    if (await hasActiveStructureWorkOnBase(ctx, structure.baseId)) {
-      await ctx.db.insert('baseStructureBuildQueue', {
-        baseId: structure.baseId,
-        userId: user._id,
-        queuedAt: Date.now(),
-        kind: 'upgrade',
-        structureId: structure._id,
-      });
-      return { queued: true as const };
     }
 
     await modifyPlayerResource(ctx, user._id, 'nova', -upgradeNovaCost);
@@ -766,29 +776,51 @@ export const cancelStructureUpgrade = mutation({
     if (!structure.upgrading) {
       throw new Error("Structure is not being upgraded");
     }
-    
-    // Cancel the upgrade
+
+    const base = await ctx.db.get(structure.baseId);
+    if (!base) {
+      throw new Error("Base not found");
+    }
+
+    const structureDef = await ctx.db.get(structure.structureDefId);
+
+    // Refund upgrade costs (nova + reserved energy) for in-progress level-ups
+    if (
+      structure.level > 0 &&
+      structureDef &&
+      structure.upgradeLevel != null
+    ) {
+      const energyReserved =
+        structureDef.baseEnergyCost * structure.upgradeLevel;
+      if (structure.upgradeNovaCost != null && structure.upgradeNovaCost > 0) {
+        await modifyPlayerResource(
+          ctx,
+          base.userId,
+          "nova",
+          structure.upgradeNovaCost
+        );
+      }
+      await ctx.db.patch(structure.baseId, {
+        usedEnergy: Math.max(0, base.usedEnergy - energyReserved),
+        lastUpdated: Date.now(),
+      });
+    }
+
+    // Clear upgrading state
     await ctx.db.patch(args.structureId, {
       upgrading: false,
       upgradeCompleteTime: undefined,
       upgradeLevel: undefined,
-      upgradeNovaCost: undefined
+      upgradeNovaCost: undefined,
     });
-    
-    // If it's a new building (level 0), destroy it and free up resources
+
+    // New build (level 0): refund reserved space/energy and remove placeholder row
     if (structure.level === 0) {
-      // Get the base
-      const base = await ctx.db.get(structure.baseId);
-      if (base) {
-        // Free up the space and energy
-        await ctx.db.patch(structure.baseId, {
-          usedSpace: base.usedSpace - structure.spaceCost,
-          usedEnergy: base.usedEnergy - structure.energyCost,
-          lastUpdated: Date.now()
-        });
-      }
-      
-      // Delete the structure
+      await ctx.db.patch(structure.baseId, {
+        usedSpace: Math.max(0, base.usedSpace - structure.spaceCost),
+        usedEnergy: Math.max(0, base.usedEnergy - structure.energyCost),
+        lastUpdated: Date.now(),
+      });
       await ctx.db.delete(args.structureId);
     }
 
@@ -796,6 +828,21 @@ export const cancelStructureUpgrade = mutation({
 
     return { success: true };
   }
+});
+
+export const removeFromStructureBuildQueue = mutation({
+  args: {
+    queueEntryId: v.id("baseStructureBuildQueue"),
+  },
+  handler: async (ctx, args) => {
+    const row = await ctx.db.get(args.queueEntryId);
+    if (!row) {
+      throw new Error("Queue entry not found");
+    }
+    await checkBaseOwnership(ctx, row.baseId);
+    await ctx.db.delete(args.queueEntryId);
+    return { success: true as const };
+  },
 });
 
 // Demolish a structure

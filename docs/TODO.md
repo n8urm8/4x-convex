@@ -45,6 +45,7 @@ All players cooperate against one massive boss; combined damage (or contribution
 
 _Add rows here as you think of them._
 
+- [ ] inactivity logout
 - [ ] …
 
 ---

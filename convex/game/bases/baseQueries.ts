@@ -9,6 +9,21 @@ import {
 } from './structureEffects';
 import { countPlayerBases } from './baseEconomy';
 
+/** Matches `executeStructureBuildStart` / `tryExecuteQueuedBuild`. */
+function structureNewBuildDurationMs(
+  buildTimeReduction: number,
+  baseNovaCost: number
+): number {
+  return Math.round(
+    (3600000 * (baseNovaCost / 1000)) * (1 - buildTimeReduction / 100)
+  );
+}
+
+/** Matches `startStructureUpgrade` / `tryExecuteQueuedUpgrade`. */
+function structureUpgradeDurationMs(targetLevel: number): number {
+  return 1000 * 60 * 5 * targetLevel;
+}
+
 // Get all structure definitions (public query)
 export const getAllStructureDefinitions = query({
   args: {},
@@ -530,48 +545,109 @@ export const getBaseDetails = query({
       })
     );
 
+    const upgradingStructures = await ctx.db
+      .query('baseStructures')
+      .withIndex('by_upgrading', (q) =>
+        q.eq('baseId', args.baseId).eq('upgrading', true)
+      )
+      .collect();
+
+    const activePipelineEntries = await Promise.all(
+      upgradingStructures.map(async (s) => {
+        const def = await ctx.db.get(s.structureDefId);
+        const durationMs =
+          s.level === 0 && def
+            ? structureNewBuildDurationMs(
+                base.buildTimeReduction,
+                def.baseNovaCost
+              )
+            : structureUpgradeDurationMs(
+                s.upgradeLevel ?? s.level + 1
+              );
+        return {
+          entryType: 'active' as const,
+          structureId: s._id,
+          kind: (s.level === 0 ? 'build' : 'upgrade') as 'build' | 'upgrade',
+          label: def?.name ?? 'Structure',
+          upgradeCompleteTime: s.upgradeCompleteTime,
+          durationMs,
+        };
+      })
+    );
+
     const queueRows = await ctx.db
       .query('baseStructureBuildQueue')
       .withIndex('by_base_queued', (q) => q.eq('baseId', args.baseId))
       .order('asc')
       .collect();
 
+    let queuedBuildFootprintSpace = 0;
+    let queuedBuildFootprintEnergy = 0;
+    for (const qRow of queueRows) {
+      if (qRow.kind !== 'build' || !qRow.structureDefId) continue;
+      const qDef = await ctx.db.get(qRow.structureDefId);
+      if (qDef) {
+        queuedBuildFootprintSpace += qDef.baseSpaceCost;
+        queuedBuildFootprintEnergy += qDef.baseEnergyCost;
+      }
+    }
+    const queuedBuildFootprint = {
+      space: queuedBuildFootprintSpace,
+      energy: queuedBuildFootprintEnergy,
+    };
+
     const empireBaseCount = await countPlayerBases(ctx, base.userId);
 
-    const structureBuildQueue = await Promise.all(
+    const queuedPipelineEntries = await Promise.all(
       queueRows.map(async (row) => {
         if (row.kind === 'build' && row.structureDefId) {
           const def = await ctx.db.get(row.structureDefId);
+          const durationMs = def
+            ? structureNewBuildDurationMs(
+                base.buildTimeReduction,
+                def.baseNovaCost
+              )
+            : 0;
           return {
-            _id: row._id,
+            entryType: 'queued' as const,
+            queueId: row._id,
             kind: 'build' as const,
             queuedAt: row.queuedAt,
             label: def?.name ?? 'Structure',
+            durationMs,
           };
         }
         if (row.kind === 'upgrade' && row.structureId) {
           const st = await ctx.db.get(row.structureId);
           const def = st ? await ctx.db.get(st.structureDefId) : null;
+          const nextLevel = st ? st.level + 1 : 1;
           return {
-            _id: row._id,
+            entryType: 'queued' as const,
+            queueId: row._id,
             kind: 'upgrade' as const,
             queuedAt: row.queuedAt,
             label: def?.name ?? 'Structure',
+            durationMs: structureUpgradeDurationMs(nextLevel),
           };
         }
         return {
-          _id: row._id,
+          entryType: 'queued' as const,
+          queueId: row._id,
           kind: row.kind,
           queuedAt: row.queuedAt,
           label: 'Unknown',
+          durationMs: 0,
         };
       })
     );
 
+    const buildPipeline = [...activePipelineEntries, ...queuedPipelineEntries];
+
     return {
       ...base,
       structures: structuresWithDetails,
-      structureBuildQueue,
+      buildPipeline,
+      queuedBuildFootprint,
       empireBaseCount,
     };
   }

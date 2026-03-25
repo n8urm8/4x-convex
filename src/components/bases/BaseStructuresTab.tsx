@@ -11,6 +11,7 @@ import { DevInstantCompleteButton } from '@/components/bases/DevInstantCompleteB
 import { DataTable } from '@/components/bases/DataTable';
 import { ShowLockedToggle } from '@/components/bases/ShowLockedToggle';
 import {
+  computeStructureCostShortage,
   createStructureColumns,
   type StructureDefinition,
   type StructureTableRow,
@@ -30,6 +31,7 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
     api.game.research.researchQueries.getPlayerTechnologies,
     {}
   );
+  const playerResources = useQuery(api.app.getCurrentUserResources, {});
 
   const startUpgrade = useMutation(api.game.bases.baseMutations.startStructureUpgrade);
   const buildStructure = useMutation(api.game.bases.baseMutations.buildStructure);
@@ -160,15 +162,28 @@ export function BaseStructuresTab({ base }: { base: BaseDetails }) {
     };
   });
 
-  const toTableRow = (s: (typeof allStructuresWithState)[number]): StructureTableRow => ({
-    ...s,
-    requirementCheck: checkRequirements(s.definition),
-    canUpgrade:
+  const toTableRow = (s: (typeof allStructuresWithState)[number]): StructureTableRow => {
+    const canUpgrade =
       s.isBuilt &&
       !!s.builtStructure &&
       !s.builtStructure.upgrading &&
-      (!s.definition.maxLevel || s.level < s.definition.maxLevel),
-  });
+      (!s.definition.maxLevel || s.level < s.definition.maxLevel);
+    return {
+      ...s,
+      requirementCheck: checkRequirements(s.definition),
+      canUpgrade,
+      costShortage: computeStructureCostShortage(
+        base,
+        playerResources?.nova,
+        {
+          definition: s.definition,
+          isBuilt: s.isBuilt,
+          level: s.level,
+          canUpgrade,
+        }
+      ),
+    };
+  };
 
   const allTableRows = allStructuresWithState.map(toTableRow).sort((a, b) => {
     const catA = a.definition.category;
