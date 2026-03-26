@@ -17,6 +17,7 @@ export type ResearchTechRow = {
 export type ResearchTableMeta = {
   isResearching: boolean;
   researchingId: Id<'researchDefinitions'> | null;
+  queuedResearchIds: Set<Id<'researchDefinitions'>>;
   handleResearch: (researchId: Id<'researchDefinitions'>) => void;
   canResearchTech: (tech: ResearchTechRow) => boolean;
 };
@@ -90,12 +91,15 @@ export function createResearchColumns(): ColumnDef<ResearchTechRow>[] {
         const researchMeta = meta?.researchMeta;
         if (!researchMeta) return null;
 
-        const { researchingId } = researchMeta;
+        const { researchingId, queuedResearchIds } = researchMeta;
         if (researchingId === tech._id) {
           return <Badge variant="default">Researching</Badge>;
         }
         if (tech.isResearched) {
           return <Badge variant="secondary">Completed</Badge>;
+        }
+        if (queuedResearchIds.has(tech._id)) {
+          return <Badge variant="outline">Queued</Badge>;
         }
         if (!tech.canResearch) {
           return <Badge variant="destructive">Locked</Badge>;
@@ -112,8 +116,15 @@ export function createResearchColumns(): ColumnDef<ResearchTechRow>[] {
         const researchMeta = meta?.researchMeta;
         if (!researchMeta) return null;
 
-        const { isResearching, researchingId, handleResearch, canResearchTech } = researchMeta;
-        const isCurrentlyResearching = researchingId !== null && researchingId !== undefined;
+        const {
+          isResearching,
+          researchingId,
+          queuedResearchIds,
+          handleResearch,
+          canResearchTech,
+        } = researchMeta;
+        const inQueue = queuedResearchIds.has(tech._id);
+        const isActiveResearch = researchingId === tech._id;
 
         return (
           <div className="text-right">
@@ -122,7 +133,8 @@ export function createResearchColumns(): ColumnDef<ResearchTechRow>[] {
               onClick={() => handleResearch(tech._id)}
               disabled={
                 tech.isResearched ||
-                isCurrentlyResearching ||
+                inQueue ||
+                isActiveResearch ||
                 isResearching ||
                 !canResearchTech(tech)
               }
@@ -130,9 +142,11 @@ export function createResearchColumns(): ColumnDef<ResearchTechRow>[] {
             >
               {tech.isResearched
                 ? 'Completed'
-                : !canResearchTech(tech)
-                  ? 'Locked'
-                  : 'Research'}
+                : inQueue
+                  ? 'Queued'
+                  : !canResearchTech(tech)
+                    ? 'Locked'
+                    : 'Research'}
             </Button>
           </div>
         );

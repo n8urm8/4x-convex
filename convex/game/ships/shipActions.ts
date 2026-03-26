@@ -388,7 +388,9 @@ export const getShipBlueprintsForBase = query({
         nova,
         minerals,
         volatiles
-      }
+      },
+      /** Reserved for future FIFO ship production (same pattern as structure/research queues). */
+      shipBuildPipeline: [] as const,
     };
   }
 });

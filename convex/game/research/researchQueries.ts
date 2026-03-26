@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { v } from 'convex/values';
+import { Id } from '../../_generated/dataModel';
 import { getAdminUser, getAuthedUser } from '../../utils';
 import { query } from '../../_generated/server';
+import { RESEARCH_DURATION_MS } from './research.schema';
 
 async function loadCostsForCode(ctx: any, code: string): Promise<Record<string, number>> {
   const rows: Array<{ resource: string; amount: number }> = await ctx.db
@@ -71,10 +73,62 @@ export const getPlayerTechnologies = query({
         costs
       });
     }
+    const queueRows = await ctx.db
+      .query('playerResearchQueue')
+      .withIndex('by_user_queued', (q) => q.eq('userId', user._id))
+      .order('asc')
+      .collect();
+
+    const queuedEntries = await Promise.all(
+      queueRows.map(async (row) => {
+        const def = await ctx.db.get(row.researchDefinitionId);
+        return {
+          entryType: 'queued' as const,
+          queueId: row._id,
+          researchDefinitionId: row.researchDefinitionId,
+          label: def?.name ?? 'Technology',
+          queuedAt: row.queuedAt,
+          durationMs: RESEARCH_DURATION_MS,
+        };
+      })
+    );
+
+    const researchPipeline: Array<
+      | {
+          entryType: 'active';
+          researchDefinitionId: Id<'researchDefinitions'>;
+          label: string;
+          researchFinishesAt: number;
+          durationMs: number;
+        }
+      | {
+          entryType: 'queued';
+          queueId: Id<'playerResearchQueue'>;
+          researchDefinitionId: Id<'researchDefinitions'>;
+          label: string;
+          queuedAt: number;
+          durationMs: number;
+        }
+    > = [];
+
+    if (user.researchingId && user.researchFinishesAt != null) {
+      const activeDef = await ctx.db.get(user.researchingId);
+      researchPipeline.push({
+        entryType: 'active' as const,
+        researchDefinitionId: user.researchingId,
+        label: activeDef?.name ?? 'Technology',
+        researchFinishesAt: user.researchFinishesAt,
+        durationMs: RESEARCH_DURATION_MS,
+      });
+    }
+
+    researchPipeline.push(...queuedEntries);
+
     return {
       technologies,
       researchingId: user.researchingId,
-      researchFinishesAt: user.researchFinishesAt
+      researchFinishesAt: user.researchFinishesAt,
+      researchPipeline,
     };
   }
 });

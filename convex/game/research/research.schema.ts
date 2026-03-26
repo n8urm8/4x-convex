@@ -17,6 +17,9 @@ export const researchCategoryValidator = v.union(
 
 export type ResearchCategory = Infer<typeof researchCategoryValidator>;
 
+/** Wall-clock length of one research project (see researchMutations). */
+export const RESEARCH_DURATION_MS = 60 * 5 * 1000;
+
 export const researchDefinitionSchema = {
   code: v.string(), // Unique code for easy reference
   name: v.string(), // Unique identifier for the research technology

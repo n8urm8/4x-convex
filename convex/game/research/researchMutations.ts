@@ -1,10 +1,15 @@
 import { v } from 'convex/values';
+import type { MutationCtx } from '../../_generated/server';
 import { internalMutation, mutation } from '../../_generated/server';
 import { internal } from '../../_generated/api';
 import { Doc, Id } from '../../_generated/dataModel';
 import { getAdminUser, getAuthedUser } from '../../utils';
 import { assertDevGameTools } from '../../devTools';
-import { researchDefinitions, researchDefinitionSchema } from './research.schema';
+import {
+  RESEARCH_DURATION_MS,
+  researchDefinitions,
+  researchDefinitionSchema,
+} from './research.schema';
 import { 
   hasEnoughResources, 
   deductResources, 
@@ -190,104 +195,227 @@ export const seedResearchDefinitions = internalMutation({
   }
 });
 
+async function validateResearchEligible(
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  researchDefinitionId: Id<'researchDefinitions'>
+): Promise<Doc<'researchDefinitions'>> {
+  const researchDefinition = await ctx.db.get(researchDefinitionId);
+  if (!researchDefinition) {
+    throw new Error('Research definition not found.');
+  }
+
+  const alreadyResearched = await ctx.db
+    .query('playerTechnologies')
+    .withIndex('by_user_research', (q) =>
+      q.eq('userId', userId).eq('researchDefinitionId', researchDefinitionId)
+    )
+    .first();
+
+  if (alreadyResearched) {
+    throw new Error('You have already researched this technology.');
+  }
+
+  if (researchDefinition.tier > 1) {
+    const previousTier = researchDefinition.tier - 1;
+    const previousTierTechs = await ctx.db
+      .query('researchDefinitions')
+      .withIndex('by_tier', (q) => q.eq('tier', previousTier))
+      .collect();
+    const previousTierTechsInCategory = previousTierTechs.filter(
+      (tech) => tech.category === researchDefinition.category
+    );
+    if (previousTierTechsInCategory.length > 0) {
+      const playerResearched = await ctx.db
+        .query('playerTechnologies')
+        .withIndex('by_user', (q) => q.eq('userId', userId))
+        .collect();
+      const playerResearchedIds = new Set(
+        playerResearched.map((tech) => tech.researchDefinitionId)
+      );
+      const unresearchedPreviousTierTechs = previousTierTechsInCategory.filter(
+        (tech) => !playerResearchedIds.has(tech._id)
+      );
+      if (unresearchedPreviousTierTechs.length > 0) {
+        const techNames = unresearchedPreviousTierTechs
+          .map((tech) => tech.name)
+          .join(', ');
+        throw new Error(
+          `You must complete all Tier ${previousTier} ${researchDefinition.category} technologies first. Missing: ${techNames}`
+        );
+      }
+    }
+  }
+
+  if (researchDefinition.prerequisites) {
+    const playerResearched = await ctx.db
+      .query('playerTechnologies')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .collect();
+    const playerResearchedIds = new Set(
+      playerResearched.map((tech) => tech.researchDefinitionId)
+    );
+    for (const prereqId of researchDefinition.prerequisites) {
+      if (!playerResearchedIds.has(prereqId)) {
+        throw new Error('Prerequisite research not completed.');
+      }
+    }
+  }
+
+  return researchDefinition;
+}
+
+async function beginResearchSession(
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  researchDefinitionId: Id<'researchDefinitions'>
+): Promise<{ finishesAt: number }> {
+  const user = await ctx.db.get(userId);
+  if (!user) {
+    throw new Error('User not found');
+  }
+  if (user.researchingId) {
+    throw new Error('You are already researching a technology.');
+  }
+
+  const researchDefinition = await validateResearchEligible(
+    ctx,
+    userId,
+    researchDefinitionId
+  );
+
+  const costs = await loadResourceCosts(ctx, 'technology', researchDefinition.code);
+  const check = await hasEnoughResources(ctx, userId, costs);
+  if (!check.hasEnough) {
+    const missingList = Object.entries(check.missing)
+      .map(([code, amount]) => `${code}: ${amount}`)
+      .join(', ');
+    throw new Error(`Insufficient resources. Missing: ${missingList}`);
+  }
+
+  await deductResources(ctx, userId, costs);
+
+  const finishesAt = Date.now() + RESEARCH_DURATION_MS;
+  await ctx.db.patch(userId, {
+    researchingId: researchDefinitionId,
+    researchFinishesAt: finishesAt,
+  });
+
+  return { finishesAt };
+}
+
+async function assertCanEnqueueResearch(
+  ctx: MutationCtx,
+  user: Doc<'users'>,
+  researchDefinitionId: Id<'researchDefinitions'>
+): Promise<void> {
+  const researchDefinition = await ctx.db.get(researchDefinitionId);
+  if (!researchDefinition) {
+    throw new Error('Research definition not found.');
+  }
+
+  const alreadyResearched = await ctx.db
+    .query('playerTechnologies')
+    .withIndex('by_user_research', (q) =>
+      q.eq('userId', user._id).eq('researchDefinitionId', researchDefinitionId)
+    )
+    .first();
+
+  if (alreadyResearched) {
+    throw new Error('You have already researched this technology.');
+  }
+
+  if (user.researchingId === researchDefinitionId) {
+    throw new Error('This technology is already being researched.');
+  }
+
+  const queued = await ctx.db
+    .query('playerResearchQueue')
+    .withIndex('by_user_queued', (q) => q.eq('userId', user._id))
+    .collect();
+
+  if (queued.some((r) => r.researchDefinitionId === researchDefinitionId)) {
+    throw new Error('This technology is already in your research queue.');
+  }
+}
+
+async function processNextResearchQueue(
+  ctx: MutationCtx,
+  userId: Id<'users'>
+): Promise<void> {
+  while (true) {
+    const user = await ctx.db.get(userId);
+    if (!user || user.researchingId) {
+      return;
+    }
+
+    const next = await ctx.db
+      .query('playerResearchQueue')
+      .withIndex('by_user_queued', (q) => q.eq('userId', userId))
+      .order('asc')
+      .first();
+
+    if (!next) {
+      return;
+    }
+
+    await ctx.db.delete(next._id);
+
+    try {
+      await beginResearchSession(ctx, userId, next.researchDefinitionId);
+      return;
+    } catch {
+      // Drop failed head and try the next entry (same pattern as structure queue).
+    }
+  }
+}
+
 export const startResearch = mutation({
   args: {
-    researchId: v.id('researchDefinitions')
+    researchId: v.id('researchDefinitions'),
   },
   handler: async (ctx, args) => {
     const user = await getAuthedUser(ctx);
 
     if (user.researchingId) {
-      throw new Error('You are already researching a technology.');
+      await assertCanEnqueueResearch(ctx, user, args.researchId);
+      await ctx.db.insert('playerResearchQueue', {
+        userId: user._id,
+        researchDefinitionId: args.researchId,
+        queuedAt: Date.now(),
+      });
+      return { success: true as const, queued: true as const };
     }
 
-    const researchDefinition = await ctx.db.get(args.researchId);
-    if (!researchDefinition) {
-      throw new Error('Research definition not found.');
+    const { finishesAt } = await beginResearchSession(
+      ctx,
+      user._id,
+      args.researchId
+    );
+    return {
+      success: true as const,
+      finishesAt,
+      queued: false as const,
+    };
+  },
+});
+
+export const removeFromResearchQueue = mutation({
+  args: {
+    queueEntryId: v.id('playerResearchQueue'),
+  },
+  handler: async (ctx, args) => {
+    const user = await getAuthedUser(ctx);
+    const row = await ctx.db.get(args.queueEntryId);
+    if (!row) {
+      throw new Error('Queue entry not found');
     }
-
-    const alreadyResearched = await ctx.db
-      .query('playerTechnologies')
-      .withIndex('by_user_research', (q) =>
-        q.eq('userId', user._id).eq('researchDefinitionId', args.researchId)
-      )
-      .first();
-
-    if (alreadyResearched) {
-      throw new Error('You have already researched this technology.');
+    if (row.userId !== user._id) {
+      throw new Error('Not authorized');
     }
-
-    // Check tier requirements: For tier > 1, all previous tier techs in the same category must be researched
-    if (researchDefinition.tier > 1) {
-      const previousTier = researchDefinition.tier - 1;
-      const previousTierTechs = await ctx.db
-        .query('researchDefinitions')
-        .withIndex('by_tier', (q) => q.eq('tier', previousTier))
-        .collect();
-      const previousTierTechsInCategory = previousTierTechs.filter(
-        (tech) => tech.category === researchDefinition.category
-      );
-      if (previousTierTechsInCategory.length > 0) {
-        const playerResearched = await ctx.db
-          .query('playerTechnologies')
-          .withIndex('by_user', (q) => q.eq('userId', user._id))
-          .collect();
-        const playerResearchedIds = new Set(
-          playerResearched.map((tech) => tech.researchDefinitionId)
-        );
-        const unresearchedPreviousTierTechs = previousTierTechsInCategory.filter(
-          (tech) => !playerResearchedIds.has(tech._id)
-        );
-        if (unresearchedPreviousTierTechs.length > 0) {
-          const techNames = unresearchedPreviousTierTechs.map((tech) => tech.name).join(', ');
-          throw new Error(
-            `You must complete all Tier ${previousTier} ${researchDefinition.category} technologies first. Missing: ${techNames}`
-          );
-        }
-      }
-    }
-
-    // --- Resource Cost Resolution ---
-    // Load costs from resourceCosts table
-    const costs = await loadResourceCosts(ctx, 'technology', researchDefinition.code);
-    
-    // Check if player has enough resources
-    const check = await hasEnoughResources(ctx, user._id, costs);
-    if (!check.hasEnough) {
-      const missingList = Object.entries(check.missing)
-        .map(([code, amount]) => `${code}: ${amount}`)
-        .join(', ');
-      throw new Error(`Insufficient resources. Missing: ${missingList}`);
-    }
-
-    if (researchDefinition.prerequisites) {
-      const playerResearched = await ctx.db
-        .query('playerTechnologies')
-        .withIndex('by_user', (q) => q.eq('userId', user._id))
-        .collect();
-      const playerResearchedIds = new Set(
-        playerResearched.map((tech) => tech.researchDefinitionId)
-      );
-      for (const prereqId of researchDefinition.prerequisites) {
-        if (!playerResearchedIds.has(prereqId)) {
-          throw new Error('Prerequisite research not completed.');
-        }
-      }
-    }
-
-    const researchTime = 60 * 5; // 5 minutes for now
-    const finishesAt = Date.now() + researchTime * 1000;
-
-    // Deduct resources atomically
-    await deductResources(ctx, user._id, costs);
-    
-    await ctx.db.patch(user._id, {
-      researchingId: args.researchId,
-      researchFinishesAt: finishesAt
-    });
-
-    return { success: true, finishesAt };
-  }
+    await ctx.db.delete(args.queueEntryId);
+    return { success: true as const };
+  },
 });
 
 export const completeResearch = mutation({
@@ -314,6 +442,8 @@ export const completeResearch = mutation({
       researchFinishesAt: undefined
     });
 
+    await processNextResearchQueue(ctx, user._id);
+
     return { success: true };
   }
 });
@@ -339,6 +469,8 @@ export const instantCompleteResearch = mutation({
       researchingId: undefined,
       researchFinishesAt: undefined,
     });
+
+    await processNextResearchQueue(ctx, user._id);
 
     return { success: true };
   },
@@ -373,6 +505,8 @@ export const checkCompletedResearch = mutation({
       researchingId: undefined,
       researchFinishesAt: undefined
     });
+
+    await processNextResearchQueue(ctx, user._id);
 
     console.log(`Auto-completed research: ${researchName} for user ${user._id}`);
     return { completed: true, message: `Research '${researchName}' completed!`, researchName };

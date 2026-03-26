@@ -16,6 +16,7 @@ import {
   baseResources 
 } from './game/resources/resources.schema';
 import { playerTechnologies } from './game/research/playerResearch.schema';
+import { playerResearchQueue } from './game/research/playerResearchQueue.schema';
 import { fleets, playerShips, shipBlueprints } from './game/ships/ships.schema';
 
 export const CURRENCIES = {
@@ -216,6 +217,7 @@ const schema = defineSchema({
   // Research definitions
   researchDefinitions,
   playerTechnologies,
+  playerResearchQueue,
   
   // Resource definitions and tracking
   resourceDefinitions,

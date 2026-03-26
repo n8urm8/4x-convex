@@ -1,12 +1,10 @@
 import { useMutation, useQuery } from 'convex/react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { api } from '@cvx/_generated/api';
 import { Id } from '@cvx/_generated/dataModel';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/bases/DataTable';
 import { ShowLockedToggle } from '@/components/bases/ShowLockedToggle';
-import { ResearchTimer } from '@/components/bases/research/ResearchTimer';
 import { BaseDevGameToolbar } from '@/components/bases/BaseDevGameToolbar';
 import { DevInstantCompleteButton } from '@/components/bases/DevInstantCompleteButton';
 import {
@@ -14,6 +12,7 @@ import {
   type ResearchTechRow,
   type ResearchTableMeta,
 } from '@/components/bases/research/researchTableColumns';
+import { ResearchQueueCard } from '@/components/bases/research/ResearchQueueCard';
 
 export function BaseResearchTab() {
   const [isResearching, setIsResearching] = useState(false);
@@ -35,11 +34,26 @@ export function BaseResearchTab() {
 
   const columns = useMemo(() => createResearchColumns(), []);
 
+  const researchPipeline = playerTechData?.researchPipeline ?? [];
+  const queuedResearchIds = useMemo(() => {
+    const s = new Set<Id<'researchDefinitions'>>();
+    for (const e of researchPipeline) {
+      if (e.entryType === 'queued') {
+        s.add(e.researchDefinitionId);
+      }
+    }
+    return s;
+  }, [researchPipeline]);
+
   const handleResearch = async (researchId: Id<'researchDefinitions'>) => {
     setIsResearching(true);
     try {
-      await startResearch({ researchId });
-      toast.success('Research started!');
+      const result = await startResearch({ researchId });
+      if (result && 'queued' in result && result.queued) {
+        toast.success('Added to research queue.');
+      } else {
+        toast.success('Research started!');
+      }
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
@@ -47,14 +61,14 @@ export function BaseResearchTab() {
     }
   };
 
-  const handleCompleteResearch = async () => {
+  const handleCompleteResearch = useCallback(async () => {
     try {
       await completeResearch({});
       toast.success('Research complete!');
     } catch (error) {
       console.error('Failed to complete research:', error);
     }
-  };
+  }, [completeResearch]);
 
   const handleInstantCompleteResearch = async () => {
     setInstantCompleting(true);
@@ -72,12 +86,10 @@ export function BaseResearchTab() {
     return <div>Loading...</div>;
   }
 
-  const { technologies, researchingId, researchFinishesAt } = playerTechData;
+  const { technologies, researchingId } = playerTechData;
+
   const isCurrentlyResearching =
     researchingId !== null && researchingId !== undefined;
-  const researchingTech = isCurrentlyResearching
-    ? technologies.find((tech) => tech._id === researchingId)
-    : null;
 
   const canResearchTech = (tech: { tier: number; category: string }) => {
     if (tech.tier === 1) return true;
@@ -106,7 +118,8 @@ export function BaseResearchTab() {
         (tech) =>
           tech.isResearched ||
           tech.canResearch ||
-          researchingId === tech._id
+          researchingId === tech._id ||
+          queuedResearchIds.has(tech._id)
       );
 
   const sortedRows = [...filteredRows].sort((a, b) => {
@@ -118,6 +131,7 @@ export function BaseResearchTab() {
   const meta: ResearchTableMeta = {
     isResearching,
     researchingId,
+    queuedResearchIds,
     handleResearch,
     canResearchTech: (tech) => tech.canResearch,
   };
@@ -144,22 +158,10 @@ export function BaseResearchTab() {
           onClick={handleInstantCompleteResearch}
         />
       </BaseDevGameToolbar>
-      {researchingTech && researchFinishesAt && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Current Research</CardTitle>
-            <div className="mt-2">
-              <p className="font-semibold">
-                Currently researching: {researchingTech.name}
-              </p>
-              <ResearchTimer
-                finishesAt={researchFinishesAt}
-                onComplete={handleCompleteResearch}
-              />
-            </div>
-          </CardHeader>
-        </Card>
-      )}
+      <ResearchQueueCard
+        pipeline={researchPipeline}
+        onActiveResearchComplete={handleCompleteResearch}
+      />
 
       <DataTable<ResearchTechRow>
         columns={columns}

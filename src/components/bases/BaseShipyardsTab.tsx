@@ -4,6 +4,8 @@ import { BaseDetails } from '@/features/bases/types';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { BaseDevGameToolbar } from '@/components/bases/BaseDevGameToolbar';
+import { PipelineQueueCard } from '@/components/bases/PipelineQueueCard';
+import { mapShipBuildPipelineToQueueRows } from '@/components/bases/shipyards/shipBuildQueue';
 import { DataTable } from '@/components/bases/DataTable';
 import {
   createShipyardsColumns,
@@ -20,6 +22,12 @@ export function BaseShipyardsTab({ base }: { base: BaseDetails }) {
   const buildShip = useMutation(api.game.ships.shipActions.buildShip);
 
   const columns = useMemo(() => createShipyardsColumns(), []);
+
+  const shipQueueRows = useMemo(
+    () =>
+      mapShipBuildPipelineToQueueRows(shipData?.shipBuildPipeline ?? []),
+    [shipData?.shipBuildPipeline]
+  );
 
   const handleBuildShip = async (shipBlueprintId: string) => {
     setIsBuilding(shipBlueprintId);
@@ -71,6 +79,7 @@ export function BaseShipyardsTab({ base }: { base: BaseDetails }) {
   return (
     <div className="space-y-6">
       <BaseDevGameToolbar />
+      <PipelineQueueCard title="Ship production" rows={shipQueueRows} />
       <DataTable<ShipBlueprintRow>
         columns={columns}
         data={rows}
