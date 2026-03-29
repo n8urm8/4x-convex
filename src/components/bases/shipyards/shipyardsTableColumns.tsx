@@ -1,6 +1,7 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 
 export type ShipBlueprintRow = {
   id: string;
@@ -17,6 +18,7 @@ export type ShipBlueprintRow = {
   fleetCapacityCost: number;
   fighterCapacityProvided?: number;
   canBuild: boolean;
+  countAtBase: number;
   requirements: {
     structure: { name: string; satisfied: boolean };
     technology: { name: string; satisfied: boolean };
@@ -26,7 +28,9 @@ export type ShipBlueprintRow = {
 
 export type ShipyardsTableMeta = {
   isBuilding: string | null;
-  handleBuild: (shipBlueprintId: string) => void;
+  handleBuild: (shipBlueprintId: string, quantity: number) => void;
+  quantities: Record<string, number>;
+  setQuantity: (shipBlueprintId: string, quantity: number) => void;
 };
 
 function formatStats(blueprint: ShipBlueprintRow): string {
@@ -60,6 +64,15 @@ export function createShipyardsColumns(): ColumnDef<ShipBlueprintRow>[] {
       ),
     },
     {
+      accessorKey: 'countAtBase',
+      header: 'Count',
+      cell: ({ row }) => (
+        <div className="text-center font-medium">
+          {row.original.countAtBase}
+        </div>
+      ),
+    },
+    {
       id: 'stats',
       header: 'Stats',
       cell: ({ row }) => {
@@ -87,11 +100,16 @@ export function createShipyardsColumns(): ColumnDef<ShipBlueprintRow>[] {
       header: 'Cost',
       cell: ({ row }) => {
         const b = row.original;
+        const buildTimeMinutes = b.buildTimeCycles * 5;
+        const hours = Math.floor(buildTimeMinutes / 60);
+        const minutes = buildTimeMinutes % 60;
+        const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+        
         return (
           <div className="text-sm">
-            <div>Nova: {b.novaCost.toLocaleString()}</div>
+            <div>{b.novaCost.toLocaleString()} Nova</div>
             <div className="text-xs text-muted-foreground">
-              Build Time: {b.buildTimeCycles} cycles
+              {timeString}
             </div>
           </div>
         );
@@ -127,6 +145,44 @@ export function createShipyardsColumns(): ColumnDef<ShipBlueprintRow>[] {
       },
     },
     {
+      id: 'quantity',
+      header: 'Quantity',
+      cell: ({ row, table }) => {
+        const blueprint = row.original;
+        const meta = table.options.meta as { shipyardsMeta?: ShipyardsTableMeta } | undefined;
+        const shipyardsMeta = meta?.shipyardsMeta;
+        if (!shipyardsMeta) return null;
+
+        const { quantities, setQuantity } = shipyardsMeta;
+        const quantity = quantities[blueprint.id] || 1;
+        const totalCost = blueprint.novaCost * quantity;
+        const totalBuildTimeMinutes = blueprint.buildTimeCycles * 5 * quantity;
+        const totalHours = Math.floor(totalBuildTimeMinutes / 60);
+        const totalMins = totalBuildTimeMinutes % 60;
+        const totalTimeString = `${totalHours.toString().padStart(2, '0')}:${totalMins.toString().padStart(2, '0')}:00`;
+
+        return (
+          <div className="space-y-2">
+            <Input
+              type="number"
+              min="1"
+              max="999"
+              value={quantity}
+              onChange={(e) => {
+                const newQuantity = Math.max(1, parseInt(e.target.value) || 1);
+                setQuantity(blueprint.id, newQuantity);
+              }}
+              className="w-20 text-center"
+            />
+            <div className="text-xs text-muted-foreground text-center">
+              <div>{totalCost.toLocaleString()} Nova</div>
+              <div>{totalTimeString}</div>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
       id: 'actions',
       header: () => <div className="text-right">Action</div>,
       cell: ({ row, table }) => {
@@ -135,7 +191,8 @@ export function createShipyardsColumns(): ColumnDef<ShipBlueprintRow>[] {
         const shipyardsMeta = meta?.shipyardsMeta;
         if (!shipyardsMeta) return null;
 
-        const { isBuilding, handleBuild } = shipyardsMeta;
+        const { isBuilding, handleBuild, quantities } = shipyardsMeta;
+        const quantity = quantities[blueprint.id] || 1;
         const isBuildingThis = isBuilding === blueprint.id;
         const isAnyActionInProgress = isBuilding !== null;
 
@@ -143,7 +200,7 @@ export function createShipyardsColumns(): ColumnDef<ShipBlueprintRow>[] {
           <div className="text-right">
             <Button
               size="sm"
-              onClick={() => handleBuild(blueprint.id)}
+              onClick={() => handleBuild(blueprint.id, quantity)}
               disabled={!blueprint.canBuild || isAnyActionInProgress}
               variant={blueprint.canBuild ? 'default' : 'secondary'}
             >

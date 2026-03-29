@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import { getAuthedUser } from '@cvx/utils';
 import { internalMutation, mutation, query } from '../../_generated/server';
 import { shipBlueprintsData } from './shipBlueprints';
+import { SHIP_BUILD_CYCLE_MS } from './ships.schema';
 import { 
   getPlayerResourceAmount,
   modifyPlayerResource 
@@ -85,6 +86,7 @@ async function getNextFleetNumber(ctx: any, userId: any) {
 // =========== INTERNAL SEEDING FUNCTIONS ===============
 // ======================================================
 
+/** Inserts or patches all rows from shipBlueprints.ts (by blueprint id). Re-run after seed changes, e.g. `npx convex run internal.game.ships.shipActions.seedShipBlueprints`. */
 export const seedShipBlueprints = internalMutation({
   handler: async (ctx) => {
     for (const blueprint of shipBlueprintsData) {
@@ -93,7 +95,9 @@ export const seedShipBlueprints = internalMutation({
         .withIndex('byId', (q) => q.eq('id', blueprint.id))
         .unique();
 
-      if (!existing) {
+      if (existing) {
+        await ctx.db.patch(existing._id, blueprint);
+      } else {
         await ctx.db.insert('shipBlueprints', blueprint);
       }
     }
@@ -184,96 +188,233 @@ export const buildShip = mutation({
       );
     }
 
-    // 5. All checks passed, proceed with building
-    await modifyPlayerResource(ctx, user._id, 'nova', -totalCost);
-
-    // 6. Find or create base fleet for this base
-    let baseFleet = await ctx.db
-      .query('fleets')
-      .withIndex('byBase', (q: any) => q.eq('baseId', baseId))
-      .filter((q: any) => q.eq(q.field('isBaseFleet'), true))
+    // 5. Check if there's already a ship being built at this base
+    const existingBuild = await ctx.db
+      .query('playerShipBuilding')
+      .withIndex('by_base', (q) => q.eq('baseId', baseId))
       .first();
 
-    if (!baseFleet) {
-      // Create a new base fleet
-      const fleetNumber = await getNextFleetNumber(ctx, user._id);
-      const base = await ctx.db.get(baseId);
-      if (!base) {
-        throw new Error('Base not found when creating fleet');
+    // 6. Deduct resources
+    await modifyPlayerResource(ctx, user._id, 'nova', -totalCost);
+
+    if (existingBuild) {
+      // Add to queue
+      await ctx.db.insert('playerShipQueue', {
+        userId: user._id,
+        baseId: baseId,
+        shipBlueprintId: blueprint.id,
+        quantity: quantity,
+        queuedAt: Date.now(),
+      });
+      return { success: true, queued: true, shipsQueued: quantity };
+    } else {
+      // Start building immediately
+      const buildDurationMs = blueprint.buildTimeCycles * SHIP_BUILD_CYCLE_MS;
+      const finishesAt = Date.now() + buildDurationMs;
+
+      await ctx.db.insert('playerShipBuilding', {
+        userId: user._id,
+        baseId: baseId,
+        shipBlueprintId: blueprint.id,
+        quantity: quantity,
+        startedAt: Date.now(),
+        finishesAt: finishesAt,
+      });
+
+      return { success: true, queued: false, buildingStarted: true, finishesAt };
+    }
+  }
+});
+
+// ======================================================
+// ============== SHIP BUILD COMPLETION =================
+// ======================================================
+
+/** Check and complete finished ship builds, start next in queue. */
+export const checkCompletedShipBuilds = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    
+    // Find all completed builds
+    const completedBuilds = await ctx.db
+      .query('playerShipBuilding')
+      .filter((q) => q.lte(q.field('finishesAt'), now))
+      .collect();
+
+    let completedCount = 0;
+
+    for (const build of completedBuilds) {
+      // Get the blueprint for ship creation
+      const blueprint = await ctx.db
+        .query('shipBlueprints')
+        .withIndex('byId', (q) => q.eq('id', build.shipBlueprintId))
+        .unique();
+
+      if (!blueprint) {
+        console.error(`Blueprint ${build.shipBlueprintId} not found for completed build`);
+        await ctx.db.delete(build._id);
+        continue;
       }
 
-      // Get the system for this base location
-      const system = await ctx.db
-        .query('sectorSystems')
-        .withIndex('by_absolute_coordinates', (q: any) =>
-          q
-            .eq('galaxyNumber', base.galaxyNumber)
-            .eq('sectorX', base.sectorX)
-            .eq('sectorY', base.sectorY)
-            .eq('systemX', base.systemX)
-            .eq('systemY', base.systemY)
-        )
+      // Find or create base fleet for this base
+      let baseFleet = await ctx.db
+        .query('fleets')
+        .withIndex('byBase', (q: any) => q.eq('baseId', build.baseId))
+        .filter((q: any) => q.eq(q.field('isBaseFleet'), true))
         .first();
 
-      if (!system) {
-        throw new Error('System not found for base location');
+      if (!baseFleet) {
+        // Create a new base fleet
+        const fleetNumber = await getNextFleetNumber(ctx, build.userId);
+        const base = await ctx.db.get(build.baseId);
+        if (!base) {
+          console.error(`Base ${build.baseId} not found for completed build`);
+          await ctx.db.delete(build._id);
+          continue;
+        }
+
+        // Get the system for this base location
+        const system = await ctx.db
+          .query('sectorSystems')
+          .withIndex('by_absolute_coordinates', (q: any) =>
+            q
+              .eq('galaxyNumber', base.galaxyNumber)
+              .eq('sectorX', base.sectorX)
+              .eq('sectorY', base.sectorY)
+              .eq('systemX', base.systemX)
+              .eq('systemY', base.systemY)
+          )
+          .first();
+
+        if (!system) {
+          console.error(`System not found for base location`);
+          await ctx.db.delete(build._id);
+          continue;
+        }
+
+        const baseFleetId = await ctx.db.insert('fleets', {
+          userId: build.userId,
+          name: `Fleet ${fleetNumber}`,
+          fleetNumber,
+          isBaseFleet: true,
+          baseId: build.baseId,
+          currentSystemId: system._id,
+          currentGalaxyNumber: system.galaxyNumber,
+          currentSectorX: system.sectorX,
+          currentSectorY: system.sectorY,
+          currentSystemX: system.systemX,
+          currentSystemY: system.systemY,
+          status: 'idle',
+          totalDamage: 0,
+          totalDefense: 0,
+          totalShielding: 0,
+          totalHealth: 0,
+          maxHealth: 0,
+          fleetSpeed: 0,
+          currentCapacity: 0,
+          maxCapacity: 100, // Base capacity
+          createdAt: Date.now(),
+          lastUpdated: Date.now()
+        });
+
+        baseFleet = await ctx.db.get(baseFleetId);
       }
 
-      const baseFleetId = await ctx.db.insert('fleets', {
-        userId: user._id,
-        name: `Fleet ${fleetNumber}`,
-        fleetNumber,
-        isBaseFleet: true,
-        baseId: baseId,
-        currentSystemId: system._id,
-        currentGalaxyNumber: system.galaxyNumber,
-        currentSectorX: system.sectorX,
-        currentSectorY: system.sectorY,
-        currentSystemX: system.systemX,
-        currentSystemY: system.systemY,
-        status: 'idle',
-        totalDamage: 0,
-        totalDefense: 0,
-        totalShielding: 0,
-        totalHealth: 0,
-        maxHealth: 0,
-        fleetSpeed: 0,
-        currentCapacity: 0,
-        maxCapacity: 100, // Base capacity
-        createdAt: Date.now(),
-        lastUpdated: Date.now()
-      });
+      // Create the completed ships
+      for (let i = 0; i < build.quantity; i++) {
+        await ctx.db.insert('playerShips', {
+          userId: build.userId,
+          blueprintId: blueprint.id,
+          baseId: build.baseId,
+          fleetId: baseFleet!._id,
+          damage: blueprint.damage,
+          defense: blueprint.defense,
+          shielding: blueprint.shielding,
+          currentHealth: blueprint.defense // Start with full health
+        });
+      }
 
-      baseFleet = await ctx.db.get(baseFleetId);
+      // Recalculate base fleet stats
+      if (baseFleet) {
+        const stats = await calculateFleetStats(ctx, baseFleet._id);
+        await ctx.db.patch(baseFleet._id, {
+          ...stats,
+          lastUpdated: Date.now()
+        });
+      }
+
+      // Remove the completed build
+      await ctx.db.delete(build._id);
+      completedCount++;
+
+      // Check if there's a queued build for this base
+      const nextInQueue = await ctx.db
+        .query('playerShipQueue')
+        .withIndex('by_base_queued', (q) => q.eq('baseId', build.baseId))
+        .order('asc')
+        .first();
+
+      if (nextInQueue) {
+        // Get the blueprint for the next build
+        const nextBlueprint = await ctx.db
+          .query('shipBlueprints')
+          .withIndex('byId', (q) => q.eq('id', nextInQueue.shipBlueprintId))
+          .unique();
+
+        if (nextBlueprint) {
+          // Start the next build
+          const buildDurationMs = nextBlueprint.buildTimeCycles * SHIP_BUILD_CYCLE_MS;
+          const finishesAt = Date.now() + buildDurationMs;
+
+          await ctx.db.insert('playerShipBuilding', {
+            userId: nextInQueue.userId,
+            baseId: nextInQueue.baseId,
+            shipBlueprintId: nextInQueue.shipBlueprintId,
+            quantity: nextInQueue.quantity,
+            startedAt: Date.now(),
+            finishesAt: finishesAt,
+          });
+
+          // Remove from queue
+          await ctx.db.delete(nextInQueue._id);
+        }
+      }
     }
 
-    // 7. Create ships and assign to base fleet
-    for (let i = 0; i < quantity; i++) {
-      await ctx.db.insert('playerShips', {
-        userId: user._id,
-        blueprintId: blueprint.id,
-        baseId: baseId,
-        fleetId: baseFleet!._id,
-        damage: blueprint.damage,
-        defense: blueprint.defense,
-        shielding: blueprint.shielding,
-        currentHealth: blueprint.defense // Start with full health
-      });
-    }
+    return `Completed ${completedCount} ship builds.`;
+  }
+});
 
-    // 8. Recalculate base fleet stats
-    if (baseFleet) {
-      const stats = await calculateFleetStats(ctx, baseFleet._id);
-      await ctx.db.patch(baseFleet._id, {
-        ...stats,
-        lastUpdated: Date.now()
-      });
+/** Remove a queued ship build. */
+export const removeQueuedShipBuild = mutation({
+  args: { queueEntryId: v.id('playerShipQueue') },
+  handler: async (ctx, { queueEntryId }) => {
+    const user = await getAuthedUser(ctx);
+    
+    const queueEntry = await ctx.db.get(queueEntryId);
+    if (!queueEntry) {
+      throw new Error('Queue entry not found.');
     }
-
-    return {
-      success: true,
-      message: `${quantity}x ${blueprint.name}(s) built and assigned to ${baseFleet!.name}.`
-    };
+    
+    if (queueEntry.userId !== user._id) {
+      throw new Error('You do not own this queue entry.');
+    }
+    
+    // Get the blueprint to refund resources
+    const blueprint = await ctx.db
+      .query('shipBlueprints')
+      .withIndex('byId', (q) => q.eq('id', queueEntry.shipBlueprintId))
+      .unique();
+    
+    if (blueprint) {
+      const refundAmount = blueprint.novaCost * queueEntry.quantity;
+      await modifyPlayerResource(ctx, user._id, 'nova', refundAmount);
+    }
+    
+    await ctx.db.delete(queueEntryId);
+    
+    return { success: true, refunded: blueprint ? blueprint.novaCost * queueEntry.quantity : 0 };
   }
 });
 
@@ -339,6 +480,21 @@ export const getShipBlueprintsForBase = query({
     const researchDefsMap = new Map(researchDefinitions.map(def => [def.name, def]));
     const playerResearchedIds = new Set(playerTechnologies.map(pt => pt.researchDefinitionId));
     
+    // Get ships at this base to count by blueprint
+    const shipsAtThisBase = await ctx.db
+      .query('playerShips')
+      .withIndex('byBaseId', (q) => q.eq('baseId', baseId))
+      .collect();
+    
+    // Filter by user ownership (ships should only belong to the base owner anyway)
+    const userShipsAtBase = shipsAtThisBase.filter(ship => ship.userId === user._id);
+    const shipCountsByBlueprint = new Map<string, number>();
+    
+    for (const ship of userShipsAtBase) {
+      const currentCount = shipCountsByBlueprint.get(ship.blueprintId) || 0;
+      shipCountsByBlueprint.set(ship.blueprintId, currentCount + 1);
+    }
+    
     // Combine blueprints with requirement checks
     const blueprintsWithRequirements = await Promise.all(blueprints.map(async blueprint => {
       // Check structure requirement
@@ -373,7 +529,8 @@ export const getShipBlueprintsForBase = query({
             satisfied: hasEnoughNova
           }
         },
-        canBuild
+        canBuild,
+        countAtBase: shipCountsByBlueprint.get(blueprint.id) || 0
       };
     }));
     
@@ -382,6 +539,56 @@ export const getShipBlueprintsForBase = query({
     const minerals = await getPlayerResourceAmount(ctx, user._id, 'mineral');
     const volatiles = await getPlayerResourceAmount(ctx, user._id, 'volatile');
     
+    // Get ship build pipeline for this base
+    const activeBuild = await ctx.db
+      .query('playerShipBuilding')
+      .withIndex('by_base', (q) => q.eq('baseId', baseId))
+      .first();
+
+    const queuedBuilds = await ctx.db
+      .query('playerShipQueue')
+      .withIndex('by_base_queued', (q) => q.eq('baseId', baseId))
+      .order('asc')
+      .collect();
+
+    const shipBuildPipeline = [];
+
+    // Add active build if exists
+    if (activeBuild) {
+      const activeBlueprint = await ctx.db
+        .query('shipBlueprints')
+        .withIndex('byId', (q) => q.eq('id', activeBuild.shipBlueprintId))
+        .unique();
+
+      if (activeBlueprint) {
+        shipBuildPipeline.push({
+          entryType: 'active' as const,
+          shipName: activeBlueprint.name,
+          quantity: activeBuild.quantity,
+          finishesAt: activeBuild.finishesAt,
+          durationMs: activeBuild.finishesAt - activeBuild.startedAt,
+        });
+      }
+    }
+
+    // Add queued builds
+    for (const queuedBuild of queuedBuilds) {
+      const queuedBlueprint = await ctx.db
+        .query('shipBlueprints')
+        .withIndex('byId', (q) => q.eq('id', queuedBuild.shipBlueprintId))
+        .unique();
+
+      if (queuedBlueprint) {
+        shipBuildPipeline.push({
+          entryType: 'queued' as const,
+          shipName: queuedBlueprint.name,
+          quantity: queuedBuild.quantity,
+          durationMs: queuedBlueprint.buildTimeCycles * SHIP_BUILD_CYCLE_MS,
+          queueId: queuedBuild._id,
+        });
+      }
+    }
+
     return {
       blueprints: blueprintsWithRequirements,
       playerResources: {
@@ -389,8 +596,7 @@ export const getShipBlueprintsForBase = query({
         minerals,
         volatiles
       },
-      /** Reserved for future FIFO ship production (same pattern as structure/research queues). */
-      shipBuildPipeline: [] as const,
+      shipBuildPipeline,
     };
   }
 });

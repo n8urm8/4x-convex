@@ -15,34 +15,61 @@ import {
 
 export function BaseShipyardsTab({ base }: { base: BaseDetails }) {
   const [isBuilding, setIsBuilding] = useState<string | null>(null);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   const shipData = useQuery(api.game.ships.shipActions.getShipBlueprintsForBase, {
     baseId: base._id,
   });
   const buildShip = useMutation(api.game.ships.shipActions.buildShip);
+  const removeQueuedShipBuild = useMutation(api.game.ships.shipActions.removeQueuedShipBuild);
 
   const columns = useMemo(() => createShipyardsColumns(), []);
 
+  const handleRemoveQueued = async (queueId: string) => {
+    try {
+      const result = await removeQueuedShipBuild({ queueEntryId: queueId as any });
+      if (result.refunded > 0) {
+        toast.success(`Build cancelled. Refunded ${result.refunded.toLocaleString()} Nova.`);
+      } else {
+        toast.success('Build cancelled.');
+      }
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+  };
+
   const shipQueueRows = useMemo(
     () =>
-      mapShipBuildPipelineToQueueRows(shipData?.shipBuildPipeline ?? []),
+      mapShipBuildPipelineToQueueRows(shipData?.shipBuildPipeline ?? [], handleRemoveQueued),
     [shipData?.shipBuildPipeline]
   );
 
-  const handleBuildShip = async (shipBlueprintId: string) => {
+  const handleBuildShip = async (shipBlueprintId: string, quantity: number) => {
     setIsBuilding(shipBlueprintId);
     try {
-      await buildShip({
+      const result = await buildShip({
         shipBlueprintId,
         baseId: base._id,
-        quantity: 1,
+        quantity,
       });
-      toast.success('Ship built successfully!');
+      
+      if (result.queued) {
+        toast.success(`${quantity} ship${quantity > 1 ? 's' : ''} queued for production!`);
+      } else {
+        toast.success(`${quantity} ship${quantity > 1 ? 's' : ''} started building!`);
+      }
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
       setIsBuilding(null);
     }
+  };
+
+  const setQuantity = (shipBlueprintId: string, quantity: number) => {
+    setQuantities(prev => ({
+      ...prev,
+      [shipBlueprintId]: quantity
+    }));
   };
 
   if (!shipData) {
@@ -68,12 +95,15 @@ export function BaseShipyardsTab({ base }: { base: BaseDetails }) {
     fleetCapacityCost: bp.fleetCapacityCost,
     fighterCapacityProvided: bp.fighterCapacityProvided,
     canBuild: bp.canBuild,
+    countAtBase: bp.countAtBase,
     requirements: bp.requirements,
   }));
 
   const meta: ShipyardsTableMeta = {
     isBuilding,
     handleBuild: handleBuildShip,
+    quantities,
+    setQuantity,
   };
 
   return (

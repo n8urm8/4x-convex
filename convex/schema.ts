@@ -17,7 +17,8 @@ import {
 } from './game/resources/resources.schema';
 import { playerTechnologies } from './game/research/playerResearch.schema';
 import { playerResearchQueue } from './game/research/playerResearchQueue.schema';
-import { fleets, playerShips, shipBlueprints } from './game/ships/ships.schema';
+import { fleets, playerShips, shipBlueprints, playerShipBuilding } from './game/ships/ships.schema';
+import { playerShipQueue } from './game/ships/playerShipQueue.schema';
 
 export const CURRENCIES = {
   USD: 'usd',
@@ -227,6 +228,8 @@ const schema = defineSchema({
 
   // Ship definitions
   shipBlueprints,
+  playerShipBuilding,
+  playerShipQueue,
   playerShips,
   fleets
 });

@@ -24,12 +24,13 @@ export function useCompletionChecker(
   
   const checkCompletedUpgrades = useConvexMutation(api.game.bases.baseMutations.checkCompletedUpgrades);
   const checkCompletedResearch = useConvexMutation(api.game.research.researchMutations.checkCompletedResearch);
+  const checkCompletedShipBuilds = useConvexMutation(api.game.ships.shipActions.checkCompletedShipBuilds);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!baseId) return;
 
-    // Combined check function for both upgrades and research
+    // Combined check function for upgrades, research, and ship builds
     const checkAllCompletions = async () => {
       try {
         // Check structure upgrades for this base
@@ -37,6 +38,9 @@ export function useCompletionChecker(
         
         // Check research completion (user-level, not base-specific)
         await checkCompletedResearch({});
+        
+        // Check ship build completion (user-level, not base-specific)
+        await checkCompletedShipBuilds({});
       } catch (error) {
         console.error('Failed to check completed items:', error);
       }
@@ -57,14 +61,15 @@ export function useCompletionChecker(
         clearInterval(intervalRef.current);
       }
     };
-  }, [baseId, checkCompletedUpgrades, checkCompletedResearch, intervalMs, checkOnMount, enablePeriodicCheck]);
+  }, [baseId, checkCompletedUpgrades, checkCompletedResearch, checkCompletedShipBuilds, intervalMs, checkOnMount, enablePeriodicCheck]);
 
   // Manual trigger function
   const triggerCheck = () => {
     if (baseId) {
       Promise.all([
         checkCompletedUpgrades({ baseId }),
-        checkCompletedResearch({})
+        checkCompletedResearch({}),
+        checkCompletedShipBuilds({})
       ]).catch((error) => {
         console.error('Failed to check completed items:', error);
       });

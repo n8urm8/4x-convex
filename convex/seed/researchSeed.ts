@@ -61,7 +61,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     category: RESEARCH_CATEGORIES.WEAPONS,
     primaryEffect: '+5% damage per level for all energy weapons',
     description: 'Basic laser and beam weapon technology',
-    unlocks: ['Energy Defense Array', 'Beam-armed ships'],
+    unlocks: ['Energy Defense Array', 'Lance Interceptor', 'Beam-armed ships'],
     maxLevel: 20,
   },
   {
@@ -81,7 +81,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     category: RESEARCH_CATEGORIES.WEAPONS,
     primaryEffect: '+6% damage per level for all energy weapons',
     description: 'Superheated plasma projection systems',
-    unlocks: ['Plasma Defense Grid', 'Tempest Strike Ship', 'Energy-focused cruisers'],
+    unlocks: ['Plasma Defense Grid', 'Havoc Bomber', 'Tempest Strike Ship', 'Energy-focused cruisers'],
     maxLevel: 20,
   },
   {
@@ -133,7 +133,7 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     category: RESEARCH_CATEGORIES.SHIPS,
     primaryEffect: 'Enables construction of cruiser-class vessels (level increases ship stats)',
     description: 'Advanced hull design and systems integration for larger warships',
-    unlocks: ['Dauntless Cruiser', 'Intrepid Carrier Cruiser'],
+    unlocks: ['Dauntless Cruiser', 'Harbinger Missile Cruiser', 'Intrepid Carrier Cruiser'],
     maxLevel: 20,
   },
   {
@@ -153,7 +153,12 @@ export const researchSeedData: ResearchDefinitionSeed[] = [
     category: RESEARCH_CATEGORIES.SHIPS,
     primaryEffect: 'Enables construction of battleship and dreadnought-class vessels (level increases ship stats)',
     description: 'Massive warship architecture and life support systems',
-    unlocks: ['Juggernaut Battleship', 'Sovereign Dreadnought', 'Colossus Carrier'],
+    unlocks: [
+      'Juggernaut Battleship',
+      'Sovereign Dreadnought',
+      'Bastion Defense Battleship',
+      'Colossus Carrier',
+    ],
     maxLevel: 20,
   },
 

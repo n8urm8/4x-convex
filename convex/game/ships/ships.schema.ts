@@ -1,6 +1,9 @@
 import { defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
+/** Wall-clock length of one ship build cycle (5 minutes). */
+export const SHIP_BUILD_CYCLE_MS = 60 * 5 * 1000;
+
 export const shipBlueprint = {
   id: v.string(), // e.g., "ranger_scout"
   name: v.string(),
@@ -33,7 +36,20 @@ export const playerShips = defineTable({
   currentHealth: v.number(),
 })
   .index('byUserId', ['userId'])
-  .index('byFleetId', ['fleetId']);
+  .index('byFleetId', ['fleetId'])
+  .index('byBaseId', ['baseId']);
+
+/** Currently building ships (one active per base). */
+export const playerShipBuilding = defineTable({
+  userId: v.id('users'),
+  baseId: v.id('playerBases'),
+  shipBlueprintId: v.string(), // From shipBlueprints.id
+  quantity: v.number(),
+  startedAt: v.number(),
+  finishesAt: v.number(),
+})
+  .index('by_user', ['userId'])
+  .index('by_base', ['baseId']);
 
 export const fleets = defineTable({
   userId: v.id('users'),
