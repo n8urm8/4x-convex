@@ -11,16 +11,15 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CreateBaseModal } from './CreateBaseModal';
-
-const ExplorerName = ({ explorerId }: { explorerId: Id<'users'> }) => {
-  const { data: explorer } = useQuery(
-    convexQuery(api.app.getUserById, { userId: explorerId })
-  );
-  return <>{explorer?.username ?? 'Another Player'}</>;
-};
+import { FleetDetailsModal } from './FleetDetailsModal';
+import { FleetsList } from './FleetsList';
+import { BaseInformation } from './BaseInformation';
+import { PlanetHeader } from './PlanetHeader';
 
 export function PlanetView() {
   const [isCreateBaseModalOpen, setCreateBaseModalOpen] = useState(false);
+  const [selectedFleetId, setSelectedFleetId] = useState<Id<'fleets'> | null>(null);
+
   const { sectorX, sectorY, systemX, systemY, planetX, planetY } =
     Route.useSearch();
 
@@ -80,6 +79,16 @@ export function PlanetView() {
   const { data: currentUser, isLoading: loadingCurrentUser } = useQuery(
     convexQuery(api.app.getCurrentUser, {})
   );
+
+  const { data: fleetsInSystem, isLoading: loadingFleets } = useQuery({
+    ...convexQuery(
+      api.game.fleets.fleetQueries.getFleetsInSystem,
+      starSystem?._id
+        ? { systemId: starSystem._id }
+        : { systemId: '' as Id<'sectorSystems'> }
+    ),
+    enabled: !!starSystem?._id
+  });
 
   const discoverSystemAdapter = useConvexMutation(
     api.game.map.systemMutations.discoverSystem
@@ -141,7 +150,7 @@ export function PlanetView() {
 
   const isStar = planetX === 4 && planetY === 4;
   const isLoading =
-    loadingPlanet || loadingStarSystem || loadingBase || loadingCurrentUser;
+    loadingPlanet || loadingStarSystem || loadingBase || loadingCurrentUser || loadingFleets;
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -162,35 +171,19 @@ export function PlanetView() {
 
   return (
     <div className="p-4 space-y-4">
-      {/* Image Section - Smaller */}
-      <div className="w-32 h-32 mx-auto rounded-md flex items-center justify-center overflow-hidden">
-        <img
-          src={imageSrc}
-          alt={displayName}
-          className="max-w-full max-h-full object-contain"
-        />
-      </div>
-
-      {/* Details Section */}
-      <div className="text-center">
-        <h2 className="text-xl font-semibold">{displayName}</h2>
-        <p className="text-sm text-gray-400">Type: {displayType || 'N/A'}</p>
-        <p className="text-xs text-gray-500">
-          Coords: G{galaxyNumber}/S{sectorX}-{sectorY}/Sys{systemX}-{systemY}
-          {!isStar && `/P${planetX}-${planetY}`}
-        </p>
-        {starSystem && (
-          <p className="text-sm">
-            {starSystem.exploredBy ? (
-              <>
-                Explored by: <ExplorerName explorerId={starSystem.exploredBy} />
-              </>
-            ) : (
-              'Unexplored'
-            )}
-          </p>
-        )}
-      </div>
+      <PlanetHeader
+        displayName={displayName}
+        displayType={displayType}
+        imageSrc={imageSrc}
+        galaxyNumber={Number(galaxyNumber!)}
+        sectorX={Number(sectorX!)}
+        sectorY={Number(sectorY!)}
+        systemX={Number(systemX!)}
+        systemY={Number(systemY!)}
+        planetX={planetX}
+        planetY={planetY}
+        starSystem={starSystem || undefined}
+      />
 
       {/* Action Buttons Section */}
       <div className="flex justify-center space-x-2">
@@ -210,21 +203,17 @@ export function PlanetView() {
         )}
       </div>
 
-      {/* Base Information Section */}
-      {baseOnPlanet && (
-        <div className="mt-4 p-3 border rounded-md bg-gray-800">
-          <h3 className="font-semibold">Base Present</h3>
-          <p>Name: {baseOnPlanet.name}</p>
-          <p>
-            Owner:{' '}
-            {baseOnPlanet.userId === currentUser?._id
-              ? currentUser?.name
-              : 'Another Player'}{' '}
-            {/* Changed to flat currentUser access */}
-            {/* TODO: Fetch player name if not current user */}
-          </p>
-        </div>
-      )}
+      <BaseInformation
+        base={baseOnPlanet}
+        currentUserId={currentUser?._id}
+        currentUserName={currentUser?.name}
+      />
+
+      <FleetsList
+        fleets={fleetsInSystem || []}
+        currentUserId={currentUser?._id}
+        onFleetClick={setSelectedFleetId}
+      />
 
       <CreateBaseModal
         isOpen={isCreateBaseModalOpen}
@@ -233,7 +222,10 @@ export function PlanetView() {
         isCreating={isCreatingBase}
       />
 
-      {/* TODO: Fleets Table Section */}
+      <FleetDetailsModal
+        fleetId={selectedFleetId}
+        onClose={() => setSelectedFleetId(null)}
+      />
     </div>
   );
 };
