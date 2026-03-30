@@ -67,6 +67,8 @@ export const fleets = defineTable({
   currentSectorY: v.number(),
   currentSystemX: v.number(),
   currentSystemY: v.number(),
+  currentPlanetX: v.optional(v.number()), // Planet coordinates within system (undefined = at star)
+  currentPlanetY: v.optional(v.number()), // Planet coordinates within system (undefined = at star)
   
   // Movement information
   status: v.string(), // 'idle', 'moving', 'in-combat', 'destroyed'
@@ -76,6 +78,9 @@ export const fleets = defineTable({
   destinationSectorY: v.optional(v.number()),
   destinationSystemX: v.optional(v.number()),
   destinationSystemY: v.optional(v.number()),
+  destinationPlanetX: v.optional(v.number()), // Destination planet coordinates
+  destinationPlanetY: v.optional(v.number()), // Destination planet coordinates
+  destinationIsAtStar: v.optional(v.boolean()), // True if destination is star, false if planet
   arrivalTime: v.optional(v.number()), // When the fleet will arrive at destination
   
   // Fleet stats (calculated from ships)

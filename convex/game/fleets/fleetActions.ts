@@ -114,13 +114,15 @@ async function checkMobileFleetLimits(ctx: any, userId: Id<'users'>) {
   };
 }
 
-// Helper function to calculate movement time
+// Helper function to calculate movement time with planet/star coordinates
 function calculateMovementTime(
   fromX: number, fromY: number, fromSectorX: number, fromSectorY: number, fromGalaxy: number,
+  fromPlanetX: number | undefined, fromPlanetY: number | undefined, fromIsAtStar: boolean,
   toX: number, toY: number, toSectorX: number, toSectorY: number, toGalaxy: number,
+  toPlanetX: number | undefined, toPlanetY: number | undefined, toIsAtStar: boolean,
   fleetSpeed: number
 ): number {
-  // Calculate distance between systems
+  // Calculate distance between locations
   let distance = 0;
 
   if (fromGalaxy !== toGalaxy) {
@@ -131,17 +133,57 @@ function calculateMovementTime(
     const sectorDistance = Math.sqrt(
       Math.pow(toSectorX - fromSectorX, 2) + Math.pow(toSectorY - fromSectorY, 2)
     );
-    distance = sectorDistance * 100 + Math.sqrt(
+    const systemDistance = Math.sqrt(
       Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2)
     );
+    
+    // Add planet distance if both locations have planet coordinates
+    let planetDistance = 0;
+    if (!fromIsAtStar && !toIsAtStar && 
+        fromPlanetX !== undefined && fromPlanetY !== undefined &&
+        toPlanetX !== undefined && toPlanetY !== undefined) {
+      planetDistance = Math.sqrt(
+        Math.pow(toPlanetX - fromPlanetX, 2) + Math.pow(toPlanetY - fromPlanetY, 2)
+      );
+    }
+    
+    distance = (sectorDistance * 100) + systemDistance + (planetDistance * 0.1);
+  } else if (fromX !== toX || fromY !== toY) {
+    // Same sector, different system
+    const systemDistance = Math.sqrt(
+      Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2)
+    );
+    
+    // Add planet distance if both locations have planet coordinates
+    let planetDistance = 0;
+    if (!fromIsAtStar && !toIsAtStar && 
+        fromPlanetX !== undefined && fromPlanetY !== undefined &&
+        toPlanetX !== undefined && toPlanetY !== undefined) {
+      planetDistance = Math.sqrt(
+        Math.pow(toPlanetX - fromPlanetX, 2) + Math.pow(toPlanetY - fromPlanetY, 2)
+      );
+    }
+    
+    distance = systemDistance + (planetDistance * 0.1);
   } else {
-    // Same sector travel
-    distance = Math.sqrt(
-      Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2)
-    );
+    // Same system - planet to planet or star to planet movement
+    if (!fromIsAtStar && !toIsAtStar && 
+        fromPlanetX !== undefined && fromPlanetY !== undefined &&
+        toPlanetX !== undefined && toPlanetY !== undefined) {
+      const planetDistance = Math.sqrt(
+        Math.pow(toPlanetX - fromPlanetX, 2) + Math.pow(toPlanetY - fromPlanetY, 2)
+      );
+      distance = planetDistance * 0.1;
+    } else if (fromIsAtStar !== toIsAtStar) {
+      // Moving between star and planet in same system
+      distance = 0.1; // Small fixed distance for star-planet movement
+    } else {
+      // Same location
+      distance = 0;
+    }
   }
 
-  // Movement time = distance / speed (minimum 1 minute, maximum based on speed)
+  // Movement time = distance / speed (minimum 1 minute)
   const baseTimeMinutes = Math.max(1, distance / Math.max(1, fleetSpeed));
   return Date.now() + (baseTimeMinutes * 60 * 1000); // Convert to milliseconds
 }
@@ -495,6 +537,8 @@ export const completeFleetMovement = mutation({
       currentSectorY: fleet.destinationSectorY!,
       currentSystemX: fleet.destinationSystemX!,
       currentSystemY: fleet.destinationSystemY!,
+      currentPlanetX: fleet.destinationPlanetX,
+      currentPlanetY: fleet.destinationPlanetY,
       status: FLEET_STATUS.IDLE,
       destinationSystemId: undefined,
       destinationGalaxyNumber: undefined,
@@ -502,6 +546,9 @@ export const completeFleetMovement = mutation({
       destinationSectorY: undefined,
       destinationSystemX: undefined,
       destinationSystemY: undefined,
+      destinationPlanetX: undefined,
+      destinationPlanetY: undefined,
+      destinationIsAtStar: undefined,
       arrivalTime: undefined,
       lastUpdated: Date.now()
     });
@@ -650,6 +697,262 @@ export const attackFleet = mutation({
         message: 'Combat complete! Both fleets survived with damage.',
         attackerSurvived: true,
         defenderSurvived: true
+      };
+    }
+  }
+});
+
+// Move selected ships from a fleet to a destination
+export const moveFleetWithShips = mutation({
+  args: {
+    fleetId: v.id('fleets'),
+    shipIds: v.array(v.id('playerShips')),
+    destinationCoordinates: v.object({
+      galaxyNumber: v.number(),
+      sectorX: v.number(),
+      sectorY: v.number(),
+      systemX: v.number(),
+      systemY: v.number(),
+      planetX: v.optional(v.number()),
+      planetY: v.optional(v.number()),
+      isAtStar: v.optional(v.boolean())
+    })
+  },
+  handler: async (ctx, args) => {
+    const user = await getAuthedUser(ctx);
+
+    // Get the fleet and verify ownership
+    const fleet = await ctx.db.get(args.fleetId);
+    if (!fleet) {
+      throw new Error('Fleet not found');
+    }
+    if (fleet.userId !== user._id) {
+      throw new Error('You can only control your own fleets');
+    }
+
+    // Check if fleet can move
+    if (fleet.status === FLEET_STATUS.IN_COMBAT) {
+      throw new Error('Fleet is in combat and cannot move');
+    }
+    if (fleet.status === FLEET_STATUS.DESTROYED) {
+      throw new Error('Destroyed fleets cannot move');
+    }
+    if (fleet.status === FLEET_STATUS.MOVING) {
+      throw new Error('Fleet is already moving');
+    }
+
+    // Verify ships belong to this fleet
+    const ships = [];
+    for (const shipId of args.shipIds) {
+      const ship = await ctx.db.get(shipId);
+      if (!ship) {
+        throw new Error(`Ship ${shipId} not found`);
+      }
+      if (ship.userId !== user._id) {
+        throw new Error(`You don't own ship ${shipId}`);
+      }
+      if (ship.fleetId !== args.fleetId) {
+        throw new Error(`Ship ${shipId} is not in this fleet`);
+      }
+      ships.push(ship);
+    }
+
+    if (ships.length === 0) {
+      throw new Error('No ships selected for movement');
+    }
+
+    // Find or validate destination system
+    const destinationSystem = await ctx.db
+      .query('sectorSystems')
+      .withIndex('by_absolute_coordinates', (q) =>
+        q
+          .eq('galaxyNumber', args.destinationCoordinates.galaxyNumber)
+          .eq('sectorX', args.destinationCoordinates.sectorX)
+          .eq('sectorY', args.destinationCoordinates.sectorY)
+          .eq('systemX', args.destinationCoordinates.systemX)
+          .eq('systemY', args.destinationCoordinates.systemY)
+      )
+      .first();
+
+    if (!destinationSystem) {
+      throw new Error('Destination system does not exist');
+    }
+
+    // If destination is a planet, validate planet exists
+    const destCoords = args.destinationCoordinates;
+    const isDestinationAtStar = destCoords.isAtStar !== false;
+    
+    if (!isDestinationAtStar && destCoords.planetX !== undefined && destCoords.planetY !== undefined) {
+      const destinationPlanet = await ctx.db
+        .query('systemPlanets')
+        .withIndex('by_absolute_coordinates', (q) =>
+          q
+            .eq('galaxyNumber', destCoords.galaxyNumber)
+            .eq('sectorX', destCoords.sectorX)
+            .eq('sectorY', destCoords.sectorY)
+            .eq('systemX', destCoords.systemX)
+            .eq('systemY', destCoords.systemY)
+            .eq('planetX', destCoords.planetX)
+            .eq('planetY', destCoords.planetY)
+        )
+        .first();
+      
+      if (!destinationPlanet) {
+        throw new Error('Destination planet does not exist');
+      }
+    }
+
+    // Check if already at destination (including planet coordinates)
+    const currentIsAtStar = fleet.currentPlanetX === undefined || fleet.currentPlanetY === undefined;
+    const sameSystem = fleet.currentSystemId === destinationSystem._id;
+    const samePlanet = fleet.currentPlanetX === destCoords.planetX && 
+                      fleet.currentPlanetY === destCoords.planetY;
+    const sameStarStatus = currentIsAtStar === isDestinationAtStar;
+    
+    if (sameSystem && sameStarStatus && (isDestinationAtStar || samePlanet)) {
+      throw new Error('Fleet is already at the destination');
+    }
+
+    // Calculate fleet speed (slowest ship)
+    let minSpeed = Infinity;
+    for (const ship of ships) {
+      const blueprint = await ctx.db
+        .query('shipBlueprints')
+        .withIndex('byId', (q) => q.eq('id', ship.blueprintId))
+        .unique();
+      
+      if (blueprint && blueprint.movementSpeed) {
+        minSpeed = Math.min(minSpeed, blueprint.movementSpeed);
+      }
+    }
+
+    if (minSpeed === Infinity || minSpeed === 0) {
+      throw new Error('Selected ships have no movement capability');
+    }
+
+    // If moving all ships, update existing fleet
+    const allFleetShips = await ctx.db
+      .query('playerShips')
+      .withIndex('byFleetId', (q) => q.eq('fleetId', args.fleetId))
+      .collect();
+
+    if (args.shipIds.length === allFleetShips.length) {
+      // Moving entire fleet
+      const arrivalTime = calculateMovementTime(
+        fleet.currentSystemX, fleet.currentSystemY,
+        fleet.currentSectorX, fleet.currentSectorY,
+        fleet.currentGalaxyNumber,
+        fleet.currentPlanetX, fleet.currentPlanetY,
+        fleet.currentPlanetX === undefined || fleet.currentPlanetY === undefined,
+        destinationSystem.systemX, destinationSystem.systemY,
+        destinationSystem.sectorX, destinationSystem.sectorY,
+        destinationSystem.galaxyNumber,
+        destCoords.planetX, destCoords.planetY,
+        isDestinationAtStar,
+        minSpeed
+      );
+
+      await ctx.db.patch(args.fleetId, {
+        status: FLEET_STATUS.MOVING,
+        destinationSystemId: destinationSystem._id,
+        destinationGalaxyNumber: destinationSystem.galaxyNumber,
+        destinationSectorX: destinationSystem.sectorX,
+        destinationSectorY: destinationSystem.sectorY,
+        destinationSystemX: destinationSystem.systemX,
+        destinationSystemY: destinationSystem.systemY,
+        destinationPlanetX: destCoords.planetX,
+        destinationPlanetY: destCoords.planetY,
+        destinationIsAtStar: isDestinationAtStar,
+        arrivalTime,
+        fleetSpeed: minSpeed,
+        lastUpdated: Date.now()
+      });
+
+      const travelTimeMinutes = Math.round((arrivalTime - Date.now()) / (60 * 1000));
+      return {
+        message: `Entire fleet is now moving to destination. Estimated arrival: ${travelTimeMinutes} minutes`
+      };
+    } else {
+      // Moving partial fleet - create new fleet
+      const fleetNumber = await getNextFleetNumber(ctx, user._id);
+      const newFleetId = await ctx.db.insert('fleets', {
+        userId: user._id,
+        name: `Fleet ${fleetNumber}`,
+        fleetNumber,
+        isBaseFleet: false,
+        currentSystemId: fleet.currentSystemId,
+        currentGalaxyNumber: fleet.currentGalaxyNumber,
+        currentSectorX: fleet.currentSectorX,
+        currentSectorY: fleet.currentSectorY,
+        currentSystemX: fleet.currentSystemX,
+        currentSystemY: fleet.currentSystemY,
+        status: FLEET_STATUS.MOVING,
+        totalDamage: 0,
+        totalDefense: 0,
+        totalShielding: 0,
+        totalHealth: 0,
+        maxHealth: 0,
+        fleetSpeed: minSpeed,
+        currentCapacity: 0,
+        maxCapacity: BASE_FLEET_CAPACITY,
+        createdAt: Date.now(),
+        lastUpdated: Date.now()
+      });
+
+      // Move selected ships to new fleet
+      for (const shipId of args.shipIds) {
+        await ctx.db.patch(shipId, { fleetId: newFleetId });
+      }
+
+      // Calculate movement time
+      const arrivalTime = calculateMovementTime(
+        fleet.currentSystemX, fleet.currentSystemY,
+        fleet.currentSectorX, fleet.currentSectorY,
+        fleet.currentGalaxyNumber,
+        fleet.currentPlanetX, fleet.currentPlanetY,
+        fleet.currentPlanetX === undefined || fleet.currentPlanetY === undefined,
+        destinationSystem.systemX, destinationSystem.systemY,
+        destinationSystem.sectorX, destinationSystem.sectorY,
+        destinationSystem.galaxyNumber,
+        destCoords.planetX, destCoords.planetY,
+        isDestinationAtStar,
+        minSpeed
+      );
+
+      // Set destination for new fleet
+      await ctx.db.patch(newFleetId, {
+        destinationSystemId: destinationSystem._id,
+        destinationGalaxyNumber: destinationSystem.galaxyNumber,
+        destinationSectorX: destinationSystem.sectorX,
+        destinationSectorY: destinationSystem.sectorY,
+        destinationSystemX: destinationSystem.systemX,
+        destinationSystemY: destinationSystem.systemY,
+        destinationPlanetX: destCoords.planetX,
+        destinationPlanetY: destCoords.planetY,
+        destinationIsAtStar: isDestinationAtStar,
+        arrivalTime
+      });
+
+      // Recalculate stats for both fleets
+      const [originalStats, newFleetStats] = await Promise.all([
+        calculateFleetStats(ctx, args.fleetId),
+        calculateFleetStats(ctx, newFleetId)
+      ]);
+
+      await Promise.all([
+        ctx.db.patch(args.fleetId, {
+          ...originalStats,
+          lastUpdated: Date.now()
+        }),
+        ctx.db.patch(newFleetId, {
+          ...newFleetStats,
+          lastUpdated: Date.now()
+        })
+      ]);
+
+      const travelTimeMinutes = Math.round((arrivalTime - Date.now()) / (60 * 1000));
+      return {
+        message: `${args.shipIds.length} ships split into Fleet ${fleetNumber} and are moving to destination. Estimated arrival: ${travelTimeMinutes} minutes`
       };
     }
   }

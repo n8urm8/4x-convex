@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@cvx/_generated/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +10,18 @@ import {
   Rocket, 
   MapPin, 
   Users, 
-  Clock
+  Clock,
+  Navigation,
+  Sword
 } from 'lucide-react';
+import { FleetMoveDialog } from './FleetMoveDialog';
+import { FleetAttackDialog } from './FleetAttackDialog';
 
-function FleetCard({ fleet, onManage }: { fleet: any; onManage: (fleetId: Id<'fleets'>) => void }) {
+function FleetCard({ fleet, onMove, onAttack }: { 
+  fleet: any; 
+  onMove: (fleetId: Id<'fleets'>) => void;
+  onAttack: (fleetId: Id<'fleets'>) => void;
+}) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'idle':
@@ -32,9 +41,15 @@ function FleetCard({ fleet, onManage }: { fleet: any; onManage: (fleetId: Id<'fl
       : <Badge variant="default" className="text-xs">Mobile Fleet</Badge>;
   };
 
-  const formatLocation = (system: any) => {
+  const formatLocation = (system: any, planetX?: number, planetY?: number) => {
     if (!system) return 'Unknown';
-    return `G${system.galaxyNumber}-S${system.sectorX}.${system.sectorY}-Sys${system.systemX}.${system.systemY}`;
+    const base = `G${system.galaxyNumber}-S${system.sectorX}.${system.sectorY}-Sys${system.systemX}.${system.systemY}`;
+    
+    if (planetX !== undefined && planetY !== undefined) {
+      return `${base}-P${planetX}.${planetY}`;
+    } else {
+      return `${base}-Star`;
+    }
   };
 
   const formatTime = (timestamp: number) => {
@@ -65,14 +80,18 @@ function FleetCard({ fleet, onManage }: { fleet: any; onManage: (fleetId: Id<'fl
           {/* Location */}
           <div className="flex items-center gap-2 text-sm">
             <MapPin className="h-4 w-4" />
-            <span>{formatLocation(fleet.currentSystem)}</span>
+            <span className="font-mono text-xs">
+              {formatLocation(fleet.currentSystem, fleet.currentPlanetX, fleet.currentPlanetY)}
+            </span>
           </div>
 
           {/* Movement info */}
           {fleet.status === 'moving' && fleet.destinationSystem && fleet.arrivalTime && (
             <div className="flex items-center gap-2 text-sm text-blue-600">
               <Clock className="h-4 w-4" />
-              <span>→ {formatLocation(fleet.destinationSystem)} ({formatTime(fleet.arrivalTime)})</span>
+              <span className="font-mono text-xs">
+                → {formatLocation(fleet.destinationSystem, fleet.destinationPlanetX, fleet.destinationPlanetY)} ({formatTime(fleet.arrivalTime)})
+              </span>
             </div>
           )}
 
@@ -131,10 +150,22 @@ function FleetCard({ fleet, onManage }: { fleet: any; onManage: (fleetId: Id<'fl
             <Button 
               size="sm" 
               variant="outline" 
-              onClick={() => onManage(fleet._id)}
+              onClick={() => onMove(fleet._id)}
               className="flex-1"
+              disabled={fleet.status === 'moving' || fleet.status === 'in-combat'}
             >
-              Manage
+              <Navigation className="h-3 w-3 mr-1" />
+              Move
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => onAttack(fleet._id)}
+              className="flex-1"
+              disabled={fleet.status === 'moving' || fleet.status === 'in-combat' || fleet.totalDamage === 0}
+            >
+              <Sword className="h-3 w-3 mr-1" />
+              Attack
             </Button>
           </div>
         </div>
@@ -144,6 +175,10 @@ function FleetCard({ fleet, onManage }: { fleet: any; onManage: (fleetId: Id<'fl
 }
 
 export function FleetManagement() {
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [attackDialogOpen, setAttackDialogOpen] = useState(false);
+  const [selectedFleetId, setSelectedFleetId] = useState<Id<'fleets'> | null>(null);
+
   // Queries
   const fleets = useQuery(api.game.fleets.fleetQueries.getUserFleets);
   const fleetLimits = useQuery(api.game.fleets.fleetQueries.getFleetLimits);
@@ -161,9 +196,14 @@ export function FleetManagement() {
     }
   };
 
-  const handleManageFleet = (_fleetId: Id<'fleets'>) => {
-    // TODO: Open fleet management modal/page
-    toast.info('Fleet management interface coming soon!');
+  const handleMoveFleet = (fleetId: Id<'fleets'>) => {
+    setSelectedFleetId(fleetId);
+    setMoveDialogOpen(true);
+  };
+
+  const handleAttackFleet = (fleetId: Id<'fleets'>) => {
+    setSelectedFleetId(fleetId);
+    setAttackDialogOpen(true);
   };
 
   if (!fleets || !fleetLimits) {
@@ -258,7 +298,8 @@ export function FleetManagement() {
           <FleetCard 
             key={fleet._id} 
             fleet={fleet} 
-            onManage={handleManageFleet}
+            onMove={handleMoveFleet}
+            onAttack={handleAttackFleet}
           />
         ))}
       </div>
@@ -274,6 +315,22 @@ export function FleetManagement() {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Dialogs */}
+      {selectedFleetId && (
+        <>
+          <FleetMoveDialog
+            open={moveDialogOpen}
+            onOpenChange={setMoveDialogOpen}
+            fleetId={selectedFleetId}
+          />
+          <FleetAttackDialog
+            open={attackDialogOpen}
+            onOpenChange={setAttackDialogOpen}
+            fleetId={selectedFleetId}
+          />
+        </>
       )}
     </div>
   );
